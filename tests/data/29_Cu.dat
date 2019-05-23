@@ -1,0 +1,65 @@
+# ATOM AND REFERENCE CONFIGURATION
+# atsym, z, nc, nv, iexc   psfile
+    Cu  29.    3   4   3   psp8
+#
+# n, l, f  (nc+nv lines)
+    1    0    2.0
+    2    0    2.0
+    2    1    6.0
+    3    0    2.0
+    3    1    6.0
+    3    2   10.0
+    4    0    1.0
+#
+# PSEUDOPOTENTIAL AND OPTIMIZATION
+# lmax
+    2
+#
+# l, rc, ep, ncon, nbas, qcut  (lmax+1 lines, l's must be in order)
+    0    1.90    0.00    5    8    7.00
+    1    2.10    0.00    5    8    8.00
+    2    2.10    0.00    5    9    9.00
+#
+# LOCAL POTENTIAL
+# lloc, lpopt, rc(5), dvloc0
+    4    5    1.9    0.0
+#
+# VANDERBILT-KLEINMAN-BYLANDER PROJECTORs
+# l, nproj, debl  (lmax+1 lines, l's in order)
+    0    2    1.50
+    1    2    3.00
+    2    2    1.00
+#
+# MODEL CORE CHARGE
+# icmod, fcfact
+    0    0.0
+#
+# LOG DERIVATIVE ANALYSIS
+# epsh1, epsh2, depsh
+   -5.0  2.0  0.02
+#
+# OUTPUT GRID
+# rlmax, drl
+    6.0  0.01
+#
+# TEST CONFIGURATIONS
+# ncnf
+    3
+#
+#   nvcnf (repeated ncnf times)
+#   n, l, f  (nvcnf lines, repeated follwing nvcnf's ncnf times)
+    3
+    3    0    2.0
+    3    1    6.0
+    3    2   10.0
+#
+    4
+    3    0    2.0
+    3    1    6.0
+    3    2    9.0
+    4    0    1.0
+#
+    3
+    3    0    2.0
+    3    1    6.0
+    3    2    9.0

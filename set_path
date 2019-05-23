@@ -1,0 +1,33 @@
+#!/bin/sh
+#edits various shell scripts to provide full path to executables
+
+NEW_PREFIX=`pwd`
+
+TMP=$$.tmp
+
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run.sh >$TMP
+cp $TMP tests/run.sh
+cp $TMP scripts/run.sh
+
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_nr.sh >$TMP
+cp $TMP tests/run_nr.sh
+cp $TMP scripts/run_nr.sh
+
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_r.sh >$TMP
+cp $TMP tests/run_r.sh
+cp $TMP scripts/run_r.sh
+
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_nr.sh >$TMP
+cp $TMP tests/multirun_nr.sh
+cp $TMP scripts/run_nr.sh
+
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_r.sh >$TMP
+cp $TMP tests/multirun_r.sh
+cp $TMP scripts/run_r.sh
+
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare.sh >$TMP
+cp $TMP tests/compare.sh
+cp $TMP scripts/compare.sh
+
+rm $TMP
+

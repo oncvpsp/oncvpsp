@@ -1,0 +1,4 @@
+The *.sh scripts are replicated in the tests directory.
+
+The first line of fldiff.pl may have to be edited to specify the proper
+location of perl.

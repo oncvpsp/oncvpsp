@@ -1,0 +1,61 @@
+# ATOM AND REFERENCE CONFIGURATION
+# atsym  z   nc   nv     iexc    psfile
+  Nd 60.00   10    4       -101130      psp8
+# Nd 60.00   10    4       4      psp8
+#
+#   n    l    f        energy (Ha)
+    1    0    2.00
+    2    0    2.00
+    2    1    6.00
+    3    0    2.00
+    3    1    6.00
+    3    2   10.00
+    4    0    2.00
+    4    1    6.00
+    4    2   10.00
+    4    3    3.00
+    5    0    2.00
+    5    1    6.00
+    5    2    1.00
+    6    0    2.00
+#
+# PSEUDOPOTENTIAL AND OPTIMIZATION
+# lmax
+    3
+#
+#   l,   rc,      ep,       ncon, nbas, qcut
+    0   2.10000   0.00000    4    8   5.40000
+    1   1.95000   0.00000    4    8   6.60000
+    2   1.95000   0.00000    4    9   6.60000
+    3   2.60000   0.75000    4    9   6.30000
+#
+# LOCAL POTENTIAL
+# lloc, lpopt,  rc(5),   dvloc0
+    4    3   1.95000      0.00000
+#   4    3   1.90000      0.00000  #High ghost resonance when this line is uwed.
+#
+# VANDERBILT-KLEINMAN-BYLANDER PROJECTORs
+# l, nproj, debl
+    0    2   1.00000
+    1    2   4.00000
+    2    2   4.00000
+    3    2   2.00000
+#
+# MODEL CORE CHARGE
+# icmod, fcfact, rcfact
+    1   0.25000   0.00000
+#
+# LOG DERIVATIVE ANALYSIS
+# epsh1, epsh2, depsh
+   -3.00    5.00    0.02
+#
+# OUTPUT GRID
+# rlmax, drl
+    6.00    0.01
+#
+# TEST CONFIGURATIONS
+# ncnf
+    0
+# nvcnf
+#   n    l    f
+
