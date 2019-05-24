@@ -46,7 +46,7 @@ are collected in TEST.report.  If a reported summary error appears to be
 non-trivial, look at the *<prefix>.diff*.
 
 If *tests/compare.sh* fails, check the first line of *scripts/fldiff.pl*
-and make sure it points to your perl executable. Running `83_Bi` requires
+and make sure it points to your perl executable. Running *83_Bi* requires
 libxc, and the program will stop with an error message if this was not included.
 
 Once you have successfully built the code it would be a good idea to
@@ -74,9 +74,9 @@ will do the obvious, and the command
 will cause an ABINIT-readable pseudopotential file in the psp8 format, or a
 PWSCF-readable pseudopotential in the UPF format to be created in the 
 *~/<pspdirectory>*.  The plotting and pseudopotential data are all saved in the 
-<prefix>.out file.  The last input datum on the first data line determines
+*<prefix>.out* file.  The last input datum on the first data line determines
 which format is produced by ONCVPSP.  A copy of the input data is also
-saved at the head of the `<prefix>.out` file.  The remaining text above the 
+saved at the head of the *<prefix>.out* file.  The remaining text above the 
 "DATA FOR PLOTTING" line reports a variety of consistency checks, information
 about the pseudo wave functions, diagnostic checks, and convergence
 information (now also plotted).
@@ -121,6 +121,23 @@ If you use oncvpsp in your research, please consider citing the
     D. R. Hamann
     Phys. Rev. B 88, 085117 (2013)
     10.1103/PhysRevB.88.085117
+
+```
+@article{PhysRevB.88.085117,
+  title = {Optimized norm-conserving Vanderbilt pseudopotentials},
+  author = {Hamann, D. R.},
+  journal = {Phys. Rev. B},
+  volume = {88},
+  issue = {8},
+  pages = {085117},
+  numpages = {10},
+  year = {2013},
+  month = {Aug},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevB.88.085117},
+  url = {https://link.aps.org/doi/10.1103/PhysRevB.88.085117}
+}
+```
 
 ## License
 
