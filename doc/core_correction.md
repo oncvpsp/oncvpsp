@@ -1,16 +1,16 @@
 
-			MODEL CORE CHARGE
+## MODEL CORE CHARGE
 
-    Release 3.2.3 changed modcore2.f90 and modcore3.f90.  See the release
+Release 3.2.3 changed modcore2.f90 and modcore3.f90.  See the release
 notes for details.
 
-    Releases prior to 3.2.1 had the option of including a model core charge
+Releases prior to 3.2.1 had the option of including a model core charge
 to give a "non-linear core correction" in the spirit of Louie, Froyen, and
 Cohen.[1]  The functional form was actually a polynomial model allowing
 greater continuity at or near the core-valence charge "crossover" following,
 more or less, Fuchs and Scheffler.[2]
 
-    Model core charges often produce convergence problems, especially  with
+Model core charges often produce convergence problems, especially  with
 phonon calculations and violations of the acoustic sum rule at Gamma.  An
 alternative approach to the LFC non-linearity argument was introduced by
 Teter.[3]  He proposed that the 2nd derivatives of the exchange-correlation
@@ -27,7 +27,7 @@ generation of these potentials [5].  Routines gg1cc.f90, gp1cc.f90, and
 gpp1cc.f90 to calculate  this function and its first two derivatives have 
 been adapted from ABINIT.
 
-    Since ONCVPSP can include shallow core states as valence while
+Since ONCVPSP can include shallow core states as valence while
 maintaining acceptable connvergence, the model-core corrections are
 often unnecessary.  In addition, if inner cores are modeled, the shallow-
 core charge at the crossover may be significantly different from that
@@ -35,7 +35,7 @@ of the all-electron atom, so the 'non-linearity" correction may not be
 the only issue.  Teter 2nd-derivative calculations of Exc are now
 included, with 4 options specified by the input variable icmod.
 
-    To my knowledge there is no systematic evidence that "Teter hardness
+To my knowledge there is no systematic evidence that "Teter hardness
 metric" accuracy correlates with improved agreement between all-electron
 and pseudopotential results. Its use to tune oncvpsp potentials should be 
 regarded as experimental.
@@ -72,9 +72,11 @@ icmod==3
     from the input file, with the fcfact input re-interpreted and the
     rcfact argument added as follows:
  
+```
 # MODEL CORE CHARGE
 # icmod, fcfact, rcfact 
     3    5.0  1.3
+```
     
     These parameters are defined consisently with option 4 below.  They
     are also given the the out  files of options 2 and 4 as " amplitude 

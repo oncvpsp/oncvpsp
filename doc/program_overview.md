@@ -1,20 +1,19 @@
-﻿
-                           OVERVIEW OF ONCVPSP
+﻿## OVERVIEW OF ONCVPSP
 
-References to  "the paper" are to oncvpsp6.pdf, which is reproduced in this
+References to "the paper" are to oncvpsp6.pdf, which is reproduced in this
 directory (now published as Phys. Rev. B 88, 085117 (2013)).
 
 
 The main program is oncvpsp.f90, and has the following major sections:
 
-1) Data readin: Oncvpsp reads an input file, say 32_Ge.dat, from its standard
+1) Data readin: Oncvpsp reads an input file, say `32_Ge.dat`, from its standard
    input.  While this file may contain comment lines with the initial character
    '#', its format is fixed, and input data must appear in the proper order,
-   line by line.  Examples in tests/data as well as 32_Ge_annotated.dat in
+   line by line.  Examples in tests/data as well as `32_Ge_annotated.dat` in
    this directory should clarify this.  The program will stop, identifying
    the first bad line encountered in the input file if it does not find what
    it expects.  After a successful readin, the data is scanned by the
-   routine check_data for violations of bounds, etc., and offending data will
+   routine `check_data` for violations of bounds, etc., and offending data will
    be identified prior to halting.  There are, quite deliberately, no defaults.
    Everything must be thought about and specified (but there is not that much
    input data).
@@ -61,7 +60,7 @@ The main program is oncvpsp.f90, and has the following major sections:
      and the convergence profile (Energy error per electron vs. cutoff) 
      are printed.
 
-4) The routine run_vkb then is then called.  It constructs the local 
+4) The routine *run_vkb* then is then called.  It constructs the local 
    potential from a polynomial extrapolation of the all-electron potential 
    to zero (the recommended option, especially to take advantage of the
    Vanderbilt two-projector method), or uses one of the semi-local
@@ -74,7 +73,7 @@ The main program is oncvpsp.f90, and has the following major sections:
    of Eq.(24) is produced.  A small amount of diagnostic information is
    printed.  As of release 2.0, orthonormal projectors are subsequently
    constructed, and overlap information is omitted.  The "OPTION"
-   variable in run_vkb can be reset to restore the old non-orthogonal
+   variable in *run_vkb* can be reset to restore the old non-orthogonal
    output, although only for non- and scalar-relativistic cases.
 
 5) The valence pseudocharge density is calculated based on the separable 
@@ -87,10 +86,10 @@ The main program is oncvpsp.f90, and has the following major sections:
    of the pseudocharge are computed (subroutine vout)and the pseudopotentials 
    are "unscreened."
 
-6) The routine run_diag is next called to test the semi-local and separable
+6) The routine *run_diag* is next called to test the semi-local and separable
    pseudopotentials.  For bound states, the normalized bound-state
    eigenvalues and pseudo wave functions are calculated.  The eigenvalues
-   and amplitudes and first derivatives at r_c are compared to the all-
+   and amplitudes and first derivatives at `r_c` are compared to the all-
    electron results (as ratios).  For positive-energy states, the all-
    electron log derivative is computed at r_c, and the "eigenvalue" of 
    the pseudo wave function which matches this is calculated.  Value and

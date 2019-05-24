@@ -1,5 +1,4 @@
-﻿                    
-                     OVERVIEW OF RELATIVISTIC CHANGES
+﻿## OVERVIEW OF RELATIVISTIC CHANGES
 
 The relativistic code utilizes a new main program, oncvpsp_r, rather than
 complicate oncvpsp with lots of branching.  Many arrays have acquired an

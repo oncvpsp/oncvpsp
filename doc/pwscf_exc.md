@@ -1,10 +1,10 @@
-
-                      PWSCF EXC FUNCTIONAL NAMES 
+## PWSCF EXC FUNCTIONAL NAMES
 
 List of translations from libxc mumerical iexc values to pwscf 
 "dft_shortnames" as presently implemented in src/upfout.f90 and
 upfout_r.f90
 
+```
     iexc==3 .or. iexc==-001009, 'functional="PZ"'
     
     iexc==4 .or. iexc==-101130, 'functional="PBE"'
@@ -20,6 +20,7 @@ upfout_r.f90
     iexc==-106131, 'functional="BLYP"'
     
     iexc==-118130, 'functional="WC"'
+```
 
 List of all pwscf dft_shortnames from expresso-5.0.2
 !
