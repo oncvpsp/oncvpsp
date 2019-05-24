@@ -1,5 +1,4 @@
-﻿                    GHOST STATES, RESONANCES, and DETECTION
-
+﻿## GHOST STATES, RESONANCES, and DETECTION
 
 Bound states of the radial Schroedinger equation with a local potential are
 strictly ordered in energy by their number of nodes.  This is not necessarily
@@ -10,7 +9,7 @@ Bylander projectors, a simple test can predict their presence from the bound
 states of the local potential and the non-local projector coefficient,
 (Ref. 25 of the paper), no such test exists for multiple-projector potentials.
 
-***************************** New Approach ************************
+### New Approach
 
 A new "ghost detector" has been introduced in 3.3.0.  This will detect
 deeply bound ghosts unlikely to found in the log-derivaive plots because
@@ -24,8 +23,8 @@ Eigenvalues lying below the wanted bound states (of the un-walled atom)
 are tagged as ghosts.  "Proper" eigenvalues fall above these states because
 of the wall, although very close for deeply-bound states.  These are 
 simply compared to the unwalled radial Schroeinger equation eigenvalues
-in the new "Testing for bound ghosts" section of the *.out file. The
-effective basis cutoff energies of the basis functiona are also listed.
+in the new "Testing for bound ghosts" section of the output file. The
+effective basis cutoff energies of the basis functions are also listed.
 Ghosts are reliably found even if they are too localized to be well converged.
 
 Note that the "old" log-derivative plots of the valence region remain the
@@ -50,7 +49,7 @@ with it.  It has not yet (as of 3.3.0) been implemented for relativistic
 calculations, but a scalar-relativistic calculation with the same input
 should be a reliable test.
 
-***************************** Old Approach ************************
+### Old Approach
 
 Our approach is to compute phi(E) = arctan(R * d psi(r)/dr |_R) for some R 
 greater than the core radius, where psi is the solution of the non-local 
@@ -107,5 +106,3 @@ ignored.  It is also possible that a perversely sharp ghost step could
 be mistakenly canceled.  However, our two-projector potentials are
 remarkably free of real ghosts, while sign-changes have been found often
 enough to warrant the new procedure.
-
-

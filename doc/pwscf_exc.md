@@ -1,10 +1,9 @@
+## PWSCF EXC FUNCTIONAL NAMES
 
-                      PWSCF EXC FUNCTIONAL NAMES 
+List of translations from libxc numerical iexc values to pwscf 
+"dft_shortnames" as presently implemented in src/upfout.f90 and upfout_r.f90
 
-List of translations from libxc mumerical iexc values to pwscf 
-"dft_shortnames" as presently implemented in src/upfout.f90 and
-upfout_r.f90
-
+```
     iexc==3 .or. iexc==-001009, 'functional="PZ"'
     
     iexc==4 .or. iexc==-101130, 'functional="PBE"'
@@ -20,8 +19,11 @@ upfout_r.f90
     iexc==-106131, 'functional="BLYP"'
     
     iexc==-118130, 'functional="WC"'
+```
 
 List of all pwscf dft_shortnames from expresso-5.0.2
+
+```fortran
 !
 ! Copyright (C) 2004-2012 Quantum ESPRESSO group
 ! This file is distributed under the terms of the
@@ -175,3 +177,4 @@ module funct
   ! These two modifications accounts only for a 1e-5 Ha difference for a 
   ! single He atom. Info by Fabien Bruneval
   !
+```

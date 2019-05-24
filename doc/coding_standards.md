@@ -1,5 +1,4 @@
-
-                         ONCVPSP CODING STANDARDS
+## ONCVPSP CODING STANDARDS
 
 The coding standards I've tried to follow and will want for any contributed
 additions are pretty basic.  They should also be obvious from examining
@@ -40,4 +39,3 @@ accomplished by building a separate executable for the new feature.
 
 There are probably other conventions I've been following but you get the
 idea.
-

@@ -19,7 +19,7 @@ FCCPPFLAGS = -ansi -DLIBXC_VERSION=400  #Use this for versions >400
 ##### Edit the following optimization flags for your system ####
 
 FFLAGS     = -O3 -ffast-math -funroll-loops
-CFLAGS     = -O3		
+CFLAGS     = -O3
 
 ##### Edit the following LAPACK and BLAS library paths for your system ####
 

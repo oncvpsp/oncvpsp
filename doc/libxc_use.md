@@ -1,5 +1,4 @@
-
-                             USING LIBXC
+## USING LIBXC
 
 To use the vast array of possible libxc functions, the input variable iexc
 on the first line of input data must be set to a negative number formed
@@ -35,8 +34,9 @@ Meta-ggas and hybrid exc functions are not implemented in oncvpsp.  Metas
 may come is a subsequent release.  HF and hybrid functionals are incompatible 
 with norm and generalized-norm conservation.
 
-                        BIG LIST FROM LIBXC-4.2.3
+### BIG LIST FROM LIBXC-4.2.3
 
+```
   XC_LDA_X                       =   1  ! Exchange
   XC_LDA_C_WIGNER                =   2  ! Wigner parametrization
   XC_LDA_C_RPA                   =   3  ! Random Phase Approximation
@@ -484,3 +484,4 @@ with norm and generalized-norm conservation.
   XC_HYB_MGGA_XC_TPSS1KCIS       = 569  ! TPSS hybrid with KCIS correlation
   XC_HYB_MGGA_X_REVSCAN0         = 583  ! revised SCAN hybrid exchange
   XC_HYB_MGGA_XC_B98             = 598  ! Becke 98
+```
