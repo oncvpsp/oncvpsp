@@ -2,6 +2,9 @@
 
 Pseudopotential development
 
+The official repository of the oncvpsp Fortran code to generate  
+optimized norm-conserving Vanderbilt pseudopotentials.
+
 ## Installation and usage
 
 1. edit make.inc (or copy it from older oncvpsp-3*)
@@ -91,17 +94,23 @@ The non-relativistic executable *src/oncvpsp_nr.x* is run by *tests/run_nr.sh*,
 and the fully-relativistic one *src/oncvpsp_r.x* by *tests/run_r.sh*.
 Please see the files in doc directory for details on the code, input file format, etc.
 
-## User Guide
+## Documentation
 
-See the [UserGuide document](./doc/users_guide.md).
+* [UserGuide](./doc/users_guide.md).
+* [Support file](./SUPPORT.md).
+* [coding_standards](./doc/coding_standards.md)
+* [core_correction](./doc/core_correction.md)
+* [ghosts](./doc/ghosts.md)
+* [libxc_use](./doc/libxc_use.md)
+* [program_overview](./doc/program_overview.md)
+* [pwscf_exc](./doc/pwscf_exc.md)
+* [relativistic](./doc/relativistic.md)
+* [release_notes](./doc/release_notes.md)
+* [users_guide](./doc/users_guide.md)
 
 ## Release Note
 
 See the [Release Notes document](./doc/release_notes.md).
-
-## Support
-
-See the [Support file](./SUPPORT.md).
 
 ## How to cite oncvpsp 
 
