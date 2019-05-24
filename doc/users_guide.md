@@ -1,24 +1,25 @@
-﻿
-                           ONCVPSP USERS' GUIDE
+﻿## ONCVPSP USERS' GUIDE
 
-    There is no detailed users' manual, and this is primarily an introductory 
+### Introduction
+
+There is no detailed users' manual, and this is primarily an introductory 
 tutorial for new users.  With the included Phys. Rev. paper, the
 program overview, the simple structure of the input data, the examples
 provided, and the automated graphics, it should be relatively easy to get
 to know and use this code.  As of release 4.0.1, most of the potental
 problems disussed in the last few paragraphs are highly improbable.
 
-    You should start by reading the paper, and some of the references if
+You should start by reading the paper, and some of the references if
 necessary.  The input and output files in tests/data and tests/refs include
 all the "OV" pseudopotentials used in the Sec.IV tests in the paper. Next, 
-I recommend reading ../INSTALL, and program_overview.txt.
+I recommend reading ../INSTALL, and [program_overview](program_overview.md).
 
-    The gnuplot graphics are very important, and a good place to go next.
+The gnuplot graphics are very important, and a good place to go next.
 The file 73_Ta_plots.pdf in this directory is a "slide show" which walks you
 through a sample of what you will see whenever you run the program.  After
 viewing the pdf, go to directory ../tests.refs and type
 
-../replot.sh 73_Ta
+    ../replot.sh 73_Ta
 
 If this doesn't produce the same sequence of plots, stop here and try to fix 
 your gnuplot installation and accessibility.  Once this works,  it will pay to 
@@ -28,20 +29,19 @@ look odd by these standards, they probably are and should not be used until
 adjustments of your input data can produce "nice" plots as exemplified by
 these cases.
 
-    The input files for oncvpsp, examples of which you'll find in
+The input files for oncvpsp, examples of which you'll find in
 ../tests/data, are NOT THE KEYWORD FILES YOU MAY BE USED TO.  The # comment
 lines define a strict template in which ALL input parameters must be specified,
 in the correct order.  There are no defaults.  (On the other hand,  there are
-not so many input parameters, and you need to understand them all to get good
-results anyway.)
+not so many input parameters, and you need to understand them all to get good results anyway.)
 
-    The file 32_Ge_annotated.dat adds more comments (###) to the usual
-*.dat file describing each input variable.  Reading this should be your next
+The file `32_Ge_annotated.dat` adds more comments (###) to the usual
+`*.dat` file describing each input variable.  Reading this should be your next
 assignment.  The code doesn't mind extra comments, and you can in fact
 use this as a combined template and abbreviated users' manual for your
 own calculations instead of the shorter versions in ../tests/data.
 
-    Next, look at tests/refs/32_Ge.out.  The output is pretty-much
+Next, look at `tests/refs/32_Ge.out`.  The output is pretty-much
 self-explanatory.  First, the input data is echoed, adding the all-electron
 eigenvalues to the configuration information.  This is formatted so that it
 can be copied and re-used as an input file (the eigenvalues will be ignored).
@@ -55,7 +55,7 @@ information ("Fraction of norm ...").  For the kinetic energy and potential
 tests, the ratio should be close to one, and the difference should be small.
 Last comes the cutoff convergence profile for the current wave function.
 
-    After the pseudo-wave-function loop is completed, the projectors are
+After the pseudo-wave-function loop is completed, the projectors are
 constructed.  The Hermiticity error is discussed in the paragraph following
 Eq.(24).  It will be greatly reduced in a non-relativistic run. The data on
 the projectors is not of much interest, but if the coefficients are huge or
@@ -63,7 +63,7 @@ the overlap is very close to one, it probably pays to change some parameters.
 As of release 2.0.1, orthonormal projectors are constructed by default,
 so the overlap is no longer reported.
 
-    The "Diagnostic tests" results are explained in more detail in
+The "Diagnostic tests" results are explained in more detail in
 program_overview.txt.  Basically, e in and e test should closely match, and
 the norm and slope values should be close to one.  For two projectors and a
 non-relativistic calculation, the agreement should be within numerical
@@ -73,22 +73,22 @@ results for the reference and test valence configurations.  You should
 always look at these diagnostics, even if the automated graphics all look
 good.
 
-    Everything below the "DATA FOR PLOTTING"line is for the scripts to read,
+Everything below the "DATA FOR PLOTTING"line is for the scripts to read,
 not you (plotting data, template for a custom gnuplot input script, and
 the psp file).
 
-    After you've gotten through the above and have compiled the code
-following INSTALL, copy one of the <prefix>.dat files in tests/data to a 
+After you've gotten through the above and have compiled the code
+following INSTALL, copy one of the `<prefix>.dat` files in tests/data to a 
 directory of your own, run it using
 
-../tests/run.sh <prefix>
+    ../tests/run.sh <prefix>
 
-    The sample <prefix>.dat files in tests/data should provide a starting 
-point to produce good psps for new elements.  Reading the <prefix>.out files,
+The sample `<prefix>.dat` files in tests/data should provide a starting 
+point to produce good psps for new elements. Reading the `<prefix>.out` files,
 you should be sure that the various consistency tests look good compared to
-the examples.  Then, pay attention to the plots.
+the examples. Then, pay attention to the plots.
 
-Potential issues:
+### Potential issues
 
 1) The code will stop if it doesn't find an input data entry it is looking for.
    It will also run some checks to be sure the data is within bounds. The first
