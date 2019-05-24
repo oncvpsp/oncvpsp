@@ -3,7 +3,6 @@
 References to "the paper" are to oncvpsp6.pdf, which is reproduced in this
 directory (now published as Phys. Rev. B 88, 085117 (2013)).
 
-
 The main program is oncvpsp.f90, and has the following major sections:
 
 1) Data readin: Oncvpsp reads an input file, say `32_Ge.dat`, from its standard
@@ -224,5 +223,4 @@ projector.
 
 run_optimize prints some additional diagnostic comparisons following
 several of the subroutine calls, and prints the plane-wave energy
-cutoffs corresponding to kinetic-energy-per-electron errors of 10^-2 to
-10^-5 Ha.
+cutoffs corresponding to kinetic-energy-per-electron errors of 10^-2 to 10^-5 Ha.
