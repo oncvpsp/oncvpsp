@@ -23,8 +23,8 @@ Eigenvalues lying below the wanted bound states (of the un-walled atom)
 are tagged as ghosts.  "Proper" eigenvalues fall above these states because
 of the wall, although very close for deeply-bound states.  These are 
 simply compared to the unwalled radial Schroeinger equation eigenvalues
-in the new "Testing for bound ghosts" section of the `*.out file`. The
-effective basis cutoff energies of the basis functiona are also listed.
+in the new "Testing for bound ghosts" section of the output file. The
+effective basis cutoff energies of the basis functions are also listed.
 Ghosts are reliably found even if they are too localized to be well converged.
 
 Note that the "old" log-derivative plots of the valence region remain the

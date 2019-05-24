@@ -67,16 +67,14 @@ icmod==2:
     used.  Amplitude and scale parameters consistent with options 3 and 4
     below are given in the out file.  This option is executed by modcore2.f90
 
-icmod==3
+icmod==3:
     The amlitude and scale parameters for the Teter function are taken
     from the input file, with the fcfact input re-interpreted and the
     rcfact argument added as follows:
  
-```
-# MODEL CORE CHARGE
-# icmod, fcfact, rcfact 
-    3    5.0  1.3
-```
+        # MODEL CORE CHARGE
+        # icmod, fcfact, rcfact 
+            3    5.0  1.3
     
     These parameters are defined consisently with option 4 below.  They
     are also given the the out  files of options 2 and 4 as " amplitude 
@@ -85,7 +83,7 @@ icmod==3
     all-electron rhoc is done as in option 2 above.  Exc 2nd derivatives 
     are computed but not used.  This option is executed by modcore3.f90.
 
-icmod==4
+icmod==4:
     The "blended" Teter function parameters are optimized to reduce Exc 
     2nd-derivative discrepancies in rhomod3.f90.  The optimization is
     initiated by finding the radius rmatch at which rhoc=pseudo-rho, and
@@ -117,6 +115,7 @@ icmod==4
 
 From tests/refs/40_Zr.out
 
+```
 Model core correction analysis
   based on d2Exc/dn_idn_j
 
@@ -197,3 +196,4 @@ rms 2nd derivative error    1.654494E-04
 # For options 1-3, the coarse-grid and Nelder-Mead results are absent
 # in the *.out file, but the 2nd-derivative matrices and rms values
 # appear as above.
+```

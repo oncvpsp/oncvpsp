@@ -96,21 +96,16 @@ Please see the files in doc directory for details on the code, input file format
 
 ## Documentation
 
-* [UserGuide](./doc/users_guide.md).
-* [Support file](./SUPPORT.md).
+* [User Guide](./doc/users_guide.md).
+* [Ghost States](./doc/ghosts.md)
+* [Relativistic](./doc/relativistic.md)
+* [Core Correction](./doc/core_correction.md)
+* [How to use libxc](./doc/libxc_use.md)
+* [How to translate iexc to pwscf names](./doc/pwscf_exc.md)
+* [Program Overview](./doc/program_overview.md)
 * [coding_standards](./doc/coding_standards.md)
-* [core_correction](./doc/core_correction.md)
-* [ghosts](./doc/ghosts.md)
-* [libxc_use](./doc/libxc_use.md)
-* [program_overview](./doc/program_overview.md)
-* [pwscf_exc](./doc/pwscf_exc.md)
-* [relativistic](./doc/relativistic.md)
-* [release_notes](./doc/release_notes.md)
-* [users_guide](./doc/users_guide.md)
-
-## Release Note
-
-See the [Release Notes document](./doc/release_notes.md).
+* [Support](./SUPPORT.md).
+* [Release Notes](./doc/release_notes.md)
 
 ## How to cite oncvpsp 
 
