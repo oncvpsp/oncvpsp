@@ -3,6 +3,8 @@
 
 NEW_PREFIX=`pwd`
 
+cp scripts/extract.sh scripts/replot.sh tests/
+
 TMP=$$.tmp
 
 sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run.sh >$TMP
@@ -32,6 +34,8 @@ cp $TMP scripts/compare.sh
 sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare_r.sh >$TMP
 cp $TMP tests/compare_r.sh
 cp $TMP scripts/compare_r.sh
+
+chmod u+x tests/*sh
 
 rm $TMP
 
