@@ -10,10 +10,8 @@ in any publication utilizing these pseudopotentials.
 LXC   Exchange
 LXC     Slater exchange (LDA)
 LXC     [1] P. A. M. Dirac, Math. Proc. Cambridge Philos. Soc. 26, 376 (1930)
-LXC     [2] F. Bloch, Z. Phys. 57, 545 (1929)
 LXC   Correlation
 LXC     Perdew & Zunger (LDA)
-LXC     [1] J. P. Perdew and A. Zunger, Phys. Rev. B 23, 5048 (1981)
 
 # ATOM AND REFERENCE CONFIGURATION
 # atsym  z   nc   nv     iexc    psfile
@@ -6583,7 +6581,6 @@ l, energy, all-electron, pseudopotential
 !      3   -4.940000    7.742335    4.600742
 !      3   -4.960000    7.742565    4.600972
 !      3   -4.980000    7.742794    4.601201
- lmax,lloc,mxprj           3           4           5
 GNUSCRIPT
 set term wxt font "arial,14" size 800,600
 

@@ -10,7 +10,7 @@
 
 PREFIX=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp
 
-#OUTFILE1=$PREFIX/tests/refs/$1.out
+OUTFILE1=$PREFIX/tests/refs/$1.out
 
 OUTFILE2=$PREFIX/tests/data/$1.out
 
@@ -20,9 +20,9 @@ TEMP1=$$.tmp1
 
 TEMP2=$$.tmp2
 
-#awk 'BEGIN{out=0}; {if(out == 1) {print}};\
-#	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE1 | \
-#	sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP1
+awk 'BEGIN{out=0}; {if(out == 1) {print}};\
+	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE1 | \
+	sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP1
 
 awk 'BEGIN{out=0}; {if(out == 1) {print}};\
 	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE2 | \

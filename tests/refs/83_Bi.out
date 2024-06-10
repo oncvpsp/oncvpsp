@@ -10,11 +10,9 @@ in any publication utilizing these pseudopotentials.
 LXC   Exchange
 LXC     Perdew, Burke & Ernzerhof (GGA)
 LXC     [1] J. P. Perdew, K. Burke, and M. Ernzerhof, Phys. Rev. Lett. 77, 3865 (1996)
-LXC     [2] J. P. Perdew, K. Burke, and M. Ernzerhof, Phys. Rev. Lett. 78, 1396 (1997)
 LXC   Correlation
 LXC     Perdew, Burke & Ernzerhof (GGA)
 LXC     [1] J. P. Perdew, K. Burke, and M. Ernzerhof, Phys. Rev. Lett. 77, 3865 (1996)
-LXC     [2] J. P. Perdew, K. Burke, and M. Ernzerhof, Phys. Rev. Lett. 78, 1396 (1997)
 
 # ATOM AND REFERENCE CONFIGURATION
 # atsym  z   nc   nv     iexc    psfile
@@ -6491,7 +6489,6 @@ l, energy, all-electron, pseudopotential
 !      3   -1.940000    4.529954    4.529991
 !      3   -1.960000    4.530886    4.530922
 !      3   -1.980000    4.531805    4.531841
- lmax,lloc,mxprj           3           4           5
 GNUSCRIPT
 set term wxt font "arial,14" size 800,600
 

@@ -4673,7 +4673,6 @@ l, energy, all-electron, pseudopotential
 !      3   -1.940000    1.372758    1.372993
 !      3   -1.960000    1.373676    1.373906
 !      3   -1.980000    1.374582    1.374807
- lmax,lloc,mxprj           2           4           5
 GNUSCRIPT
 set term wxt font "arial,14" size 800,600
 
