@@ -26,9 +26,9 @@ TEMP1=$$.tmp1
 
 TEMP2=$$.tmp2
 
-#awk 'BEGIN{out=0}; {if(out == 1) {print}};\
-#	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE1 | \
-#	sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP1
+awk 'BEGIN{out=0}; {if(out == 1) {print}};\
+	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE1 | \
+	sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP1
 
 awk 'BEGIN{out=0}; {if(out == 1) {print}};\
 	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE2 | \
@@ -37,4 +37,4 @@ awk 'BEGIN{out=0}; {if(out == 1) {print}};\
 #$PREFIX/scripts/fldiff.pl -easy $TEMP1 $TEMP2 >& $DIFFFILE
 $PREFIX/scripts/fldiff.pl -medium $TEMP1 $TEMP2 >& $DIFFFILE
 
-rm $TEMP1 $TEMP2
+#rm $TEMP1 $TEMP2
