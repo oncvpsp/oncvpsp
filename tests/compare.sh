@@ -1,6 +1,6 @@
 #!/bin/bash
 #compares <prefix>.out in the tests/data directory to the corresponing
-#file in test/data
+#file in test/refs
 #command line argument 1 is <prefix>
 
 #comparison starts after the "ATOM AND REFERENCE CONFIGURATION" line
@@ -20,9 +20,9 @@ TEMP1=$$.tmp1
 
 TEMP2=$$.tmp2
 
-#awk 'BEGIN{out=0}; {if(out == 1) {print}};\
-#	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE1 | \
-#	sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP1
+awk 'BEGIN{out=0}; {if(out == 1) {print}};\
+	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE1 | \
+	sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP1
 
 awk 'BEGIN{out=0}; {if(out == 1) {print}};\
 	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE2 | \
