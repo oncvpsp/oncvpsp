@@ -29,5 +29,9 @@ sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare.sh >$TMP
 cp $TMP tests/compare.sh
 cp $TMP scripts/compare.sh
 
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare_r.sh >$TMP
+cp $TMP tests/compare_r.sh
+cp $TMP scripts/compare_r.sh
+
 rm $TMP
 
