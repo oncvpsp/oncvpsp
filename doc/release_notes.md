@@ -1,4 +1,4 @@
-﻿Version 4.0.1 - beta release, please report issues
+﻿## Version 4.0.1 - beta release, please report issues
 
 1) The wellstate approach for relativistic calculations has been modified
    in light of the wellstate changes described below.  The confining well
@@ -14,7 +14,7 @@
    in the 3rd and 4th derivatives that could influence the output on the linear
    grid at very small radii.
 
-Version 4.0.0 - beta release, please report issues
+## Version 4.0.0 - beta release, please report issues
 
 1) The code has been reorganized to permit 3 or more projectors per angular
    momentum L.  Bound states in successive shells and scattering states are
@@ -146,7 +146,7 @@ Version 4.0.0 - beta release, please report issues
     oncvpsp, and for a great deal of testing and useful feedback in the
     course of the its development.
 
-Version 3.3.1
+## Version 3.3.1
 
 1) The recently-introduced ghost detector has been upgraded to scan positive
    energies as well.  Adjustments have also been made to overcome
@@ -191,7 +191,7 @@ Version 3.3.1
 
   Thanks to J. E. Pask and M. van Setten for their contributions.
 
-Version 3.3.0
+## Version 3.3.0
 
 1) An unfortunate math error made its way from my notes into the oncvpsp
    paper and into optimize.f90.  Fortunately, the only effect of this has
@@ -213,7 +213,7 @@ Version 3.3.0
    A new ghost detector has been designed which should reliably detect
    these.  It is described in ghosts.txt in this directory.
 
-Version-3.2.3
+## Version 3.2.3
 
 1) An error common to modcore2 and modcore3 has been corrected.  The intended
    "crossover blend" from the Teter function to the all-electron core
@@ -293,7 +293,7 @@ Version-3.2.3
  M. Verstraete and F. Gygi.)
 
 
-Version 3.2.2
+## Version 3.2.2
 
 1) The new core features crashed for the relativistic treatment of a 
    partiularly challenging data set one of you came up with.  The solution
@@ -309,7 +309,7 @@ Version 3.2.2
 
 2) Minor bug fixes.
 
-Version 3.2.1
+## Version 3.2.1
 
 
 1) The shell script tests/data/TEST.sh has been introduced.  This will run
@@ -365,8 +365,7 @@ Version 3.2.1
 7) A typo in a format statement in oncvpsp_r.f90 which bothered some
    compilers has been fixed. (Thanks to G. Marco)
 
-
-Version 3.1.1
+## Version 3.1.1
 
 1) The routine dp3int which performed cubic polynomial interpolation from
    the internal log radial grid to our preferred linear output grid has
@@ -392,7 +391,7 @@ Version 3.1.1
 3) The valence pseudo-charge density has been appended to the end of
    the psp8 output for potential future use in abinit or other codes.
 
-Version 3.0.0
+## Version 3.0.0
 
 1) The major advance of this version is the contribution by Matthieu
    Verstraete of an interface to the libxc library of exchange-correlation
@@ -425,13 +424,13 @@ Version 3.0.0
 6) As you must already know, the directory into which the tarball now
    unpacks is tagged with the version number.
 
-Version 2.1.2
+## Version 2.1.2
 
 1) A bug has been fixed so that the "First projector wave function 
    outermost peak radius" diagnostic result is calculated correctly for
    positive-energy well-bound states. Nothing else in the output changes. 
 
-Version 2.1.1
+## Version 2.1.1
 
 1) The routine sbf8 has been replaced with an improved version that gives
    an overall speedup of program execution by ~X5!
@@ -457,7 +456,7 @@ Version 2.1.1
 5) A minor change to the run*.sh and replot.sh scripts eliminated a
    possible problem with gnuplot.
 
-Version 2.0.2
+## Version 2.0.2
 
 1) Minor bug fix in pspot: In line 125, finite small eps in if statement
    caused screened semi-local psps to be set to zero at very small radii.
@@ -475,8 +474,7 @@ examples, but there were a few spurious diagnostic error reports.
    advantage of the new convergende graphics and make the convergence
    more uniform in a few cases
 
-
-Version 2.0.1
+## Version 2.0.1
 
 1) A fully relativistic version giving psps including spin-orbit effects
    has been implemented (executable src/oncvpspr.x, script tests/run_r.sh).
@@ -499,7 +497,7 @@ Version 2.0.1
    probably better to adjust debl for a small positive energy.
 
 
-Version 1.1.1
+## Version 1.1.1
 
 No real changes to the code
 
@@ -507,7 +505,7 @@ No real changes to the code
 
 2) Minor cosmetic bug-fix in linout.f90
 
-Version 1.1.0
+## Version 1.1.0
 
 1) Pseudopotential output in the UPF format has been implemented so that
    ONCVPSP psps can be used in PWSCF calculations.  The input variable
@@ -519,7 +517,7 @@ Version 1.1.0
 
 2) Some related changes are made in the documentation.
 
-Version 1.0.2
+## Version 1.0.2
 
 No real changes to code
 
@@ -529,7 +527,7 @@ No real changes to code
 
 3) Some labeling corrected in tests/data/<prefix>.dat files
 
-Version 1.0.1
+## Version 1.0.1
 
 Very minor changes
 

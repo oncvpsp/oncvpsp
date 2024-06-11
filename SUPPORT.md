@@ -19,4 +19,4 @@ I'll be happy to consider your additions.
 
 If you would like to contribute data files you've created for additional
 elements which produce potentials of quality compable to the tests/refs 
-examples, I will include them in the new users_data directory.
+examples, I will include them in the new `users_data` directory.
