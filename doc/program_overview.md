@@ -1,20 +1,18 @@
-﻿
-                           OVERVIEW OF ONCVPSP
+﻿## OVERVIEW OF ONCVPSP
 
-References to  "the paper" are to oncvpsp6.pdf, which is reproduced in this
+References to "the paper" are to oncvpsp6.pdf, which is reproduced in this
 directory (now published as Phys. Rev. B 88, 085117 (2013)).
-
 
 The main program is oncvpsp.f90, and has the following major sections:
 
-1) Data readin: Oncvpsp reads an input file, say 32_Ge.dat, from its standard
+1) Data readin: Oncvpsp reads an input file, say *32_Ge.dat*, from its standard
    input.  While this file may contain comment lines with the initial character
    '#', its format is fixed, and input data must appear in the proper order,
-   line by line.  Examples in tests/data as well as 32_Ge_annotated.dat in
+   line by line.  Examples in tests/data as well as *32_Ge_annotated.dat* in
    this directory should clarify this.  The program will stop, identifying
    the first bad line encountered in the input file if it does not find what
    it expects.  After a successful readin, the data is scanned by the
-   routine check_data for violations of bounds, etc., and offending data will
+   routine *check_data* for violations of bounds, etc., and offending data will
    be identified prior to halting.  There are, quite deliberately, no defaults.
    Everything must be thought about and specified (but there is not that much
    input data).
@@ -61,7 +59,7 @@ The main program is oncvpsp.f90, and has the following major sections:
      and the convergence profile (Energy error per electron vs. cutoff) 
      are printed.
 
-4) The routine run_vkb then is then called.  It constructs the local 
+4) The routine *run_vkb* then is then called.  It constructs the local 
    potential from a polynomial extrapolation of the all-electron potential 
    to zero (the recommended option, especially to take advantage of the
    Vanderbilt two-projector method), or uses one of the semi-local
@@ -74,7 +72,7 @@ The main program is oncvpsp.f90, and has the following major sections:
    of Eq.(24) is produced.  A small amount of diagnostic information is
    printed.  As of release 2.0, orthonormal projectors are subsequently
    constructed, and overlap information is omitted.  The "OPTION"
-   variable in run_vkb can be reset to restore the old non-orthogonal
+   variable in *run_vkb* can be reset to restore the old non-orthogonal
    output, although only for non- and scalar-relativistic cases.
 
 5) The valence pseudocharge density is calculated based on the separable 
@@ -87,12 +85,12 @@ The main program is oncvpsp.f90, and has the following major sections:
    of the pseudocharge are computed (subroutine vout)and the pseudopotentials 
    are "unscreened."
 
-6) The routine run_diag is next called to test the semi-local and separable
+6) The routine *run_diag* is next called to test the semi-local and separable
    pseudopotentials.  For bound states, the normalized bound-state
    eigenvalues and pseudo wave functions are calculated.  The eigenvalues
-   and amplitudes and first derivatives at r_c are compared to the all-
+   and amplitudes and first derivatives at `r_c` are compared to the all-
    electron results (as ratios).  For positive-energy states, the all-
-   electron log derivative is computed at r_c, and the "eigenvalue" of 
+   electron log derivative is computed at *r_c*, and the "eigenvalue" of 
    the pseudo wave function which matches this is calculated.  Value and
    slope ratios (equal by construction in this case) are printed.  
    For Vanderbilt two-projector calculations, these calculations are 
@@ -100,7 +98,7 @@ The main program is oncvpsp.f90, and has the following major sections:
    "Extra" valence states are treated as bound states here.
 
 
-7) The routine run_config performs all-electron and VKB pseudopotential
+7) The routine *run_config* performs all-electron and VKB pseudopotential
    self-consistent atom calculations on several configurations.  
    Configuration 0 is always the reference configuration, and minimal 
    errors here are primarily a consistency check.  Up to 4 additional 
@@ -112,7 +110,7 @@ The main program is oncvpsp.f90, and has the following major sections:
    This routine duplicates a capability of the OPIUM code, but its utility
    is not clear (see paragraph 3 of Sec. V of the paper).
 
-8) The routine run_plot generates output that will be automatically
+8) The routine *run_plot* generates output that will be automatically
    plotted by gnuplot when running the main shell script.  These include the
    unscreened semi-local potentials, with the local potential added in
    the more general case of a polynomial interpolation.  The pseudo-valence 
@@ -124,12 +122,12 @@ The main program is oncvpsp.f90, and has the following major sections:
    projectors.  For two projectors, the first- and second-projector pseudo
    wave functions are printed for comparison.  The cutoff energy convergence
    predictions based on the residual kinetic energy are output in form
-   suitable for plotting as of version 2.0.  The run_plot output is also 
+   suitable for plotting as of version 2.0.  The *run_plot* output is also 
    printed on the standard output below the heading "DATA FOR PLOTTING."
 
-9) The routine run_phsft compares the log derivatives of the all-electron
-   and pseudo wave functions (bound or scattering) at the maximum r_c.
-   (When shallow cores are included, this value shifts to max(r_c)+1.)
+9) The routine *run_phsft* compares the log derivatives of the all-electron
+   and pseudo wave functions (bound or scattering) at the maximum *r_c*.
+   (When shallow cores are included, this value shifts to max(rc)+1.)
    Since simple plots of log derivatives contain multiple divergences, and 
    are difficult to interpret visually, I plot atan(r * ((d psi(r)/dr)/psi(r)))
    at this radius, which is akin but not equal to a scattering phase shift.
@@ -167,36 +165,36 @@ The main program is oncvpsp.f90, and has the following major sections:
     agreement with ABINIT results.
 
 
-The auxiliary main program oncvpsp_nr.f90 is identical to oncvpsp except it
+The auxiliary main program *oncvpsp_nr.f90* is identical to oncvpsp except it
 sets a switch to do non-relativistic all-electron calculations.  The only
 reason for including this feature is to support the discussion following
-Eq.(24) of the paper.  The script tests/run_nr.sh calls it.
+Eq.(24) of the paper. The script *tests/run_nr.sh* calls it.
 
-The subroutine run_optimize executes the math in Sec. II of the paper for
+The subroutine *run_optimize* executes the math in Sec. II of the paper for
 each l, and has the following steps:
 
-1) The routine wf_rc_der calculates the value and 4 derivatives of the
-   input all-electron wave function at r_c.
+1) The routine *wf_rc_der* calculates the value and 4 derivatives of the
+   input all-electron wave function at *r_c*.
 
-2) The routine qroots selects the wave vectors q_i for the xi^B basis,
+2) The routine qroots selects the wave vectors *q_i* for the xi^B basis,
    Eq.(3) according to the principles discussed following Eq.(10).
 
-3) The routine sbf_basis creates the xi^O basis using Eq.(4).
+3) The routine *sbf_basis* creates the xi^O basis using Eq.(4).
 
-4) The routine Const_basis executes Eqs.(6-10), producing the xi^N basis
-   and the phi_0 component of the pseudo wave function.  Diagnostics
+4) The routine *Const_basis* executes Eqs.(6-10), producing the xi^N basis
+   and the *phi_0* component of the pseudo wave function.  Diagnostics
    confirming that the constraints are satisfied are printed.
 
 5) The routine eresid calculates the matrix elements in Eq.(11) of the
    E^r "operator" defined in Eqs.(1-2).  The q integration is performed
    inward from a large value ("infinity"), saving snapshots of the matrix
    elements at regular intervals as well as the values at the specific
-   specified q_c cutoff.  These snapshots allow the convergence profile
+   specified *q_c* cutoff.  These snapshots allow the convergence profile
    of the optimized pseudo wave function to be calculated very economically.
    This is the single most time-consuming step in the code, and setting
    the integration increments dq and dr to larger values will save time
    at some expense in accuracy.  These are set in the first executable
-   statements of run_optimize.  With the new sbf8 routine of release 2.1.1
+   statements of *run_optimize*.  With the new sbf8 routine of release 2.1.1
    you shouldn't need to  bother.
 
 6) The routine optimize diagonalizes the E^r_ij matrix, calculates the
@@ -223,7 +221,6 @@ Eqs.(6-7) is then incremented following the discussion surrounding
 Eq.(25), and steps 4-7 are completed to provide an optimized second
 projector.
 
-run_optimize prints some additional diagnostic comparisons following
+*run_optimize* prints some additional diagnostic comparisons following
 several of the subroutine calls, and prints the plane-wave energy
-cutoffs corresponding to kinetic-energy-per-electron errors of 10^-2 to
-10^-5 Ha.
+cutoffs corresponding to kinetic-energy-per-electron errors of 10^-2 to 10^-5 Ha.

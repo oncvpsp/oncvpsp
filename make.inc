@@ -17,8 +17,9 @@ FCCPPFLAGS = -ansi
 
 ##### Edit the following optimization flags for your system ####
 
-FFLAGS     = -O3 -fallow-argument-mismatch #-msse3 
-CFLAGS     = -O3		
+
+FFLAGS     = -O3 -fallow-argument-mismatch -ffast-math -funroll-loops
+CFLAGS     = -O3
 
 ##### Edit the following LAPACK and BLAS library paths for your system ####
 

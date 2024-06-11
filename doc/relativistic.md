@@ -1,5 +1,4 @@
-﻿                    
-                     OVERVIEW OF RELATIVISTIC CHANGES
+﻿## OVERVIEW OF RELATIVISTIC CHANGES
 
 The relativistic code utilizes a new main program, oncvpsp_r, rather than
 complicate oncvpsp with lots of branching.  Many arrays have acquired an
@@ -12,26 +11,24 @@ solutions of the radial Dirac equations. The following routines are
 straightforward modifications of the old versions, mostly just incorporating 
 the ikap loops and Dirac equations for full-potential calculations:
 
-    fphsft_r
-    fpovlp_r
-    gnu_script_r
-      -plot lines are labeled S+, P+, P-, ... indicting j=l +/- 1/2.
-    linout_r
-    oncvpsp_r
-    psatom_r
-    renorm_r
-    run_config_r
-    run_diag_r
-    run_phsft_r
-    run_plot_r
-      -the Ion potential plots are scalar averages
-    run_vkb_r
-    upfout_r
-    wellstate_r
+* fphsft_r
+* fpovlp_r
+* gnu_script_r (plot lines are labeled S+, P+, P-, ... indicting j=l +/- 1/2)
+* linout_r
+* oncvpsp_r
+* psatom_r
+* renorm_r
+* run_config_r
+* run_diag_r
+* run_phsft_r
+* run_plot_r (the Ion potential plots are scalar averages)
+* run_vkb_r
+* upfout_r
+* wellstate_r
 
 The following routines are introduced to serve new functions:
 
-    renorm_r:
+* renorm_r:
 
 Recall the discussion in the paper about the scalar-relativistic Schroedinger
 equation being incompatible, strictly speaking, with the derivation of
