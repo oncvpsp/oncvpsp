@@ -185,7 +185,7 @@ module m_psmlout
  end do
  close(lun)
 
-  call xml_OpenFile("ONCVPSPPSML",xf, indent=.false.)
+  call xml_OpenFile("ONCVPSP.psml",xf, indent=.false.)
 
   call xml_AddXMLDeclaration(xf,"UTF-8")
 
@@ -667,7 +667,7 @@ end subroutine psmlout
  close(lun)
 
 
-  call xml_OpenFile("ONCVPSPPSML",xf, indent=.false.)
+  call xml_OpenFile("ONCVPSP.psml",xf, indent=.false.)
 
   call xml_AddXMLDeclaration(xf,"UTF-8")
 
