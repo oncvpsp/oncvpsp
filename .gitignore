@@ -5,6 +5,7 @@ make.inc
 .*.swp
 *.mod
 *_cpp.f90
+*.a
 
 t
 t1
