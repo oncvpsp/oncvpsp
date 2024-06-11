@@ -32,6 +32,7 @@
 !
 !   Output format for ABINIT pspcod=8 and upf format for quantumespresso
 !
+ use m_psmlout, only: psmlout_r
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
@@ -80,6 +81,7 @@
  real(dp), allocatable :: epa(:,:,:),fpa(:,:,:)
  real(dp), allocatable :: uua(:,:,:),upa(:,:,:)
  real(dp), allocatable :: vsr(:,:,:),vso(:,:,:),esr(:,:),eso(:,:)
+ real(dp), allocatable :: vpsml(:,:,:)
  real(dp), allocatable :: vr(:,:,:,:)
 
  character*2 :: atsym
@@ -653,6 +655,16 @@
   call run_diag_sr_so_r(lmax,npa,epa,lloc,irc, &
 &                       vsr,esr,vso,eso,nproj,rr,vfull,vp,zz,mmax,mxprj)
 
+! save full info for psml 
+ allocate(vpsml(mmax,5,2))
+ do l1=1,max(lmax+1,lloc+1)
+    ll=l1-1
+    vpsml(:,l1,1) = vp(:,l1,1) - vo(:)
+    vpsml(:,l1,2) = vp(:,l1,2) - vo(:)
+ end do
+
+
+
 ! ghost testing
 
  write(6,'(/a)') 'Ghost test for J = L + 1/2'
@@ -735,6 +747,17 @@
 &              fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
 &              epsh1,epsh2,depsh,rlmax,psfile,uupsa,ea)
 
+ end if
+
+ if(trim(psfile)=='psml' .or. trim(psfile)=='both') then
+   print *, 'calling psmlout_r'
+   call psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpsml,rho,rhomod, &
+&             irct, &
+&             vsr,esr,vso,eso, &
+&             zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
+&             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
+&             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
+&             epsh1,epsh2,depsh,rlmax,psfile)
  end if
 
  stop

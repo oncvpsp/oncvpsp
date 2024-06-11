@@ -32,6 +32,7 @@
 !
 !   Output format for ABINIT pspcod=8 and upf format for quantumespresso
 !
+ use m_psmlout, only: psmlout
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
@@ -614,6 +615,18 @@
 &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
 &             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
 &             epsh1,epsh2,depsh,rlmax,psfile,uupsa,ea)
+ end if
+
+ if(trim(psfile)=='psml' .or. trim(psfile)=='both') then
+!
+! Write info for PSML format
+!
+ call psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
+&             irct, srel, &
+&             zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
+&             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
+&             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
+&             epsh1,epsh2,depsh,rlmax,psfile)
  end if
 
  stop
