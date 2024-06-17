@@ -284,7 +284,7 @@
 & '  AE_tst=',eaetst,'  dif=',eaetst-etot
  write(6,'(a,1p,d16.8,a,d16.8,a,d10.2)') '      PS_ref=',epstot, &
 & '  PS_tst=',etsttot,'  dif=',etsttot-epstot
- write(6,'(a,1p,d10.2)'), '      PSP excitation error=', &
+ write(6,'(a,1p,d10.2)') '      PSP excitation error=', &
 & eaetst-etot-etsttot+epstot
 
  deallocate(rho,rhoc,rhocps,vi,vfull)

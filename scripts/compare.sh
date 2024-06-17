@@ -8,7 +8,7 @@
 #functions can be compared (libxc produces two extra lines which 
 #stops fldiff)
 
-PREFIX=/home/drh/oncvpsp-4.0.1
+PREFIX=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp
 
 OUTFILE1=$PREFIX/tests/refs/$1.out
 

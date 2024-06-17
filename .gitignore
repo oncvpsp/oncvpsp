@@ -1,3 +1,4 @@
+make.inc
 
 *.o
 *.x
@@ -18,7 +19,8 @@ t9
 *.log
 
 drh_*
+tests/*.sh
 tests/data/*.out
 tests/data/*.diff
 tests/data/TEST.report
-tests/refs/*
+#tests/refs/*

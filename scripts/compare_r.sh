@@ -8,13 +8,19 @@
 #functions can be compared (libxc produces two extra lines which 
 #stops fldiff)
 
-PREFIX=/home/drh/oncvpsp-4.0.1
+PREFIX=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp
 
-OUTFILE1=$PREFIX/tests/refs/$1.out
+#HEAD=`echo $1 | sed s/.dat//`
+HEAD=`echo $1 | sed s/.dat/_r/`
 
-OUTFILE2=$PREFIX/tests/data/$1.out
 
-DIFFFILE=$1.diff
+OUTFILE1=$PREFIX/tests/refs/$HEAD.out
+#OUTFILE1=$PREFIX/tests/refs/$1.out
+
+OUTFILE2=$PREFIX/tests/data/$HEAD.out
+#OUTFILE2=$PREFIX/tests/data/$1.out
+
+DIFFFILE=$HEAD.diff
 
 TEMP1=$$.tmp1
 
@@ -28,7 +34,7 @@ awk 'BEGIN{out=0}; {if(out == 1) {print}};\
 	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE2 | \
 	sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP2
 
-$PREFIX/scripts/fldiff.pl -easy $TEMP1 $TEMP2 >& $DIFFFILE
-#$PREFIX/scripts/fldiff.pl -medium $TEMP1 $TEMP2 >& $DIFFFILE
+#$PREFIX/scripts/fldiff.pl -easy $TEMP1 $TEMP2 >& $DIFFFILE
+$PREFIX/scripts/fldiff.pl -medium $TEMP1 $TEMP2 >& $DIFFFILE
 
 rm $TEMP1 $TEMP2
