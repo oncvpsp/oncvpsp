@@ -35,6 +35,10 @@ sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare_r.sh >$TMP
 cp $TMP tests/compare_r.sh
 cp $TMP scripts/compare_r.sh
 
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare_psml.sh >$TMP
+cp $TMP tests/compare_psml.sh
+cp $TMP scripts/compare_psml.sh
+
 chmod u+x tests/*sh
 
 rm $TMP
