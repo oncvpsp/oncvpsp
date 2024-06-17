@@ -5,6 +5,7 @@ make.inc
 .*.swp
 *.mod
 *_cpp.f90
+*.a
 
 t
 t1
@@ -22,5 +23,6 @@ drh_*
 tests/*.sh
 tests/data/*.out
 tests/data/*.diff
+tests/data/*.oncvpsp.*
 tests/data/TEST.report
 #tests/refs/*

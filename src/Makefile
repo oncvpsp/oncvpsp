@@ -20,11 +20,11 @@ OBJS_NRSR =	fphsft.o fpovlp.o gnu_script.o linout.o psatom.o \
 		relatom.o run_config.o run_diag.o run_phsft.o run_plot.o \
 		run_vkb.o sratom.o upfout.o wellstate.o
 
-OBJS_SR =	oncvpsp.o
+OBJS_SR =	m_psmlout.o oncvpsp.o
 
-OBJS_NR =	oncvpsp_nr.o
+OBJS_NR =	m_psmlout.o oncvpsp_nr.o
 
-OBJS_R =	oncvpsp_r.o fphsft_r.o fpovlp.o gnu_script_r.o linout_r.o \
+OBJS_R =	m_psmlout.o oncvpsp_r.o fphsft_r.o fpovlp.o gnu_script_r.o linout_r.o \
 		psatom_r.o relatom.o renorm_r.o run_config_r.o run_diag_r.o \
 		run_diag_sr_so_r.o run_phsft_r.o run_plot_r.o run_vkb_r.o \
 		sr_so_r.o upfout_r.o wellstate_r.o
@@ -37,26 +37,36 @@ OBJS_OPSPR = 	$(OBJS_R) $(OBJS_ALL) $(OBJS_LIBXC)
 
 all:	oncvpsp oncvpspnr oncvpspr
 
+WXML_LIB=xmlf90-wxml/libwxml.a
+wxml:
+	(cd xmlf90-wxml; $(MAKE) module)
+#
+m_psmlout.o: wxml m_libxc_list.o
+INCLUDE_WXML=-I./xmlf90-wxml
+
+
+
 oncvpsp:	$(OBJS_OPSP)
-		$(FLINKER) -o oncvpsp.x $(OBJS_OPSP) $(LIBS)
+		$(FLINKER) -o oncvpsp.x $(OBJS_OPSP) $(LIBS) $(WXML_LIB)
 
 oncvpspnr:	$(OBJS_OPSPNR)
-		$(FLINKER) -o oncvpspnr.x $(OBJS_OPSPNR) $(LIBS)
+		$(FLINKER) -o oncvpspnr.x $(OBJS_OPSPNR) $(LIBS) $(WXML_LIB)
 
 oncvpspr:	$(OBJS_OPSPR)
-		$(FLINKER) -o oncvpspr.x $(OBJS_OPSPR) $(LIBS)
+		$(FLINKER) -o oncvpspr.x $(OBJS_OPSPR) $(LIBS) $(WXML_LIB)
 
+.SUFFIXES: 
 .SUFFIXES: .c .o .f .f90 .F90
 
 .F90.o:
 	$(FCCPP) $(FCCPPFLAGS) $*.F90  > $*_cpp.f90
-	$(F90) $(FFLAGS) $(INC) -o $*.o -c $*_cpp.f90
+	$(F90) $(FFLAGS) $(INC) $(INCLUDE_WXML) -o $*.o -c $*_cpp.f90
 
 .f90.o:
-	$(F90) $(FFLAGS) $(INC) -c $*.f90
+	$(F90) $(FFLAGS) $(INC) $(INCLUDE_WXML) -c $*.f90
 
 .f.o:
-	$(F90) $(FFLAGS) $(INC) -c $*.f
+	$(F90) $(FFLAGS) $(INC) $(INCLUDE_WXML) -c $*.f
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $*.c

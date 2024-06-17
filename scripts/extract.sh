@@ -10,6 +10,7 @@ OUTFILE=$1.out
 
 STR1=`grep PSPCODE8 $OUTFILE`
 STR2=`grep PSP_UPF $OUTFILE`
+STR3=`grep psmlout $OUTFILE`
 
 if [ "$STR1" ]
 	then
@@ -29,6 +30,15 @@ if [ "$STR2" ]
 	awk 'BEGIN{out=0};/END_PSP/{out=0}; \
 		{if(out == 1) {print}};/PSP_UPF/{out=1}' \
 		$OUTFILE >$PSPFILE
+
+	echo "$PSPFILE written"
+fi
+
+if [ "$STR3" ]
+	then
+	PSPFILE=~/$2/$1.oncvpsp.psml
+
+	mv ONCVPSP.psml $PSPFILE
 
 	echo "$PSPFILE written"
 fi
