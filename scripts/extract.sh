@@ -14,7 +14,7 @@ STR3=`grep psmlout $OUTFILE`
 
 if [ "$STR1" ]
 	then
-	PSPFILE=~/$2/$1.oncvpsp.psp8
+	PSPFILE=$2/$1.oncvpsp.psp8
 
 	awk 'BEGIN{out=0};/END_PSP/{out=0}; \
 		{if(out == 1) {print}};/PSPCODE8/{out=1}' \
@@ -25,7 +25,7 @@ fi
 
 if [ "$STR2" ]
 	then
-	PSPFILE=~/$2/$1.oncvpsp.upf
+	PSPFILE=$2/$1.oncvpsp.upf
 
 	awk 'BEGIN{out=0};/END_PSP/{out=0}; \
 		{if(out == 1) {print}};/PSP_UPF/{out=1}' \
@@ -36,7 +36,7 @@ fi
 
 if [ "$STR3" ]
 	then
-	PSPFILE=~/$2/$1.oncvpsp.psml
+	PSPFILE=$2/$1.oncvpsp.psml
 
 	mv ONCVPSP.psml $PSPFILE
 
