@@ -373,15 +373,15 @@
 
  write(6,'(8f10.4)') (rl(ii),ii=1,nrl)
 
- write(6,'(t4a)') &
+ write(6,'(t4,a)') &
 &      '</PP_R>'
 
- write(6,'(t4a,i4,a)') &
+ write(6,'(t4,a,i4,a)') &
 &      '<PP_RAB type="real"  size="',nrl,'" columns="8">'
 
  write(6,'(8f10.4)') (drl,ii=1,nrl)
 
- write(6,'(t4a)') &
+ write(6,'(t4,a)') &
 &      '</PP_RAB>'
 
    write(6,'(t2,a)') &
