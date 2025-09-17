@@ -26,7 +26,7 @@
 ../run_r.sh 74_W -np	; 	../compare.sh 74_W_r
 ../run.sh 79_Au_lxc -np	; 	../compare.sh 79_Au_lxc
 # this also produces a psml example file for Hg
-../run_r.sh 80_Hg -np	; 	../compare.sh 80_Hg_r; ../extract.sh 80_Hg_r; ../compare_psml.sh 80_Hg_r
+../run_r.sh 80_Hg -np	; 	../compare.sh 80_Hg_r; ../extract.sh 80_Hg_r $(pwd); ../compare_psml.sh 80_Hg_r $(pwd)
 ../run.sh 83_Bi -np	; 	../compare.sh 83_Bi
 
 grep Summary *.diff | sed -e /diff/s/^/\\\n/ >TEST.report
