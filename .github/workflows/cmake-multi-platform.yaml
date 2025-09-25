@@ -56,8 +56,8 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_Fortran_COMPILER=${{ matrix.fortran_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DLAPACK_ROOT=/usr/lib/x86_64-linux-gnu
-        -DBLAS_ROOT=/usr/lib/x86_64-linux-gnu
+        -DLAPACK_ROOT=/usr/lib/x86_64-linux-gnu/lapack
+        -DBLAS_ROOT=/usr/lib/x86_64-linux-gnu/blas
         -S ${{ github.workspace }}
 
     - name: Build
