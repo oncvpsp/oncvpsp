@@ -2,28 +2,28 @@
 ! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
- subroutine sbf_basis(ll,rr,mmax,irc,nbas,qroot,sbasis,orbasis,orbasis_der, &
+subroutine sbf_basis(ll,rr,mmax,irc,nbas,qroot,sbasis,orbasis,orbasis_der, &
 &                     nconmx)
 
 !orthonormalize basis functions and derivatives at rc and find all-electron
 !charge inside rc.
 
- implicit none
- integer, parameter :: dp=kind(1.0d0)
+   implicit none
+   integer, parameter :: dp=kind(1.0d0)
 
 !INPUT
 !ll  angujlar momentum
@@ -39,73 +39,73 @@
 !orbasis_der  values and derivatives of orthonormal basis set at rc,
 
 !Arguments
- integer :: ll,mmax,nconmx,irc,nbas
- real(dp) :: rr(mmax),qroot(nbas)
- real(dp) :: sbasis(nbas),orbasis(nbas,nbas)
- real(dp) :: orbasis_der(nconmx,nbas)
+   integer :: ll,mmax,nconmx,irc,nbas
+   real(dp) :: rr(mmax),qroot(nbas)
+   real(dp) :: sbasis(nbas),orbasis(nbas,nbas)
+   real(dp) :: orbasis_der(nconmx,nbas)
 
 !Local variables
- integer :: ii,jj,ll1,ibas,info
- real(dp) :: al,amesh,ro,rc,sn,xx,tt
- real(dp) :: sb_out(10),sbfder(5),tder(6)
- real(dp), allocatable :: sbfar(:,:),sev(:),work(:),sovlp(:,:)
- real(dp), allocatable :: sovlp_save(:,:),orbasis_ke(:),tor(:)
- logical :: sorted
+   integer :: ii,jj,ll1,ibas,info
+   real(dp) :: al,amesh,ro,rc,sn,xx,tt
+   real(dp) :: sb_out(10),sbfder(5),tder(6)
+   real(dp), allocatable :: sbfar(:,:),sev(:),work(:),sovlp(:,:)
+   real(dp), allocatable :: sovlp_save(:,:),orbasis_ke(:),tor(:)
+   logical :: sorted
 
- ll1=ll+1
- rc=rr(irc)
- al = 0.01d0 * log(rr(101) / rr(1))
- amesh = exp(al)
+   ll1=ll+1
+   rc=rr(irc)
+   al = 0.01d0 * log(rr(101) / rr(1))
+   amesh = exp(al)
 
- allocate(sbfar(irc,nbas),sev(nbas),work(5*nbas),sovlp(nbas,nbas))
- allocate(sovlp_save(nbas,nbas),orbasis_ke(nbas),tor(nbas))
+   allocate(sbfar(irc,nbas),sev(nbas),work(5*nbas),sovlp(nbas,nbas))
+   allocate(sovlp_save(nbas,nbas),orbasis_ke(nbas),tor(nbas))
 
- do ibas=1,nbas
-  do jj=1,irc
-   xx=qroot(ibas)*rr(jj)
-   call sbf8(ll1,xx,sb_out)
-   sbfar(jj,ibas)=rr(jj)*sb_out(ll1)
-  end do
- end do
+   do ibas=1,nbas
+      do jj=1,irc
+         xx=qroot(ibas)*rr(jj)
+         call sbf8(ll1,xx,sb_out)
+         sbfar(jj,ibas)=rr(jj)*sb_out(ll1)
+      end do
+   end do
 
 !perform sbf orthonormalization sum for overlap matrix
 
- sovlp(:,:)=0.0d0
- ro=rr(1)/sqrt(amesh)
- do ibas=1,nbas
-  do jj=ibas,nbas
+   sovlp(:,:)=0.0d0
+   ro=rr(1)/sqrt(amesh)
+   do ibas=1,nbas
+      do jj=ibas,nbas
 
-   sn=(sbfar(1,ibas)/rr(1)**ll)*(sbfar(1,jj)/rr(1)**ll)&
-&     *ro**(2*ll+3)/dfloat(2*ll+3)
- 
-   do ii=1,irc-3
-     sn=sn+al*rr(ii)*sbfar(ii,ibas)*sbfar(ii,jj)
+         sn=(sbfar(1,ibas)/rr(1)**ll)*(sbfar(1,jj)/rr(1)**ll)&
+         &     *ro**(2*ll+3)/dfloat(2*ll+3)
+
+         do ii=1,irc-3
+            sn=sn+al*rr(ii)*sbfar(ii,ibas)*sbfar(ii,jj)
+         end do
+
+         sn=sn + al*(23.0d0*rr(irc-2)*sbfar(irc-2,ibas)*sbfar(irc-2,jj)&
+         &            + 28.0d0*rr(irc-1)*sbfar(irc-1,ibas)*sbfar(irc-1,jj)&
+         &            +  9.0d0*rr(irc  )*sbfar(irc  ,ibas)*sbfar(irc  ,jj))/24.0d0
+
+         sovlp(ibas,jj)=sn
+         sovlp(jj,ibas)=sn
+      end do
    end do
- 
-   sn=sn + al*(23.0d0*rr(irc-2)*sbfar(irc-2,ibas)*sbfar(irc-2,jj)&
-&            + 28.0d0*rr(irc-1)*sbfar(irc-1,ibas)*sbfar(irc-1,jj)&
-&            +  9.0d0*rr(irc  )*sbfar(irc  ,ibas)*sbfar(irc  ,jj))/24.0d0
- 
-   sovlp(ibas,jj)=sn
-   sovlp(jj,ibas)=sn
-  end do
- end do
 
 !normalization for j_l basis
- do ibas=1,nbas
-  sbasis(ibas)=1.0d0/sqrt(sovlp(ibas,ibas))
- end do
+   do ibas=1,nbas
+      sbasis(ibas)=1.0d0/sqrt(sovlp(ibas,ibas))
+   end do
 
- sovlp_save(:,:)=sovlp(:,:)
+   sovlp_save(:,:)=sovlp(:,:)
 !find eigenvalues and eigenvectors of the overlap matrix
 
 !      SUBROUTINE DSYEV( JOBZ, UPLO, N, A, LDA, W, WORK, LWORK, INFO )
 
- call dsyev( 'V', 'U', nbas, sovlp, nbas, sev, work, 5*nbas, info )
- if(info .ne. 0) then
-  write(6,'(a,i4)') 'sbf_basis: ERROR overlap matrix eigenvalue error, info=',info
-  stop
- end if
+   call dsyev( 'V', 'U', nbas, sovlp, nbas, sev, work, 5*nbas, info )
+   if(info /= 0) then
+      write(6,'(a,i4)') 'sbf_basis: ERROR overlap matrix eigenvalue error, info=',info
+      stop
+   end if
 
 !write(6,'(/a)') 'sbf overlap matrix eigenvalues'
 !write(6,'(1p,6d12.3)') (sev(ibas),ibas=1,nbas)
@@ -113,37 +113,37 @@
 !scale eigenvectors to form orthonormal basis coefficients for sbf's
 !note that we are reversing order so that the leading eigenvector is the
 !most linearly independent
- do ibas=1,nbas
-  if(sev(ibas)>0.0d0) then
-   tt=1.0d0/sqrt(sev(ibas))
-  else
-   write(6,'(a,f12.6)') 'sbfbasis: ERROR negative eigenvalue of overlap matrix'
-   stop
-  end if
-  do jj=1,nbas
-   orbasis(jj,nbas-ibas+1)=tt*sovlp(jj,ibas)
-  end do
- end do
+   do ibas=1,nbas
+      if(sev(ibas)>0.0d0) then
+         tt=1.0d0/sqrt(sev(ibas))
+      else
+         write(6,'(a,f12.6)') 'sbfbasis: ERROR negative eigenvalue of overlap matrix'
+         stop
+      end if
+      do jj=1,nbas
+         orbasis(jj,nbas-ibas+1)=tt*sovlp(jj,ibas)
+      end do
+   end do
 
 !find rc derivatives of basis funtction
- orbasis_der(:,:)=0.0d0
- do jj=1,nbas !sbf loop
-  call sbf_rc_der(ll,qroot(jj),rc,sbfder)
-  do ibas=1,nbas !orbasis loop
-   do ii=1,nconmx
-    orbasis_der(ii,ibas)=orbasis_der(ii,ibas)+orbasis(jj,ibas)*sbfder(ii)
+   orbasis_der(:,:)=0.0d0
+   do jj=1,nbas  !sbf loop
+      call sbf_rc_der(ll,qroot(jj),rc,sbfder)
+      do ibas=1,nbas  !orbasis loop
+         do ii=1,nconmx
+            orbasis_der(ii,ibas)=orbasis_der(ii,ibas)+orbasis(jj,ibas)*sbfder(ii)
+         end do
+      end do
    end do
-  end do
- end do
 
 !find approximate kinetic energy of orbasis
 
- orbasis_ke(:)=0.0d0
- do ibas=1,nbas
-   do jj=1,nbas
-     orbasis_ke(ibas)=orbasis_ke(ibas)+(orbasis(jj,ibas)*qroot(jj))**2
+   orbasis_ke(:)=0.0d0
+   do ibas=1,nbas
+      do jj=1,nbas
+         orbasis_ke(ibas)=orbasis_ke(ibas)+(orbasis(jj,ibas)*qroot(jj))**2
+      end do
    end do
- end do
 !do  ibas=1,nbas
 !  write(6,*) 'orbasis_ke',ibas,orbasis_ke(ibas)
 !end do
@@ -151,35 +151,35 @@
 ! bubble-sort on approximate kinetic energies
 ! (Yes, I know bubble-sort is the least-efficient sorting algorithm.)
 
- do ii=1,100
-  sorted=.true.
-  do jj=2,nbas
-   if(orbasis_ke(jj-1)>orbasis_ke(jj)) then
+   do ii=1,100
+      sorted=.true.
+      do jj=2,nbas
+         if(orbasis_ke(jj-1)>orbasis_ke(jj)) then
 
-    tt=orbasis_ke(jj)
-    tor(:)=orbasis(:,jj)
-    tder(:)=orbasis_der(:,jj)
+            tt=orbasis_ke(jj)
+            tor(:)=orbasis(:,jj)
+            tder(:)=orbasis_der(:,jj)
 
-    orbasis_ke(jj)=orbasis_ke(jj-1)
-    orbasis(:,jj)=orbasis(:,jj-1)
-    orbasis_der(:,jj)=orbasis_der(:,jj-1)
+            orbasis_ke(jj)=orbasis_ke(jj-1)
+            orbasis(:,jj)=orbasis(:,jj-1)
+            orbasis_der(:,jj)=orbasis_der(:,jj-1)
 
-    orbasis_ke(jj-1)=tt
-    orbasis(:,jj-1)=tor(:)
-    orbasis_der(:,jj-1)=tder(:)
+            orbasis_ke(jj-1)=tt
+            orbasis(:,jj-1)=tor(:)
+            orbasis_der(:,jj-1)=tder(:)
 
-    sorted=.false.
-   end if
-  end do
+            sorted=.false.
+         end if
+      end do
       if(sorted) exit
- end do
+   end do
 
 !do  ibas=1,nbas
 !  write(6,*) 'sorbasis_ke',ibas,orbasis_ke(ibas)
 !end do
 
- deallocate(sbfar,sev,work,sovlp)
- deallocate(sovlp_save,orbasis_ke,tor)
+   deallocate(sbfar,sev,work,sovlp)
+   deallocate(sovlp_save,orbasis_ke,tor)
 
- return
- end subroutine sbf_basis
+   return
+end subroutine sbf_basis

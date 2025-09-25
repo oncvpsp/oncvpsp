@@ -1,0 +1,19 @@
+[check]
+# E - Error
+# C - correctness
+# S - Style
+select = ["E", "C", "S"]
+ignore = [
+    "C001", # missing-implicit-none
+    "C003", # missing-external
+    "C021", # no-real-suffix
+    "C061", # missing-intent
+    "C071", # assumed-size
+    "C072", # assumed-size-character-intent
+    "C081", # initialisation-in-declaration
+    "C092", # procedure-not-in-module
+    "C121", # use-missing-only
+    "C131", # missing-accessibility-statement
+    "C132", # default-public-accessibility
+]
+line-length = 132

@@ -2,17 +2,17 @@
 ! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -79,10 +79,10 @@ c
       end do
 c
 c n derivatives of d
-c     
+c
       do i = 3, mmax - 2
         dpn(i) =  c11*d(i-2) + c12*d(i-1) + c14*d(i+1) + c15*d(i+2)
-        dppn(i) = c21*d(i-2) + c22*d(i-1) + c23*d(i)   + c24*d(i+1) 
+        dppn(i) = c21*d(i-2) + c22*d(i-1) + c23*d(i)   + c24*d(i+1)
      &          + c25*d(i+2)
       end do
 c
@@ -224,7 +224,7 @@ c   	e_x[unif]=ax*rho^(4/3)  [LDA]
 c ax = -0.75*(3/pi)^(1/3)
 c	e_x[PBE]=e_x[unif]*FxPBE(s)
 c	FxPBE(s)=1+uk-uk/(1+ul*s*s)                 [a](13)
-c uk, ul defined after [a](13) 
+c uk, ul defined after [a](13)
 c----------------------------------------------------------------------
 c----------------------------------------------------------------------
       IMPLICIT REAL*8 (A-H,O-Z)
@@ -259,7 +259,7 @@ c  Fss=d Fs/ds
       Fss=-4.d0*ul*S*Fs/P0
 c----------------------------------------------------------------------
 c----------------------------------------------------------------------
-c calculate potential from [b](24) 
+c calculate potential from [b](24)
       VX = exunif*(THRD4*FxPBE-(U-THRD4*S2*s)*FSS-V*FS)
       RETURN
       END
@@ -288,7 +288,7 @@ c        : dvcdn=nonlocal correction to vcdn
 c----------------------------------------------------------------------
 c----------------------------------------------------------------------
 c References:
-c [a] J.P.~Perdew, K.~Burke, and M.~Ernzerhof, 
+c [a] J.P.~Perdew, K.~Burke, and M.~Ernzerhof,
 c     {\sl Generalized gradient approximation made simple}, sub.
 c     to Phys. Rev.Lett. May 1996.
 c [b] J. P. Perdew, K. Burke, and Y. Wang, {\sl Real-space cutoff
@@ -305,7 +305,7 @@ c      FZZ=f''(0)= 8/(9*GAM)
 c numbers for construction of PBE
 c      gamma=(1-log(2))/pi^2
 c      bet=coefficient in gradient expansion for correlation, [a](4).
-c      eta=small number to stop d phi/ dzeta from blowing up at 
+c      eta=small number to stop d phi/ dzeta from blowing up at
 c          |zeta|=1.
       parameter(thrd=1.d0/3.d0,thrdm=-thrd,thrd2=2.d0*thrd)
       parameter(sixthm=thrdm/2.d0)
@@ -519,7 +519,7 @@ c######################################################################
 c----------------------------------------------------------------------
       SUBROUTINE CORpw91(RS,ZET,G,EC,ECRS,ECZET,T,UU,VV,WW,H,
      1                   DVCUP,DVCDN)
-C  pw91 CORRELATION, modified by K. Burke to put all arguments 
+C  pw91 CORRELATION, modified by K. Burke to put all arguments
 c  as variables in calling statement, rather than in common block
 c  May, 1996.
 C  INPUT RS: SEITZ RADIUS

@@ -27,6 +27,13 @@ optimized norm-conserving Vanderbilt pseudopotentials.
 
 3. cd tests/data; evaluate TEST.report
 
+### Developing ONCVPSP
+1. install `pre-commit` using your package manager of preference
+2. from the repository root, run `pre-commit install`
+3. before every commit, `pre-commit` will automatically run and use various tools to ensure code quality and style standards are met.
+
+The key tools run by `pre-commit` are `findent` for code formatting and `fortitude` for code linting. `findent` is configured directly in `.pre-commit-config.yaml`, while `fortitude` is configured in `fortitude.toml`.
+
 The code provided here is intended for a Linux or Unix system with a Fortran 95 compiler.
 Your system must have lapack and blas installed to compile ONCVPSP, and
 gnuplot installed and in your $PATH to run it as recommended.  If these are
