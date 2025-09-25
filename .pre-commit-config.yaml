@@ -1,0 +1,53 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=5000"]
+      - id: end-of-file-fixer
+        exclude: |
+          (?x)^(
+            (scripts|tests|doc|extern|build)/.*|
+            .*\.md|
+            .*COPYING|
+            .*LICENSE|
+          )$
+      - id: check-case-conflict
+        exclude: (scripts|tests|doc|extern|build)/.*
+      - id: mixed-line-ending
+        exclude: (scripts|tests|doc|extern|build)/.*
+      - id: trailing-whitespace
+        exclude: |
+          (?x)^(
+            (scripts|tests|doc|extern|build)/.*|
+            .*\.md|
+            .*COPYING|
+            .*LICENSE|
+          )$
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.9.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+  - repo: https://github.com/PlasmaFAIR/fortitude-pre-commit
+    rev: v0.7.5
+    hooks:
+      - id: fortitude
+        args: ["--fix"]
+        exclude: (scripts|tests|doc|extern|build)/.*
+  - repo: https://github.com/zmoon/findent-pre-commit
+    rev: 527f61f770f504abd87f97932b510b8dce07ab3a
+    hooks:
+      - id: wfindent-pypi
+        args:
+          [
+            -ofree,
+            -i3,
+            --refactor_end,
+            --indent_contains=restart,
+            --indent-continuation=default,
+            --indent_ampersand,
+            --align_paren,
+          ]
+        additional_dependencies: [findent==4.3.1]
+        exclude: (scripts|tests|doc|extern|build)/.*

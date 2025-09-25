@@ -1,4 +1,4 @@
-.SUFFIXES: 
+.SUFFIXES:
 .SUFFIXES: .f .F .o .a  .f90 .F90
 #
 include ../../make.inc
@@ -30,5 +30,3 @@ m_wxml_core.o: m_wxml_buffer.o m_wxml_dictionary.o m_wxml_elstack.o
 	$(F90) $(FFLAGS) $(INC) -c $*.f
 .F.o:
 	$(F90) $(FFLAGS) $(DEFS) $(INC) -c $*.F
-
-

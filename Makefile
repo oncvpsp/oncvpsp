@@ -19,4 +19,3 @@ test:
 clean:
 	cd src ; $(MAKE) clean ; rm *.x; cd xmlf90-wxml/ ; $(MAKE) clean
 	cd tests/data ; /bin/rm -f *.out *.diff TEST.report
-

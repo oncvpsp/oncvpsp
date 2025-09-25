@@ -55,7 +55,7 @@ oncvpspnr:	$(OBJS_OPSPNR)
 oncvpspr:	$(OBJS_OPSPR)
 		$(FLINKER) -o oncvpspr.x $(OBJS_OPSPR) $(LIBS) $(WXML_LIB)
 
-.SUFFIXES: 
+.SUFFIXES:
 .SUFFIXES: .c .o .f .f90 .F90
 
 .F90.o:
@@ -73,4 +73,3 @@ oncvpspr:	$(OBJS_OPSPR)
 
 clean:
 	 /bin/rm -f *.o  *.d  *.mod *.log *_cpp.f90
-
