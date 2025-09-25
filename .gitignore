@@ -1,4 +1,6 @@
 make.inc
+CMakeUserPresets.json
+build/
 
 *.o
 *.x
@@ -25,4 +27,4 @@ tests/data/*.out
 tests/data/*.diff
 tests/data/*.oncvpsp.*
 tests/data/TEST.report
-#tests/refs/*
+tests/data/_tmp_input
