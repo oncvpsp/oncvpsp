@@ -4,6 +4,7 @@
 #uses the non-relativistic all-electron atom calculation
 
 PREFIX=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp
+BIN_DIR=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp/src
 
 INFILE=$1.dat
 
@@ -15,7 +16,7 @@ PLOTFILE=$1_nr.plot
 
 TEMP=$$.tmp
 
-$PREFIX/src/oncvpspnr.x <$INFILE >$OUTFILE
+$BIN_DIR/oncvpspnr.x <$INFILE >$OUTFILE
 
 grep GHOST $OUTFILE
 

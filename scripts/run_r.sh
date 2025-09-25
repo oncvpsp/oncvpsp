@@ -5,6 +5,7 @@
 #uses the fully-relativistic all-electron atom calculation
 
 PREFIX=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp
+BIN_DIR=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp/src
 
 INFILE=$1.dat
 
@@ -16,7 +17,7 @@ PLOTFILE=$1_r.plot
 
 TEMP=$$.tmp
 
-$PREFIX/src/oncvpspr.x <$INFILE >$OUTFILE  #Edit if your executable is
+$BIN_DIR/oncvpspr.x <$INFILE >$OUTFILE  #Edit if your executable is
                                             #in another directory
 
 awk 'BEGIN{out=0};/GNUSCRIPT/{out=0}; {if(out == 1) {print}};\
