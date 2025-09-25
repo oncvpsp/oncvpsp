@@ -54,8 +54,8 @@ subroutine run_vkb(lmax,lloc,lpopt,dvloc0,irc,nproj,rr,mmax,mxprj,pswf, &
    integer :: nlim
 
 !Local variables
-   integer :: ii,ipk,jj,kk,ierr,l1,info,np
-   real(dp) :: apk,sn,tt,qq12
+   integer :: ii,ipk,jj,kk,l1,info,np
+   real(dp) :: apk,sn,tt
    real(dp) :: xx,ff
    real(dp) :: bb(mxprj,mxprj),bbev(mxprj),bbi(mxprj,mxprj)
    real(dp) :: sovl(mxprj,mxprj),sovlev(mxprj),smhalf(mxprj,mxprj)

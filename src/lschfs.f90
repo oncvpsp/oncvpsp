@@ -55,7 +55,7 @@ subroutine lschfs(nn,ll,ierr,ee,rr,vv,uu,up,zz,mmax,mch,srel)
 !Local variables
    real(dp) :: amesh,al
    real(dp) :: aeo, aio, als, cn
-   real(dp) :: fss, tfss, gamma, ro, xx
+   real(dp) :: fss, tfss, gamma, ro
    real(dp) :: sls, sn, uout, upout
    integer :: ii, it,node
 

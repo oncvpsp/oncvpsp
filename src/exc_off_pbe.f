@@ -31,7 +31,7 @@ c
 c
       real*8 rho(*),vxc(*),exc(*),r(*)
       real*8 amesh,al
-      real*8 fk,sk,g,ec,ecrs,eczet
+      real*8 fk,sk,g,ec
       integer i, mmax
 c
 c      common/GAS/fk,sk,g,ec,ecrs,eczet
@@ -43,7 +43,7 @@ c
       real(dp) :: thrd
       real(dp) :: conf,conrs
       real(dp) :: s,u,v,ex,vx
-      real(dp) :: rs,zet,vcup,vcdn,zlfc
+      real(dp) :: rs,zet,vcup,vcdn
       real(dp) :: t,uu,vv,ww,h,dvcup,dvcdn
 c
       al = 0.01d0 * dlog(r(101) / r(1))
@@ -220,10 +220,10 @@ c     {\bf 40},  3399  (1989) (E).
 c----------------------------------------------------------------------
 c----------------------------------------------------------------------
 c Formulas:
-c   	e_x[unif]=ax*rho^(4/3)  [LDA]
+c     e_x[unif]=ax*rho^(4/3)  [LDA]
 c ax = -0.75*(3/pi)^(1/3)
-c	e_x[PBE]=e_x[unif]*FxPBE(s)
-c	FxPBE(s)=1+uk-uk/(1+ul*s*s)                 [a](13)
+c     e_x[PBE]=e_x[unif]*FxPBE(s)
+c     FxPBE(s)=1+uk-uk/(1+ul*s*s)                 [a](13)
 c uk, ul defined after [a](13)
 c----------------------------------------------------------------------
 c----------------------------------------------------------------------
@@ -237,9 +237,9 @@ c----------------------------------------------------------------------
 c construct LDA exchange energy density
       exunif = AX*rho**THRD
       if(lgga.eq.0)then
-	ex=exunif
+      ex=exunif
         vx=ex*thrd4
-	return
+      return
       endif
 c----------------------------------------------------------------------
 c----------------------------------------------------------------------

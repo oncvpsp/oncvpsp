@@ -56,13 +56,12 @@ subroutine lschvkbbe(nn,ll,nvkb,ierr,ee,uld,emin,emax, &
 
 
 !Local variables
-   real(dp) :: aei,aeo,aii,aio,cn
+   real(dp) :: cn
    real(dp) :: de
-   real(dp) :: eps,ro,sc
+   real(dp) :: eps,ro
    real(dp) :: sls,sn,uout,upin,upout
    real(dp) :: amesh,al,als
-   real(dp) :: rc,xkap
-   integer :: ii,it,nin,nint,node
+   integer :: ii,nin,nint,node
 
    real(dp), allocatable :: upp(:),cf(:)
    allocate(upp(mmax),cf(mmax))

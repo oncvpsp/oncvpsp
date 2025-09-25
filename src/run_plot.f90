@@ -51,8 +51,8 @@ subroutine run_plot(lmax,npa,epa,lloc,irc, &
    integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
-   integer :: lmax,lloc,mmax,mxprj,nlim,nrl
-   integer :: npa(mxprj,6),npx(6),irc(6),lpx(6),nproj(6)
+   integer :: lmax,lloc,mmax,mxprj,nrl
+   integer :: npa(mxprj,6),irc(6),nproj(6)
    real(dp) :: zz,drl
    real(dp) :: rr(mmax),vp(mmax,5),vpuns(mmax,5),vfull(mmax),vkb(mmax,mxprj,4)
    real(dp) :: rho(mmax),rhoc(mmax),rhomod(mmax,5)
@@ -62,9 +62,9 @@ subroutine run_plot(lmax,npa,epa,lloc,irc, &
 !Output variables - printing only
 
 !Local variables
-   integer :: ll,l1,ii,jj,ierr,mch,mchf,n1,n2,n3,n4,nn
-   integer :: iprj,nnp,npr
-   real(dp) :: al,emax,emin,etest,sls,rmx,sgnae,sgnps
+   integer :: ll,l1,ii,jj,ierr,mch,n1,n2,n3,n4,nn
+   integer :: iprj,npr
+   real(dp) :: al,emax,emin,etest,rmx,sgnae,sgnps
    real(dp) :: r0,dr
    real(dp), allocatable :: uu(:),u2(:),up(:)
 

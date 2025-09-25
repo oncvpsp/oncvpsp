@@ -40,7 +40,7 @@ subroutine wf_rc_der(rr,uu,al,rc,irc,mmax,uorder)
 !subroutine arguments
    real(dp) :: rr(mmax),uu(mmax),uorder(5)
    real(dp) :: al,rc
-   integer :: mmax,irc,nder
+   integer :: mmax,irc
 
 !local variables
    integer :: ii,jj

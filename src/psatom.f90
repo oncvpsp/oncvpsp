@@ -19,7 +19,7 @@
 ! self-consistent pseudoatom calculation
 
 subroutine psatom(na,la,ea,fat,nv,it,rhoc,rho, &
-&           rr,rcmax,mmax,mxprj,iexc,etot,nproj,vpuns,lloc,vkb,evkb,ierr)
+&           rr,mmax,mxprj,iexc,etot,nproj,vpuns,lloc,vkb,evkb,ierr)
 
 !na  principal quantum number array, dimension nv
 !la  angular-momenta
@@ -46,9 +46,8 @@ subroutine psatom(na,la,ea,fat,nv,it,rhoc,rho, &
 
 !Input variables
 
-   integer :: mmax,mxprj,iexc,nv,lloc,okb
+   integer :: mmax,mxprj,iexc,nv,lloc
    integer :: na(nv),la(nv),nproj(5)
-   real(dp) :: rcmax
    real(dp) :: fat(30,2),rr(mmax)
    real(dp) :: vpuns(mmax,5),vkb(mmax,mxprj,4),evkb(mxprj,4)
 
@@ -57,7 +56,6 @@ subroutine psatom(na,la,ea,fat,nv,it,rhoc,rho, &
    real(dp) :: etot
    real(dp) :: ea(nv)
    real(dp) :: rho(mmax),rhoc(mmax),vi(mmax)
-   real(dp) :: uua(mmax,nv)
 
 !Local variables
    integer :: nin,mch
@@ -65,7 +63,7 @@ subroutine psatom(na,la,ea,fat,nv,it,rhoc,rho, &
    real(dp) :: dr,eeel,eexc,et,emin,emax,rl,rl1,sd,sn,sls,eeig
    real(dp) :: thl,vn,zval,dfa
    real(dp) :: fa(30)
-   integer :: ii,jj,l1,ierr,icx,nprj
+   integer :: ii,l1,ierr,icx,nprj
    logical :: convg
 
    real(dp), allocatable :: uu(:),up(:)

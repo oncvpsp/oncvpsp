@@ -55,7 +55,7 @@ subroutine ldiracfb(nn,ll,kap,ierr,ee,rr,zz,vv,uu,up,mmax,mch)
    real(dp) :: de,emax,emin
    real(dp) :: eps,ro,sc
    real(dp) :: sls,sn,cn,uout,upin,upout,xkap
-   real(dp) :: amesh,al,als
+   real(dp) :: amesh,al
    integer :: ii,kk,nint,node,nin
 
    cc=137.036d0
@@ -172,7 +172,7 @@ subroutine ldiracfb(nn,ll,kap,ierr,ee,rr,zz,vv,uu,up,mmax,mch)
 ! start inward integration at 10*classical turning
 ! point with simple exponential
 
-         nin=mch+2.3d0/al
+         nin=int(mch+2.3d0/al)
          if(nin+4>mmax) nin=mmax-4
          xkap=dsqrt(sls/rr(nin)**2 + 2.0d0*(vv(nin)-ee))
 

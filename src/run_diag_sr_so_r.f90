@@ -46,18 +46,18 @@ subroutine run_diag_sr_so_r(lmax,npa,epa,lloc,irc, &
    integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
-   integer :: lmax,lloc,mmax,mxprj,nlim
+   integer :: lmax,lloc,mmax,mxprj
    integer :: npa(mxprj,6),irc(6),nproj(6)
    real(dp) :: zz
-   real(dp) :: rr(mmax),vp(mmax,5,2),vfull(mmax),vkb(mmax,mxprj,4,2)
+   real(dp) :: rr(mmax),vp(mmax,5,2),vfull(mmax)
    real(dp) :: vsr(mmax,2*mxprj,4),esr(2*mxprj,4)
    real(dp) :: vso(mmax,2*mxprj,4),eso(2*mxprj,4)
-   real(dp):: epa(mxprj,6,2),evkb(mxprj,4,2)
+   real(dp):: epa(mxprj,6,2)
 
 !Output variables - printing only
 
 !Local variables
-   integer :: ll,l1,ikap,kap,mkap,ii,jj,ierr,mch,mchf,nvkbt
+   integer :: ll,l1,ikap,kap,mkap,ii,ierr,mch,mchf,nvkbt
    integer :: iprj,nnae,nnp,npr
    real(dp) :: al,emax,emin,etest,sls,umch,upmch,uldf,gam,gpr,cnorm,fso
    real(dp), allocatable :: uu(:),up(:),ur(:,:),urp(:,:)
@@ -130,7 +130,7 @@ subroutine run_diag_sr_so_r(lmax,npa,epa,lloc,irc, &
                call ldiracfs(nnae,ll,kap,ierr,etest, &
                &                  rr,zz,vfull,ur,urp,mmax,mchf)
             end if
-            call renorm_r(ur,rr,ll,kap,zz,mmax,cnorm)
+            call renorm_r(ur,rr,kap,zz,mmax,cnorm)
             umch=ur(mchf,1)
             upmch=cnorm*urp(mchf,1)
             uldf=upmch/umch

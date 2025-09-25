@@ -52,24 +52,22 @@ subroutine optimize(nnull,nbas,pswf0_sb,pswf0_or,nqout,qout,&
    real(dp) :: pswf0_sb(nbas),pswfnull_sb(nbas,nnull)
    real(dp) :: pswf0_or(nbas),pswfnull_or(nbas,nnull)
    real(dp) :: eresid0(nqout),eresiddot(nnull,nqout),eresidmat(nnull,nnull,nqout)
-   real(dp) :: orbasis_it(nbas,nbas)
    real(dp) :: qout(nqout),eresq(nqout)
    real(dp) :: uunorm,ps0norm
 
 !Output variables
    real(dp) :: eresidmin,ekin_anal
    real(dp) :: pswfopt_sb(nbas),pswfopt_or(nbas)
-   real(dp) :: eres(nqout)
 
 !Local variables
-   real(dp) :: yy,tt,emin,rtsgn,sn
-   real(dp) :: emin0,emin1,x1,x1min,x1max
+   real(dp) :: yy,tt,emin,rtsgn
+   real(dp) :: x1,x1min,x1max
    real(dp), allocatable :: work(:),wmat(:,:),wev(:),wvec(:)
    real(dp), allocatable :: eresidevec_nu(:,:)
    real(dp), allocatable :: pswfopt(:),pswfopt_nu(:)
    real(dp), allocatable :: eresiddot_ev(:),eresideval(:)
    real(dp), parameter :: eps=1.d-10
-   integer :: ii,iter,jj,kk,ll,nn,info
+   integer :: ii,iter,jj,kk,info
    integer, parameter :: niter=100
    logical :: converged
 

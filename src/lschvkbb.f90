@@ -54,13 +54,13 @@ subroutine lschvkbb(nn,ll,nvkb,ierr,ee,emin,emax, &
 
 
 !Local variables
-   real(dp) :: aei,aeo,aii,aio,cn
+   real(dp) :: aei,aii,cn
    real(dp) :: de
    real(dp) :: eps,ro,sc
    real(dp) :: sls,sn,uout,upin,upout
    real(dp) :: amesh,al,als
    real(dp) :: rc,xkap
-   integer :: ii,it,jj,nin,nint,node
+   integer :: ii,it,nin,nint,node
 
    real(dp), allocatable :: upp(:),cf(:)
    allocate(upp(mmax),cf(mmax))
@@ -147,7 +147,7 @@ subroutine lschvkbb(nn,ll,nvkb,ierr,ee,emin,emax, &
 ! start inward integration at 10*classical turning
 ! point with simple exponential
 
-         nin=mch+2.3d0/al
+         nin=int(mch+2.3d0/al)
          if(nin+4>mmax) nin=mmax-4
          xkap=dsqrt(sls/rr(nin)**2 + 2.0d0*(vloc(nin)-ee))
 

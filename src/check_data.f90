@@ -34,7 +34,7 @@ subroutine check_data(atsym,zz,fcfact,rcfact,epsh1,epsh2,depsh,rlmax,drl, &
    character(len=4) :: psfile
 
    real(dp) :: zz,fcfact,rcfact,epsh1,epsh2,depsh,rlmax,drl
-   real(dp) :: fa(30),facnf(30,5),rc(6),ep(6),qcut(6),cfloc(5),debl(5)
+   real(dp) :: fa(30),facnf(30,5),rc(6),ep(6),qcut(6),debl(5)
 
    integer :: nc,nv,iexc,lmax,lloc,lpopt,icmod,ncnf
    integer :: na(30),la(30),nvcnf(5),nacnf(30,5),lacnf(30,5)

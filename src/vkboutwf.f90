@@ -47,17 +47,17 @@ subroutine vkboutwf(ll,nvkb,ep,vkb,evkb,rr,vloc,uu,up,node,mmax,mch)
 
 !Local variables
    real(dp) :: rc,rn
-   real(dp), allocatable ::  phi(:,:),phip(:,:),phi0(:),phi0p(:)
+   real(dp), allocatable ::  phi(:,:),phip(:,:)
    real(dp), allocatable ::  gg0(:),gg(:,:)
    integer, allocatable :: ipiv(:)
 
-   integer :: ii,jj,kk,ierr,info
+   integer :: ii,jj,ierr,info
 
    uu(:)=0.0d0
    up(:)=0.0d0
 
 ! homogeneous solution
-   call lschps(ll+1,ll,ierr,ep,rr,vloc,uu,up,mmax,mch)
+   call lschps(ll,ierr,ep,rr,vloc,uu,up,mmax,mch)
 
    rc=0.0d0
    if(nvkb/=0) then
@@ -80,7 +80,7 @@ subroutine vkboutwf(ll,nvkb,ep,vkb,evkb,rr,vloc,uu,up,node,mmax,mch)
 
 ! inhomogeneous solutions
       do ii=1,nvkb
-         call lschkb(ll+1,ll,ierr,ep,vkb(1,ii),rr,vloc,phi(1,ii),phip(1,ii),mmax,mch)
+         call lschkb(ll,ierr,ep,vkb(1,ii),rr,vloc,phi(1,ii),phip(1,ii),mmax,mch)
       end do
 
 

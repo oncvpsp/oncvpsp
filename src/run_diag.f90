@@ -46,7 +46,7 @@ subroutine run_diag(lmax,npa,epa,lloc,irc, &
    integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
-   integer :: lmax,lloc,mmax,mxprj,nlim
+   integer :: lmax,lloc,mmax,mxprj
    integer :: npa(mxprj,6),irc(6),nproj(6)
    real(dp) :: zz
    real(dp) :: rr(mmax),vp(mmax,5),vfull(mmax),vkb(mmax,mxprj,4)
@@ -56,7 +56,7 @@ subroutine run_diag(lmax,npa,epa,lloc,irc, &
 !Output variables - printing only
 
 !Local variables
-   integer :: ll,l1,ii,jj,ierr,mch,mchf
+   integer :: ll,l1,ierr,mch,mchf
    integer :: iprj,nnae,nnp,npr
    real(dp) :: al,emax,emin,etest,sls,umch,upmch,uldf,gam,gpr
    real(dp), allocatable :: uu(:),up(:)

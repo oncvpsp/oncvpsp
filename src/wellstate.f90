@@ -53,7 +53,7 @@ subroutine wellstate(nnin,ll,irc,ep,rr,vfull,uu,up,zz,mmax,mch,srel)
    real(dp) :: al,cwell,et,xx,rwell,rwmax,rwmin,rwscale,umax
 
    real(dp),parameter :: eps=1.0d-8
-   integer :: ii,iter,ierr,iumax,l1,itrwell,nn,nnloop
+   integer :: ii,ierr,iumax,l1,itrwell,nn,nnloop
    logical :: convg
 
    l1=ll+1

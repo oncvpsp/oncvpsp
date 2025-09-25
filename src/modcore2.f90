@@ -23,8 +23,8 @@
 ! Performs analysis and based on "hardness" criterion described in
 ! Teter, Phys. Rev. B 48, 5031 (1993) , Appendix, as
 
-subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
-&                   fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+subroutine modcore2(rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
+&                   fcfact,mmax,rr,nc,nv,la,zion,iexc)
 
 !icmod  3 coefficient optimizaion, 4 for specivied fcfact and rfact
 !rhops  state-by-state pseudocharge density
@@ -48,12 +48,11 @@ subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
-   integer :: icmod,nv,nc,iexc,irps,mmax
+   integer :: nv,nc,iexc,mmax
    integer :: la(30)
    real(dp) :: rhoae(mmax,nv),rhops(mmax,nv),rhotae(mmax)
    real(dp) :: rhotps(mmax),rhoc(mmax),rr(mmax)
-   real(dp) :: zion,fcfact,rcfact
-   logical :: srel
+   real(dp) :: zion,fcfact
 
 !Output variables
    real(dp) :: rhomod(mmax,5)
@@ -62,15 +61,15 @@ subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    real(dp), parameter :: eps=1.0d-7
 
 !Local variables
-   real(dp) :: al,eeel,eexc
+   real(dp) :: al
    real(dp) :: d2mdiff,rmatch,rhocmatch
    real(dp) :: xx,yy,dy
-   real(dp) :: x0max,x0min,a0,b0,r0,tt,ymatch,ytrial
+   real(dp) :: x0max,x0min,a0,b0,ymatch,ytrial
    real(dp) :: fmatch(5)
    real(dp) :: drint,rtst,rint(20),fint(20)  !ad-hoc smoothing variables
    real(dp), allocatable :: vxcae(:),vxcpsp(:),vo(:),d2excae(:,:),d2excps(:,:)
    real(dp), allocatable :: dvxcae(:,:),dvxcps(:,:),vxct(:)
-   integer :: ii,ierr,ircc,irmod,iter,jj,kk
+   integer :: ii,ircc,irmod,jj,kk
    integer :: iint  !ad-hoc smoothing variables
 
    allocate(vxcae(mmax),vxcpsp(mmax),vo(mmax))

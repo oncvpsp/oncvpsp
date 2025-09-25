@@ -49,12 +49,11 @@ subroutine lschpse(nn,ll,ierr,ee,uld,rr,vv,uu,up,mmax,mch)
    integer :: ierr
 
 !Local variables
-   real(dp) :: aei, aeo, aii, aio, als, cn
+   real(dp) :: aeo, aio, als, cn
    real(dp) :: de, emax, emin
-   real(dp) :: eps, ro, sc
-   real(dp) :: amesh,al,xx
+   real(dp) :: eps, ro
+   real(dp) :: amesh,al
    real(dp) :: sls, sn, uout, upin, upout
-   real(dp) ::  xkap
    integer :: ii,  it, nin, nint, node
 
    real(dp), allocatable :: upp(:),cf(:)

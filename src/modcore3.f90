@@ -24,7 +24,7 @@
 ! Teter, Phys. Rev. B 48, 5031 (1993) , Appendix, as
 
 subroutine modcore3(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
-&                   fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+&                   fcfact,rcfact,mmax,rr,nc,nv,la,zion,iexc)
 
 !icmod  3 coefficient optimizaion, 4 for specivied fcfact and rfact
 !rhops  state-by-state pseudocharge density
@@ -48,12 +48,11 @@ subroutine modcore3(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
-   integer :: icmod,nv,nc,iexc,irps,mmax
+   integer :: icmod,nv,nc,iexc,mmax
    integer :: la(30)
    real(dp) :: rhoae(mmax,nv),rhops(mmax,nv),rhotae(mmax)
    real(dp) :: rhotps(mmax),rhoc(mmax),rr(mmax)
    real(dp) :: zion,fcfact,rcfact
-   logical :: srel
 
 !Output variables
    real(dp) :: rhomod(mmax,5)
@@ -63,13 +62,13 @@ subroutine modcore3(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    real(dp), parameter :: blend=2.0d0
 
 !Local variables
-   real(dp) :: al,eeel,eexc
+   real(dp) :: al
    real(dp) :: d2mdiff,rmatch,rhocmatch,r0,rcross
    real(dp) :: gg,tt,yy
    real(dp) :: drint,rtst,rint(20),fint(20)  !ad-hoc smoothing variables
    real(dp), allocatable :: vxcae(:),vxcpsp(:),vo(:),d2excae(:,:),d2excps(:,:)
    real(dp), allocatable :: dvxcae(:,:),dvxcps(:,:),vxct(:)
-   integer :: ii,ierr,ircc,ircross,irmod,iter,jj,kk
+   integer :: ii,ircc,ircross,irmod,jj,kk
    integer :: iint  !ad-hoc smoothing variables
 
 !2-dimensional Nelder-Mead variables

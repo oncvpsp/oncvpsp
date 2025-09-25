@@ -45,7 +45,7 @@ subroutine fpovlp_r(gg,hh,nn,ll,kap,zz,ss,rr)
    real(dp) :: ss
 
 !Local variables
-   real(dp) :: r0,amesh,al,fss,gam,cc,cci
+   real(dp) :: r0,amesh,al,gam,cc,cci
    integer :: ii
 
    al = 0.01d0 * dlog(rr(101)/rr(1))

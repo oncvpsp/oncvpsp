@@ -155,17 +155,15 @@ end subroutine xc_functl_init
 
  ! ---------------------------------------------------------
 
-subroutine xc_functl_init_functl(functl, id, ndim,nel, nspin, deriv_method)
+subroutine xc_functl_init_functl(functl, id, nspin, deriv_method)
    type(xc_functl_t), intent(out) :: functl
    integer,           intent(in)  :: id
-   integer,           intent(in)  :: ndim
-   real(8),             intent(in)  :: nel
    integer,           intent(in)  :: nspin
    integer,           intent(in)  :: deriv_method
 
    real(8)   :: alpha
    real(8)   :: parameters(2)
-   logical :: ok, lb94_modified
+   logical :: lb94_modified
 
 #if XC_MAJOR_VERSION<5
    call messages_input_error('LibXC version', 'at least v5 is now required')
@@ -281,7 +279,7 @@ subroutine xc_functl_write_info(functl, iunit)
    type(xc_functl_t), intent(in) :: functl
    integer,           intent(in) :: iunit
 
-   character(len=1000) :: s1, s2
+   character(len=1024) :: s1, s2
    integer :: ii
 #if XC_MAJOR_VERSION>=6
    type(xc_f03_func_reference_t) :: xc_ref
@@ -700,91 +698,6 @@ subroutine xc_functl_get_vxc(functl, np, al, rr, rho, rho_grad, rho_lapl, tau, i
    end if
 
 end subroutine xc_functl_get_vxc
-
- ! Not used for the moment
-subroutine functional_get_tau(functl, np, rho, rho_grad, rho_lapl, tau)
-   !-----------------------------------------------------------------------!
-   ! Computes the approximated kinetic energy density.                     !
-   !                                                                       !
-   !  functl   - functional                                                !
-   !  m        - mesh                                                      !
-   !  rho      - electronic radial density                                 !
-   !  rho_grad - gradient of the electronic radial density                 !
-   !  rho_lapl - laplacian of the electronic radial density                !
-   !  tau      - radial kinetic energy density                             !
-   !-----------------------------------------------------------------------!
-   type(xc_functl_t), intent(in)  :: functl
-   integer     ,       intent(in)  :: np
-   real(8),           intent(in)  :: rho(np, functl%nspin)
-   real(8),           intent(in)  :: rho_grad(np, functl%nspin)
-   real(8),           intent(in)  :: rho_lapl(np, functl%nspin)
-   real(8),           intent(out) :: tau(np, functl%nspin)
-
-   integer  :: i, is, nspin
-   real(8), allocatable :: n(:), s(:), l(:), t(:)
-
-   nspin = functl%nspin
-
-   !Allocate work arrays
-   allocate(n(nspin), t(nspin))
-   n =0.0d0; t =0.0d0
-   if (functl%family == XC_FAMILY_GGA .or. functl%family == XC_FAMILY_MGGA) then
-      if (nspin == 1) then
-         allocate(s(1))
-      else
-         allocate(s(3))
-      end if
-      s =0.0d0
-   end if
-   if (functl%family == XC_FAMILY_MGGA) then
-      allocate(l(nspin))
-      l =0.0d0
-   end if
-
-   !Spin loop
-   do is = 1, nspin
-      !Space loop
-      do i = 1, np
-         ! make a local copy with the correct memory order
-         n(is) = rho(i, is)
-
-         if (functl%family == XC_FAMILY_GGA .or. functl%family == XC_FAMILY_MGGA) then
-            s(1) = rho_grad(i, 1)**2
-            if(nspin == 2) then
-               s(2) = rho_grad(i, 1)*rho_grad(i, 2)
-               s(3) = rho_grad(i, 2)**2
-            end if
-         end if
-         if (functl%family == XC_FAMILY_MGGA) then
-            l(is) = rho_lapl(i, is)
-         end if
-
-#if XC_MAJOR_VERSION>=6
-         select case(functl%family)
-          case(XC_FAMILY_LDA)
-            call xc_f03_lda_exc(functl%conf, xc_one, n(1), t(1))
-          case(XC_FAMILY_GGA)
-            call xc_f03_gga_exc(functl%conf, xc_one, n(1), s(1), t(1))
-         end select
-#elif XC_MAJOR_VERSION==5
-         select case(functl%family)
-          case(XC_FAMILY_LDA)
-            call xc_f90_lda_exc(functl%conf, xc_one, n(1), t(1))
-          case(XC_FAMILY_GGA)
-            call xc_f90_gga_exc(functl%conf, xc_one, n(1), s(1), t(1))
-         end select
-#endif
-
-         tau(i, is) = 2.0d0*t(1)*n(is)
-      end do
-   end do
-
-   !Deallocate arrays
-   deallocate(n, t)
-   if (functl%family == XC_FAMILY_GGA .or. functl%family == XC_FAMILY_MGGA) deallocate(s)
-   if (functl%family == XC_FAMILY_MGGA) deallocate(l)
-
-end subroutine functional_get_tau
 
 end module functionals_m
 

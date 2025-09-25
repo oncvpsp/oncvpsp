@@ -44,7 +44,7 @@ subroutine run_diag_r(lmax,npa,epa,lloc,irc, &
    integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
-   integer :: lmax,lloc,mmax,mxprj,nlim
+   integer :: lmax,lloc,mmax,mxprj
    integer :: npa(mxprj,6),irc(6),nproj(6)
    real(dp) :: zz
    real(dp) :: rr(mmax),vp(mmax,5,2),vfull(mmax),vkb(mmax,mxprj,4,2)
@@ -53,7 +53,7 @@ subroutine run_diag_r(lmax,npa,epa,lloc,irc, &
 !Output variables - printing only
 
 !Local variables
-   integer :: ll,l1,ikap,kap,mkap,ii,jj,ierr,mch,mchf
+   integer :: ll,l1,ikap,kap,mkap,ierr,mch,mchf
    integer :: iprj,nnae,nnp,npr
    real(dp) :: al,emax,emin,etest,umch,upmch,uldf,gam,gpr,cnorm
    real(dp), allocatable :: uu(:),up(:),ur(:,:),urp(:,:)
@@ -108,7 +108,7 @@ subroutine run_diag_r(lmax,npa,epa,lloc,irc, &
                call ldiracfs(nnae,ll,kap,ierr,etest, &
                &                  rr,zz,vfull,ur,urp,mmax,mchf)
             end if
-            call renorm_r(ur,rr,ll,kap,zz,mmax,cnorm)
+            call renorm_r(ur,rr,kap,zz,mmax,cnorm)
             umch=ur(mchf,1)
             upmch=cnorm*urp(mchf,1)
             uldf=upmch/umch

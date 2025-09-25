@@ -50,13 +50,12 @@ subroutine ldiracfs(nn,ll,kap,ierr,ee,rr,zz,vv,uu,up,mmax,mch)
 
    real(dp), allocatable :: gu(:),fu(:),gup(:),fup(:),cf(:)
 
-   real(dp) :: aei,aeo,aii,aio  !functions in aeo.f90
+   real(dp) :: aeo,aio  !functions in aeo.f90
    real(dp) :: cc,cci,gam,cof
-   real(dp) :: de,emax,emin
-   real(dp) :: eps,ro,sc
-   real(dp) :: sls,sn,cn,uout,upout,xkap
-   real(dp) :: amesh,al,als
-   integer :: ii,kk,nint,nin,node
+   real(dp) :: eps,ro
+   real(dp) :: sn,cn,uout,upout
+   real(dp) :: amesh,al
+   integer :: ii,kk,node
 
    cc=137.036d0
    cci=1.0d0/cc

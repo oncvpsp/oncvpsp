@@ -30,7 +30,7 @@ subroutine exc_libxc(iexc,al,rho,vxc,exc,rr,mmax)
    real(dp), intent(in) :: rho(mmax),rr(mmax)
    real(dp), intent(out) :: vxc(mmax),exc(mmax)
    integer, intent(in) :: mmax, iexc
-   integer :: ii, unit
+   integer :: ii
 
 ! local
    integer ::  id(2), ifunc
@@ -68,8 +68,8 @@ subroutine exc_libxc(iexc,al,rho,vxc,exc,rr,mmax)
    deriv_method = XC_DERIV_NUMERICAL
    ! call xc_functl_init(functls(1),nspin)
    ! call xc_functl_init(functls(2),nspin)
-   call xc_functl_init_functl(functls(1),id(1),3,0.d0,nspin,deriv_method)
-   call xc_functl_init_functl(functls(2),id(2),3,0.d0,nspin,deriv_method)
+   call xc_functl_init_functl(functls(1),id(1),nspin,deriv_method)
+   call xc_functl_init_functl(functls(2),id(2),nspin,deriv_method)
 
    if (functprinted==0) then
       call xc_functl_write_info(functls(1), 6)

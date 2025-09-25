@@ -49,8 +49,8 @@ subroutine qroots(ll,rc,ulgd,nroot,dltq,qmax,qroot)
    real(dp), parameter :: eps=1.0d-12
 
    real(dp) :: sbfd(5)
-   real(dp) :: al,qq,dlgd,dlgd_last,qhi,qlow,qt
-   integer :: ii,jj,ll1,lmax,mmax,iroot,nq
+   real(dp) :: qq,dlgd,dlgd_last,qhi,qlow,qt
+   integer :: ii,jj,iroot,nq
    logical :: found_root
 
    nq=int(qmax/dltq)+1

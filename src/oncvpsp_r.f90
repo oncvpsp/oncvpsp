@@ -37,32 +37,30 @@ program oncvpsp_r
    integer, parameter :: dp=kind(1.0d0)
 
 !
-   integer :: ii,ierr,iexc,iexct,ios,iprint,irps,it,icmod,lpopt
+   integer :: ii,ierr,iexc,ios,irps,it,icmod,lpopt
    integer :: jj,kk,ll,l1,lloc,lmax,lt,inline
-   integer :: mch,mchf,mmax,n1,n2,nc,nlim,nlloc,nlmax,irpsh,nrl
-   integer :: nv,irct,ncnf,nvt
+   integer :: mch,mmax,nc,nlim,nrl
+   integer :: nv,irct,ncnf
    integer :: ikap,kap,mkap
    integer :: iprj,mxprj
    integer,allocatable :: npa(:,:)
 !
-   integer :: dtime(8),na(30),la(30),np(6)
+   integer :: na(30),la(30),np(6)
    integer :: nacnf(30,5),lacnf(30,5),nvcnf(5)
-   integer :: nat(30),lat(30)
    integer :: irc(6),nodes(4)
    integer :: nproj(6)
    integer :: ncon(6),nbas(6)
 
-   real(dp) :: al,amesh,csc,csc1,depsh,depsht,drl,eeel,fj
+   real(dp) :: al,amesh,depsh,drl,eeel,fj
    real(dp) :: eeig,eexc
-   real(dp) :: emax,epsh1,epsh1t,epsh2,epsh2t
-   real(dp) :: et,etest,emin,sls
+   real(dp) :: emax,epsh1,epsh2
+   real(dp) :: et,emin
    real(dp) :: fcfact,rcfact,dvloc0,soscale
-   real(dp) :: rr1,rcion,rciont,rcmax,rct,rlmax,rpkt
-   real(dp) :: sf,zz,zion,zval,etot
-   real(dp) :: cnorm,ebar,eprmin
-   real(dp) :: xdummy
+   real(dp) :: rr1,rcmax,rct,rlmax
+   real(dp) :: zz,zion,zval,etot
+   real(dp) :: cnorm,ebar
 !
-   real(dp) :: cl(6),debl(6),ea(30,2),eacopy(30,2),ep(6,2),fa(30),facnf(30,5)
+   real(dp) :: debl(6),ea(30,2),ep(6,2),fa(30),facnf(30,5)
    real(dp) :: qcut(6),qmsbf(6),rc(6),rc0(6)
    real(dp) :: rpk(30,2)
    real(dp) :: epstot,eps_srso
@@ -87,7 +85,7 @@ program oncvpsp_r
    character(len=2) :: atsym
    character(len=4) :: psfile
 
-   logical :: srel,cset
+   logical :: srel
 
    write(6,'(a/a//)') &
    &      'ONCVPSP  (Optimized Norm-Conservinng Vanderbilt PSeudopotential)', &
@@ -217,7 +215,7 @@ program oncvpsp_r
    al=dlog(amesh)
    rr1=.0005d0/zz
    rr1=0.0005d0/zz
-   mmax=dlog(45.0d0 /rr1)/al
+   mmax=int(dlog(45.0d0 /rr1)/al)
 
 !calculate zion for output
    zion=zz
@@ -424,7 +422,7 @@ program oncvpsp_r
 
                   epa(iprj,l1,ikap)=ea(kk,ikap)
                   npa(iprj,l1)=na(kk)
-                  call renorm_r(uu,rr,ll,kap,zz,mmax,cnorm)
+                  call renorm_r(uu,rr,kap,zz,mmax,cnorm)
                   uua(:,iprj,ikap)=uu(:,1)
                   upa(:,iprj,ikap)=cnorm*up(:,1)
                end if  !la(kk)==l1-1
@@ -483,7 +481,7 @@ program oncvpsp_r
                   &                  '     eigenvalue = ',et
                end if
 
-               call renorm_r(uu,rr,ll,kap,zz,mmax,cnorm)
+               call renorm_r(uu,rr,kap,zz,mmax,cnorm)
                uua(:,iprj,ikap)=uu(:,1)
                upa(:,iprj,ikap)=cnorm*up(:,1)
             end do  !kk
@@ -625,16 +623,16 @@ program oncvpsp_r
 ! or Teter function fit
 
    if(icmod==1) then
-      call modcore(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-      &               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+      call modcore(rhops,rho,rhoc,rhoae,rhotae,rhomod, &
+      &               fcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
 
    else if(icmod==2) then
-      call modcore2(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-      &               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+      call modcore2(rhops,rho,rhoc,rhoae,rhotae,rhomod, &
+      &               fcfact,mmax,rr,nc,nv,la,zion,iexc)
 
    else if(icmod>=3) then
       call modcore3(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-      &               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+      &               fcfact,rcfact,mmax,rr,nc,nv,la,zion,iexc)
 
    end if
 
@@ -714,7 +712,7 @@ program oncvpsp_r
       rhot(:)=rho(:)
 
       call run_config_r(jj,nacnf,lacnf,facnf,nc,nvcnf,rhot,rhomod,rr,zz, &
-      &                  rcmax,mmax,mxprj,iexc,ea,etot,epstot,nproj,vpuns, &
+      &                  mmax,mxprj,iexc,ea,etot,epstot,nproj,vpuns, &
       &                  lloc,vkb,evkb)
 
    end do  !jj
@@ -754,9 +752,9 @@ program oncvpsp_r
       call psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpsml,rho,rhomod, &
       &             irct, &
       &             vsr,esr,vso,eso, &
-      &             zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
+      &             zz,zion,mmax,iexc,icmod,drl,atsym, &
       &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
-      &             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
+      &             fa,ep,qcut,debl,facnf,dvloc0,fcfact, &
       &             epsh1,epsh2,depsh,rlmax,psfile)
    end if
 

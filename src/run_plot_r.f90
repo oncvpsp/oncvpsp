@@ -51,21 +51,20 @@ subroutine run_plot_r(lmax,npa,epa,lloc,irc, &
    integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
-   integer :: lmax,lloc,mmax,mxprj,nlim,nrl
-   integer :: npa(mxprj,6),npx(6),irc(6),lpx(6),nproj(6)
+   integer :: lmax,lloc,mmax,mxprj,nrl
+   integer :: npa(mxprj,6),irc(6),nproj(6)
    real(dp) :: zz,drl
    real(dp) :: rr(mmax),vp(mmax,5,2),vpuns(mmax,5),vfull(mmax),vkb(mmax,mxprj,4,2)
    real(dp) :: rho(mmax),rhoc(mmax),rhomod(mmax,5)
    real(dp):: epa(mxprj,6,2),evkb(mxprj,4,2),cvgplt(2,7,mxprj,4,2)
-   logical :: srel
 
 !Output variables - printing only
 
 !Local variables
-   integer :: ll,l1,ii,jj,ierr,mch,mchf,n1,n2,n3,n4,nn,nnae
-   integer :: iprj,nnp,npr
+   integer :: ll,l1,ii,jj,ierr,mch,n1,n2,n3,n4,nnae
+   integer :: iprj,npr
    integer :: ikap,kap,mkap
-   real(dp) :: al,cnorm,emax,emin,etest,sls,rmx,sgnae,sgnps
+   real(dp) :: al,cnorm,emax,emin,etest,rmx,sgnae,sgnps
    real(dp) :: r0,dr
    real(dp), allocatable :: u2(:),up(:),ur(:,:),urp(:,:)
 
@@ -160,7 +159,7 @@ subroutine run_plot_r(lmax,npa,epa,lloc,irc, &
                   &                 npa(iprj,l1),'  l=',ll, 'kap-',kap,'  ierr=',ierr
                   stop
                end if
-               call renorm_r(ur,rr,ll,kap,zz,mmax,cnorm)
+               call renorm_r(ur,rr,kap,zz,mmax,cnorm)
 
                emax=0.9d0*etest
                emin=1.1d0*etest
@@ -175,7 +174,7 @@ subroutine run_plot_r(lmax,npa,epa,lloc,irc, &
                &           ', kap=',kap,', all-electron wave function', ', pseudo w-f'
                call ldiracfs(nnae,ll,kap,ierr,epa(iprj,l1,ikap), &
                &                    rr,zz,vfull,ur,urp,mmax,n2)
-               call renorm_r(ur,rr,ll,kap,zz,mmax,cnorm)
+               call renorm_r(ur,rr,kap,zz,mmax,cnorm)
 
                call lschvkbs(ll,npr,epa(iprj,l1,ikap),rr,vp(1,lloc+1,ikap), &
                &                    vkb(1,1,l1,ikap),evkb(1,l1,ikap),u2,up,mmax,n2)

@@ -42,7 +42,7 @@ subroutine sr_so_r(lmax,irc,nproj,rr,mmax,mxprj,evkb,vkb, &
    integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
-   integer :: lmax,lloc,lpopt,mmax,mxprj
+   integer :: lmax,mmax,mxprj
    integer :: irc(6),nproj(6)
    real(dp) :: rr(mmax),vkb(mmax,mxprj,4,2),evkb(mxprj,4,2)
 
@@ -51,8 +51,8 @@ subroutine sr_so_r(lmax,irc,nproj,rr,mmax,mxprj,evkb,vkb, &
    real(dp) :: vso(mmax,2*mxprj,4),eso(2*mxprj,4)
 
 !Local variables
-   integer :: ii,jj,kk,ierr,ik1,ik2,ip1,ip2,ipk,ll,l1,info,nn
-   real(dp) :: apk,sn,tt,qq1mxprj
+   integer :: ii,jj,kk,ik1,ik2,ip1,ip2,ipk,ll,l1,info,nn
+   real(dp) :: apk,tt
    real(dp) :: sovl(2*mxprj,2*mxprj),sovlev(2*mxprj),ascl(2*mxprj,2*mxprj),aso(2*mxprj,2*mxprj)
    real(dp) :: asclst(2*mxprj,2*mxprj),wsclst(2*mxprj),asost(2*mxprj,2*mxprj),wsost(2*mxprj)
    real(dp) :: asclt(2*mxprj,2*mxprj),asot(2*mxprj,2*mxprj)

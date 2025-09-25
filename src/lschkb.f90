@@ -16,7 +16,7 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-subroutine lschkb(nn,ll,ierr,ee,vkb,rr,vv,uu,up,mmax,mch)
+subroutine lschkb(ll,ierr,ee,vkb,rr,vv,uu,up,mmax,mch)
 
 ! outward integration of the inhomogeneous radial Schroedinger equation
 ! on a logarithmic mesh with local potential and one proector term
@@ -40,8 +40,7 @@ subroutine lschkb(nn,ll,ierr,ee,vkb,rr,vv,uu,up,mmax,mch)
 !Input variables
    integer :: mmax,mch
    real(dp) :: rr(mmax),vv(mmax),vkb(mmax)
-   real(dp) :: zz
-   integer :: nn,ll
+   integer :: ll
 
 !Output variables
    real(dp) :: uu(mmax),up(mmax)
@@ -51,7 +50,7 @@ subroutine lschkb(nn,ll,ierr,ee,vkb,rr,vv,uu,up,mmax,mch)
 
 !Local variables
    real(dp) :: amesh,al
-   real(dp) :: aeo, aio, als, cn
+   real(dp) :: aeo, aio, als
    real(dp) :: sls, uout, upout
    real(dp) :: akb,ckb
    integer :: ii, it

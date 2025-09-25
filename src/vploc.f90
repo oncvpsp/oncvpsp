@@ -46,7 +46,7 @@ subroutine vploc(rr,vv,vp,dvloc0,irc,mmax,lpopt)
 
 !Local variables
    integer :: ii
-   real(dp) :: aco,al,bco,cco,dco,cl,d3vv,fnp,x
+   real(dp) :: aco,al,bco,cco,dco,d3vv,x
 
    real(dp), allocatable :: dvv(:),d2vv(:)
 

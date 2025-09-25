@@ -115,7 +115,7 @@ subroutine upfout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
       end do
    end do
    if (uurcut > drl*dble(nrl-1)) then
-      nrl = 1 + uurcut/drl
+      nrl = 1 + int(uurcut/drl)
       if(mod(nrl,2)/=0) nrl=nrl+1
       write(6,'(a,i5,a,f10.5)') "Updating nrl = ", nrl, " for uurcut = ", uurcut
    end if

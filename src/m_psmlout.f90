@@ -32,9 +32,9 @@ CONTAINS
 
 subroutine psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
 &                  irct, srel, &
-&                  zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
+&                  zz,zion,mmax,iexc,icmod,drl,atsym, &
 &                  na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
-&                  fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
+&                  fa,ep,qcut,debl,facnf,dvloc0,fcfact, &
 &                  epsh1,epsh2,depsh,rlmax,psfile)
 
 !lmax  maximum angular momentum
@@ -69,11 +69,11 @@ subroutine psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
    real(dp), parameter :: pi=3.141592653589793238462643383279502884197_dp
 
 !Input variables
-   integer :: lmax,lloc,iexc,mmax,nrl,icmod
+   integer :: lmax,lloc,iexc,mmax,icmod
    integer :: nproj(6)
    integer :: irct  ! index of point at which rho_core is matched
    logical :: srel  ! whether it is scalar-relativistic or not
-   real(dp) :: drl,fcfact,zz,zion,epstot
+   real(dp) :: drl,fcfact,zz,zion
    real(dp), target :: rr(mmax),vpuns(mmax,5),rho(mmax),vkb(mmax,2,4)
    real(dp), target :: rhomod(mmax,5)
    real(dp):: rc(6),evkb(2,4)
@@ -84,7 +84,7 @@ subroutine psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
    integer :: na(30),la(30),ncon(6),nbas(6)
    integer :: nvcnf(5),nacnf(30,5),lacnf(30,5)
    integer :: nc,nv,lpopt,ncnf
-   real(dp) :: fa(30),rc0(6),ep(6),qcut(6),debl(6),facnf(30,5)
+   real(dp) :: fa(30),ep(6),qcut(6),debl(6),facnf(30,5)
    real(dp) :: dvloc0,epsh1,epsh2,depsh,rlmax
    character(len=4) :: psfile
 
@@ -107,7 +107,6 @@ subroutine psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
 
    character(len=100)    :: line
    character(len=4)      :: polattrib, coreattrib
-   character(len=1)      :: pscode, char_dummy
    character(len=2) :: nameat
    character(len=40):: psflavor
 
@@ -123,7 +122,7 @@ subroutine psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
    integer :: nr
    character(len=10)     :: datestr
 
-   logical :: tdopsp, nonrel, polarized, there_is_core, found
+   logical :: polarized, there_is_core, found
    integer :: lun, stat
 
 !---
@@ -513,9 +512,9 @@ end subroutine psmlout
 subroutine psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
 &                  irct, &
 &                  vsr,esr,vso,eso, &
-&                  zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
+&                  zz,zion,mmax,iexc,icmod,drl,atsym, &
 &                  na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
-&                  fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
+&                  fa,ep,qcut,debl,facnf,dvloc0,fcfact, &
 &                  epsh1,epsh2,depsh,rlmax,psfile)
 
 !lmax  maximum angular momentum
@@ -550,10 +549,10 @@ subroutine psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
    real(dp), parameter :: pi=3.141592653589793238462643383279502884197_dp
 
 !Input variables
-   integer :: lmax,lloc,iexc,mmax,nrl,icmod
+   integer :: lmax,lloc,iexc,mmax,icmod
    integer :: nproj(6)
    integer :: irct  ! index of point at which rho_core is matched
-   real(dp) :: drl,fcfact,zz,zion,epstot
+   real(dp) :: drl,fcfact,zz,zion
    real(dp), target :: rr(mmax),vpuns(mmax,5,2),rho(mmax),vkb(mmax,2,4,2)
    real(dp), target :: rhomod(mmax,5)
    real(dp):: rc(6),evkb(2,4,2)
@@ -566,7 +565,7 @@ subroutine psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
    integer :: na(30),la(30),ncon(6),nbas(6)
    integer :: nvcnf(5),nacnf(30,5),lacnf(30,5)
    integer :: nc,nv,lpopt,ncnf
-   real(dp) :: fa(30),rc0(6),ep(6),qcut(6),debl(6),facnf(30,5)
+   real(dp) :: fa(30),ep(6),qcut(6),debl(6),facnf(30,5)
    real(dp) :: dvloc0,epsh1,epsh2,depsh,rlmax
    character(len=4) :: psfile
 
@@ -588,7 +587,6 @@ subroutine psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
 
    character(len=100)    :: line
    character(len=4)      :: polattrib, coreattrib
-   character(len=1)      :: pscode, char_dummy
    character(len=2) :: nameat
    character(len=40):: psflavor
 
@@ -604,7 +602,7 @@ subroutine psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
    integer :: nr
    character(len=10)     :: datestr
 
-   logical :: tdopsp, nonrel, polarized, there_is_core, found
+   logical :: polarized, there_is_core, found
    integer :: lun, stat
 
 !---

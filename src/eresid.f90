@@ -18,7 +18,7 @@
 !
 ! calculates residual energy operator matrix elements as a function of q
 
-subroutine eresid(ll,irc,nnull,nbas,mmax,rr,drdum,dqdum,qmax,qroot, &
+subroutine eresid(ll,irc,nnull,nbas,mmax,rr,qmax,qroot, &
 &                  uu,pswf0_sb,pswfnull_sb, nqout,qout, &
 &                  eresid0,eresiddot,eresidmat)
 
@@ -55,7 +55,7 @@ subroutine eresid(ll,irc,nnull,nbas,mmax,rr,drdum,dqdum,qmax,qroot, &
    real(dp) :: rr(mmax),uu(mmax),pswf0_sb(nbas),pswfnull_sb(nbas,nnull)
    real(dp) :: qroot(nbas)
 !real(dp) :: dr,dq,qmax
-   real(dp) :: drdum,dqdum,qmax
+   real(dp) :: qmax
 
 !Output variables
    real(dp) :: eresid0(nqout),eresiddot(nnull,nqout)
@@ -66,17 +66,15 @@ subroutine eresid(ll,irc,nnull,nbas,mmax,rr,drdum,dqdum,qmax,qroot, &
 
 !Local variables
    real(dp), allocatable :: rlin(:),uulin(:),sbf(:),ps0(:)
-   real(dp), allocatable :: erdot(:),ereval(:),erevec(:,:)
    real(dp), allocatable :: psnull(:,:),tpsnull(:),psnullq(:)
    real(dp), allocatable :: dac0(:),dacdot(:,:),dacmat(:,:,:)
    real(dp), allocatable :: acdot(:),acmat(:,:)
-   real(dp), allocatable :: work(:),wmat(:,:),wev(:),wvec(:)
    real(dp) :: sb_out(5)
-   real(dp) :: ac0,rc,ps0q,tps0,xx,qq,qq4,sn,tn,td
+   real(dp) :: ac0,rc,ps0q,tps0,xx,qq,qq4
    real(dp) :: dr,dq
 
-   integer :: nrlin,nq,irclin,mmaxlin
-   integer :: ii,info,iq,jj,kk,ll1
+   integer :: nq,irclin,mmaxlin
+   integer :: ii,iq,jj,ll1
 
 
 ! new calculations of dq, dr
@@ -89,12 +87,12 @@ subroutine eresid(ll,irc,nnull,nbas,mmax,rr,drdum,dqdum,qmax,qroot, &
 
 !set up linear radial mesh
    rc=rr(irc)
-   irclin=rc/dr + 1.5d0
+   irclin=int(rc/dr + 1.5d0)
    dr=rc/(irclin-1)
 
    do ii=mmax,1,-1
       if(abs(uu(ii))>1.0d-10) then
-         mmaxlin=rr(ii)/dr - 2.0d0
+         mmaxlin=int(rr(ii)/dr - 2.0d0)
          exit
       end if
    end do
@@ -141,7 +139,7 @@ subroutine eresid(ll,irc,nnull,nbas,mmax,rr,drdum,dqdum,qmax,qroot, &
 !inward from qmax (considered infinity) to qq=0, saving snapshots along the
 !way
 
-   nq=qmax/dq+1
+   nq=int(qmax/dq)+1
 
 !null accumulators and running registers
 

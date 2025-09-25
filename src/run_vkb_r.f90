@@ -55,7 +55,7 @@ subroutine run_vkb_r(lmax,lloc,lpopt,dvloc0,irc,nproj,rr,mmax,mxprj,pswf,vfull,v
 
 !Local variables
    integer :: ii,ipk,jj,kk,ikap,ll,l1,info,np,kap,mkap
-   real(dp) :: apk,sn,tt,qq12,xx,ff
+   real(dp) :: apk,sn,tt,xx,ff
    real(dp) :: bb(mxprj,mxprj),bbev(mxprj),bbi(mxprj,mxprj)
    real(dp) :: sovl(mxprj,mxprj),sovlev(mxprj),smhalf(mxprj,mxprj)
    real(dp) :: sphalf(mxprj,mxprj)

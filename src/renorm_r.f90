@@ -16,7 +16,7 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-subroutine renorm_r(uu,rr,ll,kap,zz,mmax,cnorm)
+subroutine renorm_r(uu,rr,kap,zz,mmax,cnorm)
 
 ! renormalize Dirac wave function so that large component is normalized
 
@@ -34,7 +34,7 @@ subroutine renorm_r(uu,rr,ll,kap,zz,mmax,cnorm)
 !Input variables
    real(dp) :: rr(mmax)
    real(dp) :: zz
-   integer :: ll,kap,mmax
+   integer :: kap,mmax
 
 !Output variable
    real(dp) :: cnorm

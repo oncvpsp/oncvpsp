@@ -46,7 +46,7 @@ subroutine vkbphsft(ll,ivkb,epsh2,depsh,ep,pshf,pshp, &
    real(dp), parameter :: eps=1.0d-8
 
 !Input variables
-   integer :: ll,ivkb,mmax,npsh,mch,mcht
+   integer :: ll,ivkb,mmax,npsh,mch
    real(dp) :: rr(mmax),vloc(mmax),vkb(mmax,*),evkb(*)
    real(dp) :: pshf(npsh)
    real(dp) :: depsh,epsh2,ep
@@ -56,8 +56,8 @@ subroutine vkbphsft(ll,ivkb,epsh2,depsh,ep,pshf,pshp, &
 
 !Local variables
    real(dp) :: al,dnpi,epsh,phi,phip,pshoff
-   real(dp) :: dmin,dmax,dtst,emin,emax,et,psmin,psmax,pst,shift,shift2
-   integer :: ii,jj,ierr,node,n2
+   real(dp) :: dmin,dmax,emin,emax,et,psmin,psmax,pst,shift,shift2
+   integer :: ii,jj,node
    logical :: jump
 
    real(dp), allocatable :: uu(:),up(:)

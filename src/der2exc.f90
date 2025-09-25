@@ -55,7 +55,7 @@ subroutine der2exc(rhotot,rhoc,rho,rr,d2exc,d2ref,d2mdiff, &
 ! Local variables
    real(dp) :: hh,eeel,eexc,ss
    real(dp), allocatable :: vo(:),vxct(:),rhot(:),dvxc(:,:)
-   integer :: ii,jj,kk,l1
+   integer :: jj,kk,l1
 
    allocate(vo(mmax),vxct(mmax),rhot(mmax),dvxc(mmax,nv))
 

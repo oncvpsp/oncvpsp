@@ -41,23 +41,22 @@ subroutine vrel(ll,ee,rr,vv,vr,uu,up,zz,mmax,irc,srel)
    real(dp) :: rr(mmax),vv(mmax)
    real(dp) :: uu(mmax),up(mmax)
    real(dp) :: zz
-   integer :: nn,ll,irc
+   integer :: ll,irc
    integer :: mmax
    logical :: srel
 
 !Output variables
    real(dp) :: vr(mmax)
    real(dp) :: ee
-   integer :: ierr
+
 
 !Local variables
 
-   real(dp) :: aei,aeo,aii,aio,als  !functions in aeo.f90
-   real(dp) :: de,emax,emin
-   real(dp) :: eps,fss,tfss,gamma,ro,sc
-   real(dp) :: sls,sn,cn,uout,upin,upout,xkap
-   real(dp) :: amesh,al,xx
-   integer :: ii,it,nint,node,nin
+   real(dp) :: als
+   real(dp) :: eps,fss,tfss,gamma
+   real(dp) :: sls
+   real(dp) :: amesh,al
+   integer :: ii
 
    real(dp), allocatable :: cf(:),dv(:),fr(:),frp(:)
 
