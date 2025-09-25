@@ -1,45 +1,65 @@
 #!/bin/sh
 #edits various shell scripts to provide full path to executables
 
+if [ -f $(pwd)/src/oncvpsp.x ]
+then
+    echo "oncvpsp.x found in src/ from a make build"
+    NEW_BIN_DIR=`pwd`/src/
+elif [ -f $(pwd)/build/bin/oncvpsp.x ]
+then
+    echo "oncvpsp.x found in build/bin/ from a CMake build"
+    NEW_BIN_DIR=`pwd`/build/bin/
+else
+    echo "oncvpsp.x not found in src/ or build/bin/"
+    exit 1
+fi
 NEW_PREFIX=`pwd`
 
 cp scripts/extract.sh scripts/replot.sh tests/
 
-TMP=$$.tmp
+TMP1=$$.tmp
+TMP2=$$.tmp2
 
-sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run.sh >$TMP
-cp $TMP tests/run.sh
-cp $TMP scripts/run.sh
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run.sh >$TMP1
+sed -e /BIN_DIR=/s:BIN_DIR=.*$:BIN_DIR=$NEW_BIN_DIR: $TMP1 >$TMP2
+cp $TMP2 tests/run.sh
+cp $TMP2 scripts/run.sh
 
-sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_nr.sh >$TMP
-cp $TMP tests/run_nr.sh
-cp $TMP scripts/run_nr.sh
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_nr.sh >$TMP1
+sed -e /BIN_DIR=/s:BIN_DIR=.*$:BIN_DIR=$NEW_BIN_DIR: $TMP1 >$TMP2
+cp $TMP2 tests/run_nr.sh
+cp $TMP2 scripts/run_nr.sh
 
-sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_r.sh >$TMP
-cp $TMP tests/run_r.sh
-cp $TMP scripts/run_r.sh
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_r.sh >$TMP1
+sed -e /BIN_DIR=/s:BIN_DIR=.*$:BIN_DIR=$NEW_BIN_DIR: $TMP1 >$TMP2
+cp $TMP2 tests/run_r.sh
+cp $TMP2 scripts/run_r.sh
 
-sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_nr.sh >$TMP
-cp $TMP tests/multirun_nr.sh
-cp $TMP scripts/run_nr.sh
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_nr.sh >$TMP1
+sed -e /BIN_DIR=/s:BIN_DIR=.*$:BIN_DIR=$NEW_BIN_DIR: $TMP1 >$TMP2
+cp $TMP2 tests/multirun_nr.sh
+cp $TMP2 scripts/run_nr.sh
 
-sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_r.sh >$TMP
-cp $TMP tests/multirun_r.sh
-cp $TMP scripts/run_r.sh
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/run_r.sh >$TMP1
+sed -e /BIN_DIR=/s:BIN_DIR=.*$:BIN_DIR=$NEW_BIN_DIR: $TMP1 >$TMP2
+cp $TMP2 tests/multirun_r.sh
+cp $TMP2 scripts/run_r.sh
 
-sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare.sh >$TMP
-cp $TMP tests/compare.sh
-cp $TMP scripts/compare.sh
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare.sh >$TMP1
+sed -e /BIN_DIR=/s:BIN_DIR=.*$:BIN_DIR=$NEW_BIN_DIR: $TMP1 >$TMP2
+cp $TMP2 tests/compare.sh
+cp $TMP2 scripts/compare.sh
 
-sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare_r.sh >$TMP
-cp $TMP tests/compare_r.sh
-cp $TMP scripts/compare_r.sh
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare_r.sh >$TMP1
+sed -e /BIN_DIR=/s:BIN_DIR=.*$:BIN_DIR=$NEW_BIN_DIR: $TMP1 >$TMP2
+cp $TMP2 tests/compare_r.sh
+cp $TMP2 scripts/compare_r.sh
 
-sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare_psml.sh >$TMP
-cp $TMP tests/compare_psml.sh
-cp $TMP scripts/compare_psml.sh
+sed -e /PREFIX=/s:PREFIX=.*$:PREFIX=$NEW_PREFIX: scripts/compare_psml.sh >$TMP1
+sed -e /BIN_DIR=/s:BIN_DIR=.*$:BIN_DIR=$NEW_BIN_DIR: $TMP1 >$TMP2
+cp $TMP2 tests/compare_psml.sh
+cp $TMP2 scripts/compare_psml.sh
 
 chmod u+x tests/*sh
 
-rm $TMP
-
+rm $TMP1 $TMP2
