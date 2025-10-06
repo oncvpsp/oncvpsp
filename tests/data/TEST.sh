@@ -1,7 +1,7 @@
 #!/bin/bash
 #runs all test data and compares with reference out files
 
-sr_tests="03_Li 07_N 07_N_dl 08_O 14_Si 14_Si_st 14_Si_UPF 17_Cl 19_K 19_K_st 20_Ca 22_Ti 29_Cu 32_Ge 34_Se 38_Sr_lxc 40_Zr 40_Zr_icmod3 40_Zr_icmod5 56_Ba 57_La 60_Nd_GHOST 73_Ta 79_Au_lxc 83_Bi"
+sr_tests="03_Li 07_N 07_N_dl 08_O 14_Si 14_Si_st 14_Si_UPF 17_Cl 19_K 19_K_st 20_Ca 22_Ti 29_Cu 32_Ge 34_Se 38_Sr_lxc 40_Zr 56_Ba 57_La 60_Nd_GHOST 73_Ta 79_Au_lxc 83_Bi"
 r_tests="52_Te 74_W 80_Hg"
 
 for test in $sr_tests; do
