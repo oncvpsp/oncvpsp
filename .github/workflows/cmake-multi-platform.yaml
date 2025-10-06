@@ -71,5 +71,5 @@ jobs:
     - name: Upload TEST.report
       uses: actions/upload-artifact@v4
       with:
-        name: TEST.report
+        name: ${{ matrix.os }}-${{ matrix.fortran_compiler }}-${{ matrix.build_type }}-TEST.report
         path: tests/data/TEST.report
