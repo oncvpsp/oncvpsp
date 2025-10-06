@@ -21,7 +21,7 @@ jobs:
         os: [ubuntu-latest]
         build_type: [Release, Debug]
         c_compiler: [gcc]
-        libxc_version: [5.2.3] # [4.3.4, 5.2.3, 6.2.2, 7.0.0]
+        libxc_version: [5.2.3]
         include:
           - os: ubuntu-latest
             c_compiler: gcc
@@ -46,8 +46,6 @@ jobs:
         sudo apt install -y build-essential gfortran
         # 2 # LAPACK and BLAS
         sudo apt install -y liblapack-dev libblas-dev
-        # # 3 # Libxc
-        # sudo apt install -y libxc-dev
 
     - name: Cache Libxc
       id: cache-libxc
@@ -64,7 +62,7 @@ jobs:
         cd libxc-${{ matrix.libxc_version }}
         mkdir build
         cd build
-        cmake .. -DCMAKE_ENABLE_FORTRAN=ON -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_Fortran_COMPILER=${{ matrix.fortran_compiler }} -DCMAKE_INSTALL_PREFIX=$HOME/local/libxc-${{ matrix.libxc_version }}
+        cmake .. -DENABLE_FORTRAN=ON -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_Fortran_COMPILER=${{ matrix.fortran_compiler }} -DCMAKE_INSTALL_PREFIX=$HOME/local/libxc-${{ matrix.libxc_version }}
         make -j4
         make install
 
