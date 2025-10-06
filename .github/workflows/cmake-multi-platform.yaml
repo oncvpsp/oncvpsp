@@ -4,7 +4,7 @@ name: CMake on multiple platforms
 
 on:
   push:
-    branches: [ "master", "dev", "CI" ]
+    branches: [ "master", "dev", "ci-build-test" ]
   pull_request:
     branches: [ "master" ]
 
