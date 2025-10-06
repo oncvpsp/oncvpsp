@@ -64,7 +64,7 @@ jobs:
         cd libxc-${{ matrix.libxc_version }}
         mkdir build
         cd build
-        cmake .. -DCMAKE_ENABLE_FORTRAN=ON -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_Fortran_COMPILER=${{ matrix.fortran_compiler }} -DCMAKE_INSTALL_PREFIX=$HOME/local/libxc-${{ libxc_version }}
+        cmake .. -DCMAKE_ENABLE_FORTRAN=ON -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_Fortran_COMPILER=${{ matrix.fortran_compiler }} -DCMAKE_INSTALL_PREFIX=$HOME/local/libxc-${{ matrix.libxc_version }}
         make -j4
         make install
 
