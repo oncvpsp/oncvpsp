@@ -59,9 +59,9 @@ jobs:
     - name: Compile Libxc
       if: steps.cache-libxc.outputs.cache-hit != 'true'
       run: |
-        wget https://gitlab.com/libxc/libxc/-/archive/${{ libxc_version }}/libxc-${{ libxc_version }}.tar.bz2
-        tar -xf libxc-${{ libxc_version }}.tar.bz2
-        cd libxc-${{ libxc_version }}
+        wget https://gitlab.com/libxc/libxc/-/archive/${{ matrix.libxc_version }}/libxc-${{ matrix.libxc_version }}.tar.bz2
+        tar -xf libxc-${{ matrix.libxc_version }}.tar.bz2
+        cd libxc-${{ matrix.libxc_version }}
         mkdir build
         cd build
         cmake .. -DCMAKE_ENABLE_FORTRAN=ON -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_Fortran_COMPILER=${{ matrix.fortran_compiler }} -DCMAKE_INSTALL_PREFIX=$HOME/local/libxc-${{ libxc_version }}
