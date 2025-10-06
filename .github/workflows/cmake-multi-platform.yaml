@@ -51,18 +51,24 @@ jobs:
       id: cache-libxc
       uses: actions/cache@v4
       with:
-        path: $HOME/local/libxc-${{ matrix.libxc_version }}
+        path: |
+          $HOME/dependencies/libxc-${{ matrix.libxc_version }}
         key: ${{ runner.os }}-${{ matrix.c_compiler }}-libxc-${{ matrix.libxc_version }}
 
     - name: Compile Libxc
       if: steps.cache-libxc.outputs.cache-hit != 'true'
       run: |
+        cd $HOME
         wget https://gitlab.com/libxc/libxc/-/archive/${{ matrix.libxc_version }}/libxc-${{ matrix.libxc_version }}.tar.bz2
         tar -xf libxc-${{ matrix.libxc_version }}.tar.bz2
         cd libxc-${{ matrix.libxc_version }}
         mkdir build
         cd build
-        cmake .. -DENABLE_FORTRAN=ON -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_Fortran_COMPILER=${{ matrix.fortran_compiler }} -DCMAKE_INSTALL_PREFIX=$HOME/local/libxc-${{ matrix.libxc_version }}
+        cmake .. \
+          -DENABLE_FORTRAN=ON \
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} \
+          -DCMAKE_Fortran_COMPILER=${{ matrix.fortran_compiler }} \
+          -DCMAKE_INSTALL_PREFIX=$HOME/dependencies/libxc-${{ matrix.libxc_version }}
         make -j4
         make install
 
@@ -74,12 +80,14 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_Fortran_COMPILER=${{ matrix.fortran_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DLibxc_ROOT=$HOME/local/libxc-${{ matrix.libxc_version }}
+        -DLibxc_ROOT=$HOME/dependencies/libxc-${{ matrix.libxc_version }}
         -S ${{ github.workspace }}
 
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+      run: >
+        cmake --build ${{ steps.strings.outputs.build-output-dir }}
+        --config ${{ matrix.build_type }}
 
     - name: Test
       run: |
