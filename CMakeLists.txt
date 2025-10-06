@@ -63,13 +63,10 @@ set(COMMON_INCLUDE_DIRECTORIES "")
 ###########################################################
 # LAPACK
 ###########################################################
-find_package(LAPACK REQUIRED HINTS ${LAPACK_ROOT} ${BLAS_ROOT})
-if (LAPACK_FOUND)
-    message(STATUS "LAPACK found.")
-    message(STATUS "  LAPACK libraries: ${LAPACK_LIBRARIES}")
-    message(STATUS "  LAPACK linker flags: ${LAPACK_LINKER_FLAGS}")
-else ()
-    message(FATAL ERROR "Failed to find LAPACK.")
+find_package(LAPACK)
+if (NOT LAPACK_FOUND)
+    message(STATUS "LAPACK not found. Trying with hints.")
+    find_package(LAPACK REQUIRED HINTS ${LAPACK_ROOT})
 endif()
 list(APPEND COMMON_LIBRARIES ${LAPACK_LIBRARIES})
 
