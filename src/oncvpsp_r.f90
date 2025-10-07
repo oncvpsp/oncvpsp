@@ -2,17 +2,17 @@
 ! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -32,7 +32,10 @@
 !
 !   Output format for ABINIT pspcod=8 and upf format for quantumespresso
 !
+ use, intrinsic :: iso_fortran_env, only: stdin => input_unit, stdout => output_unit, stderr => error_unit
  use m_psmlout, only: psmlout_r
+ use input_text_m, only: read_input_text_r
+ use input_toml_m, only: read_input_toml_r
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
@@ -54,9 +57,11 @@
 
  real(dp) :: al,amesh,csc,csc1,depsh,depsht,drl,eeel,fj
  real(dp) :: eeig,eexc
- real(dp) :: emax,epsh1,epsh1t,epsh2,epsh2t
+ real(dp) :: emax,epsh1,epsh1t,epsh2,epsh2t,rxpsh
  real(dp) :: et,etest,emin,sls
  real(dp) :: fcfact,rcfact,dvloc0,soscale
+ real(dp) :: fcfact_min,fcfact_max,fcfact_step
+ real(dp) :: rcfact_min,rcfact_max,rcfact_step
  real(dp) :: rr1,rcion,rciont,rcmax,rct,rlmax,rpkt
  real(dp) :: sf,zz,zion,zval,etot
  real(dp) :: cnorm,ebar,eprmin
@@ -89,6 +94,13 @@
 
  logical :: srel,cset
 
+ integer, parameter :: INPUT_STDIN=1, INPUT_TEXT=2, INPUT_TOML=3
+ integer :: input_mode
+ integer :: unit
+ character(len=1024) :: input_filename
+
+ input_mode = INPUT_STDIN
+
  write(6,'(a/a//)') &
 &      'ONCVPSP  (Optimized Norm-Conservinng Vanderbilt PSeudopotential)', &
 &      'relativistic version 4.0.1 03/01/2019'
@@ -101,88 +113,86 @@
  srel=.true.
 !srel=.false.
 
- nproj(:)=0
- fcfact=0.0d0
- rcfact=0.0d0
- rc(:)=0.0d0
- ep(:,:)=0.0d0
+ parse_args: block
+    integer :: i
+    character(len=256) :: arg
+    do i = 1, command_argument_count()
+       call get_command_argument(i, arg)
+       select case(arg)
+       case('-h', '--help')
+          write (stdout, '(a)') 'Usage: oncvpspr.x [options]'
+          write (stdout, '(a)') 'Options:'
+          write (stdout, '(a)') '  -h, --help       Show this help message and exit'
+          write (stdout, '(a)') '  -v, --version    Show version information and exit'
+          write (stdout, '(a)') '  -i, --input      Specify input file (TOML). For legacy input, use stdin.'
+          stop 0
+       case('-v', '--version')
+          write (stdout, '(a)') 'ONCVPSP (fully-realtivistic) version 4.0.1'
+          stop 0
+       case('-i', '--input')
+         if (i + 1 > command_argument_count()) then
+            write (stderr, '(a)') 'Error: --input requires a filename argument'
+            stop 1
+         end if
+         call get_command_argument(i + 1, input_filename)
+         input_mode = INPUT_TEXT
+       case('-t', '--toml-input')
+         if (i + 1 > command_argument_count()) then
+            write (stderr, '(a)') 'Error: --toml-input requires a filename argument'
+            stop 1
+         end if
+         call get_command_argument(i + 1, input_filename)
+         input_mode = INPUT_TOML
+       case default
+       end select
+    end do
+ end block parse_args
 
-! read input data
- inline=0
+ ios = 0
+ select case(input_mode)
+    case(INPUT_STDIN)
+       call read_input_text_r(stdin, inline, &
+                              atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
+                              lmax, rc, ep, ncon, nbas, qcut, &
+                              lloc, lpopt, dvloc0, nproj, debl, &
+                              icmod, fcfact, rcfact, fcfact_min, fcfact_max, fcfact_step, &
+                              rcfact_min, rcfact_max, rcfact_step, &
+                              epsh1, epsh2, depsh, rxpsh, &
+                              rlmax, drl, &
+                              ncnf, nvcnf, nacnf, lacnf, facnf)
+    case(INPUT_TEXT)
+       open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
+       call read_input_text_r(unit, inline, &
+                              atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
+                              lmax, rc, ep, ncon, nbas, qcut, &
+                              lloc, lpopt, dvloc0, nproj, debl, &
+                              icmod, fcfact, rcfact, fcfact_min, fcfact_max, fcfact_step, &
+                              rcfact_min, rcfact_max, rcfact_step, &
+                              epsh1, epsh2, depsh, rxpsh, &
+                              rlmax, drl, &
+                              ncnf, nvcnf, nacnf, lacnf, facnf)
+       close(unit)
+    case(INPUT_TOML)
+       open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
+       call read_input_toml_r(unit, &
+                              atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
+                              lmax, rc, ep, ncon, nbas, qcut, &
+                              lloc, lpopt, dvloc0, nproj, debl, &
+                              icmod, fcfact, rcfact, fcfact_min, fcfact_max, fcfact_step, &
+                              rcfact_min, rcfact_max, rcfact_step, &
+                              epsh1, epsh2, depsh, rxpsh, &
+                              rlmax, drl, &
+                              ncnf, nvcnf, nacnf, lacnf, facnf)
+        close(unit)
+    case default
+        write (stderr, '(a,i2)') 'Error: Unknown input mode =', input_mode
+        stop 1
+ end select
 
-! atom and reference configuration
- call cmtskp(inline)
- read(5,*,iostat=ios) atsym,zz,nc,nv,iexc,psfile
- call read_error(ios,inline)
-
- call cmtskp(inline)
- do ii=1,nc+nv
-   read(5,*,iostat=ios) na(ii),la(ii),fa(ii)
-   call read_error(ios,inline)
- end do
-
-! pseudopotential and optimization
- call cmtskp(inline)
- read(5,*,iostat=ios) lmax
- call read_error(ios,inline)
-
- call cmtskp(inline)
- do l1=1,lmax+1
-   read(5,*,iostat=ios) lt,rc(l1),ep(l1,1),ncon(l1),nbas(l1),qcut(l1)
-   if(lt/=l1-1) ios=999
-   call read_error(ios,inline)
-   ep(l1,2)=ep(l1,1)
- end do
-
-! local potential
- call cmtskp(inline)
- read(5,*, iostat=ios) lloc,lpopt,rc(5),dvloc0
- call read_error(ios,inline)
-
-! Vanderbilt-Kleinman-Bylander projectors
- call cmtskp(inline)
- do l1=1,lmax+1
-   read(5,*,iostat=ios) lt,nproj(l1),debl(l1)
-   if(lt/=l1-1) ios=999
-   call read_error(ios,inline)
- end do
-
-! model core charge
- call cmtskp(inline)
- read(5,*, iostat=ios) icmod, fcfact
- if(ios==0 .and. icmod==3) then
-  backspace(5)
-  read(5,*, iostat=ios) icmod, fcfact, rcfact
+ if(ios /= 0) then
+    write(6,'(a)') 'oncvpsp: ERROR reading input file'
+    stop
  end if
- call read_error(ios,inline)
-
-! log derivative analysis
- call cmtskp(inline)
- read(5,*,iostat=ios) epsh1, epsh2, depsh
- call read_error(ios,inline)
-
-! output grid
- call cmtskp(inline)
- read(5,*,iostat=ios) rlmax,drl
- call read_error(ios,inline)
-
-! test configurations
- call cmtskp(inline)
- read(5,*,iostat=ios) ncnf
- call read_error(ios,inline)
-
- do jj=2,ncnf+1
-   call cmtskp(inline)
-   read(5,*,iostat=ios) nvcnf(jj)
-   call read_error(ios,inline)
-   do ii=nc+1,nc+nvcnf(jj)
-     call cmtskp(inline)
-     read(5,*,iostat=ios) nacnf(ii,jj),lacnf(ii,jj),facnf(ii,jj)
-     call read_error(ios,inline)
-   end do
- end do
-
-! end of reading input data
 
  nvcnf(1)=nv
  do ii=1,nc+nv
@@ -401,7 +411,7 @@
        if(la(kk)==l1-1) npa(1,l1)=na(kk)+1
      end do !kk
    end if
-   
+
 !get all-electron bound states for projectors
    if(nv/=0) then
      do kk=nc+1,nc+nv
@@ -655,7 +665,7 @@
   call run_diag_sr_so_r(lmax,npa,epa,lloc,irc, &
 &                       vsr,esr,vso,eso,nproj,rr,vfull,vp,zz,mmax,mxprj)
 
-! save full info for psml 
+! save full info for psml
  allocate(vpsml(mmax,5,2))
  do l1=1,max(lmax+1,lloc+1)
     ll=l1-1
@@ -693,7 +703,7 @@
 
 ! fix unscreening error due to greater range of all-electron charge
  do ii=mmax,1,-1
- if(rho(ii)==0.0d0) then 
+ if(rho(ii)==0.0d0) then
      do l1=1,max(lmax+1,lloc+1)
        vpuns(ii,l1)=-zion/rr(ii)
      end do

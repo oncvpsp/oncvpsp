@@ -49,6 +49,8 @@ set(src_liboncvpsp
     vploc.f90
     vrel.f90
     wf_rc_der.f90
+    input_text_m.f90
+    input_toml_m.f90
 )
 if (Libxc_FOUND)
     list(APPEND src_liboncvpsp functionals.F90 exc_libxc.f90)

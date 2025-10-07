@@ -17,6 +17,11 @@ project(oncvpsp
     DESCRIPTION "Optimized norm-conserving Vanderbilt pseudopotentials"
     LANGUAGES Fortran C)
 
+###########################################################
+# Include CMake modules
+###########################################################
+include(cmake/CPM.cmake)
+
 ##########################################################
 # Build types
 ##########################################################
@@ -161,6 +166,15 @@ if (Libxc_FOUND)
     list(APPEND COMMON_INCLUDE_DIRECTORIES ${LIBXC_INCLUDE_DIRS})
     message(STATUS "  Libxc include directories: ${LIBXC_INCLUDE_DIRS}")
 endif()
+
+###########################################################
+# TOML-F (via CPM)
+###########################################################
+CPMAddPackage(
+    URI "gh:toml-f/toml-f@0.4.2"
+    OPTIONS "BUILD_TESTING=OFF"
+)
+list(APPEND COMMON_LIBRARIES toml-f-lib)
 
 ###########################################################
 # CMake Configuration
