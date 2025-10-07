@@ -94,23 +94,18 @@ subroutine write_output_hdf5(filename, lmax, npa, epa, lloc, irc, &
    ! Create HDF5 file
    call hdf_open_file(file_id, filename, 'REPLACE', 'WRITE')
    ! Logarithmic radial grid
-   write(6, '(a)') 'write_output_hdf5: writing dataset logarithmic_radial_mesh'
    call hdf_write_dataset(file_id, 'logarithmic_radial_mesh', rr)
    call hdf_set_data_scale(file_id, 'logarithmic_radial_mesh', 'r (a.u.)')
    ! Angular momenta
-   write(6, '(a)') 'write_output_hdf5: writing dataset angular_momentum'
    call hdf_write_dataset(file_id, 'angular_momentum', [(ll, ll = 0, lmax)])
    call hdf_set_data_scale(file_id, 'angular_momentum', 'angular_momentum')
    ! Derivative orders (for model core charge)
-   write(6, '(a)') 'write_output_hdf5: writing dataset derivative_order'
    call hdf_write_dataset(file_id, 'derivative_order', [(ii - 1, ii = 1, 5)])
    call hdf_set_data_scale(file_id, 'derivative_order', 'derivative_order')
    ! Valence pseudo charge density
-   write(6, '(a)') 'write_output_hdf5: writing dataset ps_valence_charge_density'
    call hdf_write_dataset(file_id, 'ps_valence_charge_density', rho)
    call hdf_attach_data_scale(file_id, 'logarithmic_radial_mesh', file_id, 'ps_valence_charge_density')
    ! Unscreened pseudopotentials
-   write(6, '(a)') 'write_output_hdf5: writing dataset unscreened_pseudopotentials'
    call hdf_create_group(file_id, 'unscreened_pseudotentials')
    call hdf_open_group(file_id, 'unscreened_pseudotentials', group_id)
    do l1 = 1, lmax + 1
@@ -120,11 +115,9 @@ subroutine write_output_hdf5(filename, lmax, npa, epa, lloc, irc, &
    end do
    call hdf_close_group(group_id)
    ! Local potential
-   write(6, '(a)') 'write_output_hdf5: writing dataset local_potential'
    call hdf_write_dataset(file_id, 'local_potential', vpuns(:, lloc + 1))
    call hdf_attach_data_scale(file_id, 'logarithmic_radial_mesh', file_id, 'local_potential')
    ! Semi-local pseudopotentials
-   write(6, '(a)') 'write_output_hdf5: writing dataset semilocal_pseudopotentials'
    call hdf_create_group(file_id, 'semilocal_pseudopotentials')
    call hdf_open_group(file_id, 'semilocal_pseudopotentials', group_id)
    do l1 = 1, lmax + 1
@@ -134,11 +127,9 @@ subroutine write_output_hdf5(filename, lmax, npa, epa, lloc, irc, &
    end do
    call hdf_close_group(group_id)
    ! Core charge density
-   write(6, '(a)') 'write_output_hdf5: writing dataset ae_core_charge_density'
    call hdf_write_dataset(file_id, 'ae_core_charge_density', rhoc)
    call hdf_attach_data_scale(file_id, 'logarithmic_radial_mesh', file_id, 'ae_core_charge_density')
    ! Model core charge density
-   write(6, '(a)') 'write_output_hdf5: writing dataset model_core_charge_density'
    call hdf_write_dataset(file_id, 'model_core_charge_density', rhomod)
    call hdf_attach_data_scale(file_id, 'logarithmic_radial_mesh', file_id, 'model_core_charge_density', 1)
    call hdf_attach_data_scale(file_id, 'derivative_order', file_id, 'model_core_charge_density', 2)

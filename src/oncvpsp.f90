@@ -105,6 +105,8 @@
  character(len=1024) :: hdf5_filename
 
  input_mode = INPUT_STDIN
+ input_filename = ''
+ hdf5_filename = ''
 
  write(6,'(a/a//)') &
 &      'ONCVPSP  (Optimized Norm-Conservinng Vanderbilt PSeudopotential)', &
@@ -153,17 +155,7 @@
         case('-t', '--toml-input')
           error stop 'Error: TOML input support not enabled in this build.'
 #endif
-#if (defined HAVE_HDF5)
-       case('-h5', '--hdf5-output')
-         if (i + 1 > command_argument_count()) then
-            write (stderr, '(a)') 'Error: --hdf5-output requires a filename argument'
-            stop 1
-         end if
-         call get_command_argument(i + 1, hdf5_filename)
-#else
-        case('-t', '--toml-input')
-          error stop 'Error: TOML input support not enabled in this build.'
-#if defined(HAVE_HDF5)
+#if (defined WITH_HDF5)
        case('-h5', '--hdf5-output')
          if (i + 1 > command_argument_count()) then
             write (stderr, '(a)') 'Error: --hdf5-output requires a filename argument'
@@ -675,7 +667,8 @@
 &             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
 &             epsh1,epsh2,depsh,rlmax,psfile)
  end if
-#if defined(HAVE_HDF5)
+
+#if (defined WITH_HDF5)
  if (trim(hdf5_filename) /= '') then
     call write_output_hdf5(trim(hdf5_filename), lmax, npa, epa, lloc, irc, &
                            vkb, evkb, nproj, rr, vfull, vp, vpuns, zz, mmax, mxprj, drl, nrl, &

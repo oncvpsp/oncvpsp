@@ -1,4 +1,4 @@
-module hdf5_utils
+module hdf5_utils_m
    !> A set of high level wrapper subroutines for HDF5, taken directly from
    !> [https://github.com/jterwin/HDF5_utils](https://github.com/jterwin/HDF5_utils)
    use, intrinsic :: iso_fortran_env, only: dp => real64, sp => real32
@@ -2364,4 +2364,4 @@ subroutine hdf_read_attr_string(loc_id, obj_name, attr_name, data)
 
 end subroutine hdf_read_attr_string
 
-end module hdf5_utils
+end module hdf5_utils_m
