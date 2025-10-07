@@ -41,6 +41,7 @@
 #if (defined HAVE_HDF5)
  use output_hdf5_m, only: write_output_hdf5
 #endif
+ use output_hdf5_m, only: write_output_hdf5
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
@@ -161,6 +162,12 @@
          end if
          call get_command_argument(i + 1, hdf5_filename)
 #endif
+       case('-h5', '--hdf5-output')
+         if (i + 1 > command_argument_count()) then
+            write (stderr, '(a)') 'Error: --hdf5-output requires a filename argument'
+            stop 1
+         end if
+         call get_command_argument(i + 1, hdf5_filename)
        case default
        end select
     end do
