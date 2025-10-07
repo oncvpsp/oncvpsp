@@ -2,17 +2,17 @@
 ! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -68,7 +68,7 @@
 
 ! loop for phase shift calculation -- full, then local or Kleinman-
 ! Bylander / Vanderbilt
- 
+
  do l1 = 1, 4
 
    ll = l1 - 1
@@ -79,7 +79,7 @@
    end if
 
    call fphsft(ll,epsh2,depsh,pshf,rr,vfull,zz,mmax,irphs,npsh,srel)
-   if(ll .eq. lloc) then  
+   if(ll .eq. lloc) then
      call  vkbphsft(ll,0,epsh2,depsh,epa(1,l1),pshf,pshp, &
 &                   rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
 &                   mmax,irphs,npsh)

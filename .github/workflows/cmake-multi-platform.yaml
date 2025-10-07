@@ -4,7 +4,7 @@ name: CMake on multiple platforms
 
 on:
   push:
-    branches: [ "master", "dev", "ci-build-test" ]
+    branches: [ "master", "dev", "ci-build-test", "libxc-support" ]
   pull_request:
     branches: [ "master" ]
 
@@ -21,6 +21,7 @@ jobs:
         os: [ubuntu-latest]
         build_type: [Release, Debug]
         c_compiler: [gcc]
+        libxc_version: [5.2.3]
         include:
           - os: ubuntu-latest
             c_compiler: gcc
@@ -37,7 +38,7 @@ jobs:
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
-    - name: Install dependencies
+    - name: Install packaged dependencies
       run: |
         sudo apt update
         sudo apt install -y cmake
@@ -45,8 +46,31 @@ jobs:
         sudo apt install -y build-essential gfortran
         # 2 # LAPACK and BLAS
         sudo apt install -y liblapack-dev libblas-dev
-        # 3 # Libxc
-        sudo apt install -y libxc-dev
+
+    - name: Cache Libxc
+      id: cache-libxc
+      uses: actions/cache@v4
+      with:
+        path: |
+          $HOME/dependencies/libxc-${{ matrix.libxc_version }}
+        key: ${{ runner.os }}-${{ matrix.c_compiler }}-libxc-${{ matrix.libxc_version }}
+
+    - name: Compile Libxc
+      if: steps.cache-libxc.outputs.cache-hit != 'true'
+      run: |
+        cd $HOME
+        wget https://gitlab.com/libxc/libxc/-/archive/${{ matrix.libxc_version }}/libxc-${{ matrix.libxc_version }}.tar.bz2
+        tar -xf libxc-${{ matrix.libxc_version }}.tar.bz2
+        cd libxc-${{ matrix.libxc_version }}
+        mkdir build
+        cd build
+        cmake .. \
+          -DENABLE_FORTRAN=ON \
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} \
+          -DCMAKE_Fortran_COMPILER=${{ matrix.fortran_compiler }} \
+          -DCMAKE_INSTALL_PREFIX=$HOME/dependencies/libxc-${{ matrix.libxc_version }}
+        make -j4
+        make install
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
@@ -56,11 +80,14 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_Fortran_COMPILER=${{ matrix.fortran_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DLibxc_ROOT=$HOME/dependencies/libxc-${{ matrix.libxc_version }}
         -S ${{ github.workspace }}
 
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+      run: >
+        cmake --build ${{ steps.strings.outputs.build-output-dir }}
+        --config ${{ matrix.build_type }}
 
     - name: Test
       run: |
