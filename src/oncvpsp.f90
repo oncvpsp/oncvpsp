@@ -35,6 +35,7 @@
  use, intrinsic :: iso_fortran_env, only: stdin => input_unit, stdout => output_unit, stderr => error_unit
  use m_psmlout, only: psmlout
  use input_text_m, only: read_input_text
+#if (defined WITH_TOML)
  use input_toml_m, only: read_input_toml
 #if defined(HAVE_HDF5)
  use output_hdf5_m, only: write_output_hdf5
@@ -139,6 +140,7 @@
          end if
          call get_command_argument(i + 1, input_filename)
          input_mode = INPUT_TEXT
+#if (defined WITH_TOML)
        case('-t', '--toml-input')
          if (i + 1 > command_argument_count()) then
             write (stderr, '(a)') 'Error: --toml-input requires a filename argument'
@@ -153,6 +155,9 @@
             stop 1
          end if
          call get_command_argument(i + 1, hdf5_filename)
+#else
+        case('-t', '--toml-input')
+          error stop 'Error: TOML input support not enabled in this build.'
 #endif
        case default
        end select
@@ -185,6 +190,7 @@
                             rlmax, drl, &
                             ncnf, nvcnf, nacnf, lacnf, facnf)
        close(unit)
+#if (defined WITH_TOML)
     case(INPUT_TOML)
        open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
        call read_input_toml(unit, &
@@ -198,6 +204,7 @@
                             rlmax, drl, &
                             ncnf, nvcnf, nacnf, lacnf, facnf)
         close(unit)
+#endif
     case default
         write (stderr, '(a,i2)') 'Error: Unknown input mode =', input_mode
         stop 1
@@ -666,3 +673,8 @@
 
  stop
  end program oncvpsp
+
+!! Local Variables:
+!! mode: f90
+!! coding: utf-8
+!! End:

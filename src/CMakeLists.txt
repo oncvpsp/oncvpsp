@@ -50,12 +50,15 @@ set(src_liboncvpsp
     vrel.f90
     wf_rc_der.f90
     input_text_m.f90
-    input_toml_m.f90
 )
 if (Libxc_FOUND)
     list(APPEND src_liboncvpsp functionals.F90 exc_libxc.f90)
 else ()
     list(APPEND src_liboncvpsp exc_libxc_stub.f90)
+endif ()
+if (WITH_TOML)
+    add_compile_definitions(WITH_TOML)
+    list(APPEND src_liboncvpsp input_toml_m.f90)
 endif ()
 add_library(liboncvpsp STATIC ${src_liboncvpsp})
 add_dependencies(liboncvpsp wxml)
@@ -112,7 +115,7 @@ target_link_libraries(liboncvpsp_r liboncvpsp wxml ${COMMON_LIBRARIES})
 ###########################################################
 # oncvpsp.x
 ###########################################################
-add_executable(oncvpsp oncvpsp.f90)
+add_executable(oncvpsp oncvpsp.F90)
 add_dependencies(oncvpsp liboncvpsp_nr_sr)
 target_link_libraries(oncvpsp liboncvpsp_nr_sr)
 set_target_properties(oncvpsp
@@ -123,7 +126,7 @@ set_target_properties(oncvpsp
 ##########################################################
 # oncvpspnr.x
 ##########################################################
-add_executable(oncvpspnr oncvpsp_nr.f90)
+add_executable(oncvpspnr oncvpsp_nr.F90)
 add_dependencies(oncvpspnr liboncvpsp_nr_sr)
 target_link_libraries(oncvpspnr liboncvpsp_nr_sr)
 set_target_properties(oncvpspnr
@@ -134,7 +137,7 @@ set_target_properties(oncvpspnr
 ##########################################################
 # oncvpspr.x
 ##########################################################
-add_executable(oncvpspr oncvpsp_r.f90)
+add_executable(oncvpspr oncvpsp_r.F90)
 add_dependencies(oncvpspr liboncvpsp_r)
 target_link_libraries(oncvpspr liboncvpsp_r)
 set_target_properties(oncvpspr
