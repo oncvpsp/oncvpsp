@@ -17,6 +17,11 @@ project(oncvpsp
     DESCRIPTION "Optimized norm-conserving Vanderbilt pseudopotentials"
     LANGUAGES Fortran C)
 
+##########################################################
+# Options
+##########################################################
+option(WITH_TOML "Enable TOML input support" ON)
+
 ###########################################################
 # Include CMake modules
 ###########################################################
@@ -170,11 +175,13 @@ endif()
 ###########################################################
 # TOML-F (via CPM)
 ###########################################################
-CPMAddPackage(
-    URI "gh:toml-f/toml-f@0.4.2"
-    OPTIONS "BUILD_TESTING=OFF"
-)
-list(APPEND COMMON_LIBRARIES toml-f-lib)
+if (WITH_TOML)
+    CPMAddPackage(
+        URI "gh:toml-f/toml-f@0.4.2"
+        OPTIONS "BUILD_TESTING=OFF"
+    )
+    list(APPEND COMMON_LIBRARIES toml-f-lib)
+endif()
 
 ###########################################################
 # CMake Configuration
