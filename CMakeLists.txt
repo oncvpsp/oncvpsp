@@ -61,28 +61,57 @@ set(COMMON_LIBRARIES "")
 set(COMMON_INCLUDE_DIRECTORIES "")
 
 ###########################################################
+# PkgConfig (used preferentially for Libxc)
+###########################################################
+find_package(PkgConfig)
+
+###########################################################
 # LAPACK
 ###########################################################
-find_package(LAPACK REQUIRED HINTS ${LAPACK_ROOT} ${BLAS_ROOT})
-if (LAPACK_FOUND)
-    message(STATUS "LAPACK found.")
-    message(STATUS "  LAPACK libraries: ${LAPACK_LIBRARIES}")
-    message(STATUS "  LAPACK linker flags: ${LAPACK_LINKER_FLAGS}")
-else ()
-    message(FATAL ERROR "Failed to find LAPACK.")
+find_package(LAPACK)
+if (NOT LAPACK_FOUND)
+    message(STATUS "LAPACK not found. Trying with hints.")
+    find_package(LAPACK REQUIRED HINTS ${LAPACK_ROOT})
 endif()
 list(APPEND COMMON_LIBRARIES ${LAPACK_LIBRARIES})
 
 ###########################################################
 # LIBXC
+# Prefer using pkg-config
+# Otherwise, try using CMake's FindLibxc module
 ###########################################################
-find_package(Libxc COMPONENTS Fortran)
+include(CMakePrintHelpers)
+if ((PkgConfig_FOUND) AND (NOT DEFINED Libxc_ROOT))
+    pkg_check_modules(ONCVPSP_LIBXCF90 QUIET IMPORTED_TARGET libxcf90)
+    pkg_check_modules(ONCVPSP_LIBXCF03 QUIET IMPORTED_TARGET libxcf03)
+    if (ONCVPSP_LIBXCF03_FOUND AND ONCVPSP_LIBXCF90_FOUND)
+        message(STATUS "Found Libxc via pkg-config")
+        set(Libxc_FOUND TRUE)
+        set(Libxc_VERSION ${ONCVPSP_LIBXCF03_VERSION})
+        set(LIBXC_LIBRARIES PkgConfig::ONCVPSP_LIBXCF90 PkgConfig::ONCVPSP_LIBXCF03)
+        set(LIBXC_INCLUDE_DIRS ${ONCVPSP_LIBXCF03_INCLUDE_DIRS})
+    else()
+        message(STATUS "Libxc not found via pkg-config")
+        set(Libxc_FOUND FALSE)
+    endif()
+endif()
+
+if (NOT Libxc_FOUND)
+    find_package(Libxc COMPONENTS Fortran)
+    message(STATUS "Found Libxc via CMake's find_package")
+    if (Libxc_FOUND)
+        set(LIBXC_LIBRARIES Libxc::xcf90 Libxc::xcf03)
+        set(LIBXC_INCLUDE_DIRS ${Libxc_INCLUDE_DIRS})
+    endif()
+endif()
+
 if (Libxc_FOUND)
-    message(STATUS "Libxc version ${Libxc_VERSION} found.")
+    message(STATUS "Libxc version ${Libxc_VERSION}:")
     if (${Libxc_VERSION} VERSION_GREATER_EQUAL 5 AND ${Libxc_VERSION} VERSION_LESS 7)
-        set(LIBXC_LIBRARIES Libxc::xcf03)
         list(APPEND COMMON_LIBRARIES ${LIBXC_LIBRARIES})
         message(STATUS "  Libxc libraries: ${LIBXC_LIBRARIES}")
+        list(APPEND COMMON_INCLUDE_DIRECTORIES ${LIBXC_INCLUDE_DIRS})
+        message(STATUS "  Libxc include directories: ${LIBXC_INCLUDE_DIRS}")
     else()
         message(STATUS "Only Libxc major versions 5 and 6 are supported. Setting Libxc_FOUND to FALSE.")
         set(Libxc_FOUND FALSE)
