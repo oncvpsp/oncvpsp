@@ -36,6 +36,7 @@
  use m_psmlout, only: psmlout
  use input_text_m, only: read_input_text
  use input_toml_m, only: read_input_toml
+ use output_hdf5_m, only: write_output_hdf5
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
@@ -97,6 +98,7 @@
  integer :: input_mode
  integer :: unit
  character(len=1024) :: input_filename
+ character(len=1024) :: hdf5_filename
 
  input_mode = INPUT_STDIN
 
@@ -142,6 +144,12 @@
          end if
          call get_command_argument(i + 1, input_filename)
          input_mode = INPUT_TOML
+       case('-h5', '--hdf5-output')
+         if (i + 1 > command_argument_count()) then
+            write (stderr, '(a)') 'Error: --hdf5-output requires a filename argument'
+            stop 1
+         end if
+         call get_command_argument(i + 1, hdf5_filename)
        case default
        end select
     end do
@@ -642,6 +650,12 @@
 &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
 &             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
 &             epsh1,epsh2,depsh,rlmax,psfile)
+ end if
+
+ if (trim(hdf5_filename) /= '') then
+    call write_output_hdf5(trim(hdf5_filename), lmax, npa, epa, lloc, irc, &
+                           vkb, evkb, nproj, rr, vfull, vp, vpuns, zz, mmax, mxprj, drl, nrl, &
+                           rho, rhoc, rhomod, srel, cvgplt, epsh1, epsh2, depsh, rxpsh)
  end if
 
  stop
