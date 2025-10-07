@@ -21,6 +21,7 @@ project(oncvpsp
 # Options
 ##########################################################
 option(WITH_TOML "Enable TOML input support" ON)
+option(WITH_HDF5 "Enable HDF5 output support" ON)
 
 ###########################################################
 # Include CMake modules
@@ -186,16 +187,18 @@ endif()
 ###########################################################
 # HDF5
 ###########################################################
-find_package(HDF5 COMPONENTS Fortran HL)
-if (HDF5_FOUND)
-    message(STATUS "HDF5 found.")
-    message(STATUS "  HDF5 version: ${HDF5_VERSION}")
-    message(STATUS "  HDF5 include dirs: ${HDF5_INCLUDE_DIRS}")
-    message(STATUS "  HDF5 libraries: ${HDF5_LIBRARIES}")
-    message(STATUS "  HDF5 high-level libraries: ${HDF5_HL_LIBRARIES}")
-    set(HAVE_HDF5 TRUE CACHE BOOL "Whether HDF5 is available")
-    list(APPEND COMMON_LIBRARIES ${HDF5_HL_LIBRARIES})
-    list(APPEND COMMON_INCLUDE_DIRECTORIES ${HDF5_INCLUDE_DIRS})
+if (WITH_HDF5)
+    message(STATUS "Looking for HDF5")
+    find_package(HDF5 COMPONENTS Fortran HL)
+    if (HDF5_FOUND)
+        message(STATUS "Found HDF5 version ${HDF5_VERSION}")
+        message(STATUS "  HDF5 include dirs: ${HDF5_INCLUDE_DIRS}")
+        message(STATUS "  HDF5 libraries: ${HDF5_LIBRARIES}")
+        message(STATUS "  HDF5 high-level libraries: ${HDF5_HL_LIBRARIES}")
+        set(HAVE_HDF5 TRUE CACHE BOOL "Whether HDF5 is available")
+        list(APPEND COMMON_LIBRARIES ${HDF5_HL_LIBRARIES})
+        list(APPEND COMMON_INCLUDE_DIRECTORIES ${HDF5_INCLUDE_DIRS})
+    endif()
 endif()
 
 ###########################################################

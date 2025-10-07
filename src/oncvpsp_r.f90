@@ -102,6 +102,7 @@
  character(len=1024) :: input_filename
 
  input_mode = INPUT_STDIN
+ input_filename = ''
 
  write(6,'(a/a//)') &
 &      'ONCVPSP  (Optimized Norm-Conservinng Vanderbilt PSeudopotential)', &
