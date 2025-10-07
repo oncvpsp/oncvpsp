@@ -37,11 +37,9 @@
  use input_text_m, only: read_input_text
 #if (defined WITH_TOML)
  use input_toml_m, only: read_input_toml
-<<<<<<< HEAD
-=======
+#endif
 #if defined(HAVE_HDF5)
  use output_hdf5_m, only: write_output_hdf5
->>>>>>> b265ae3 (Work on HDF5 implementation)
 #endif
  implicit none
  integer, parameter :: dp=kind(1.0d0)
@@ -162,6 +160,9 @@
             stop 1
          end if
          call get_command_argument(i + 1, hdf5_filename)
+#else
+        case('-t', '--toml-input')
+          error stop 'Error: TOML input support not enabled in this build.'
 #endif
        case default
        end select
