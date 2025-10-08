@@ -38,10 +38,9 @@
 #if (defined WITH_TOML)
  use input_toml_m, only: read_input_toml
 #endif
-#if (defined HAVE_HDF5)
+#if (defined WITH_HDF5)
  use output_hdf5_m, only: write_output_hdf5
 #endif
- use output_hdf5_m, only: write_output_hdf5
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
