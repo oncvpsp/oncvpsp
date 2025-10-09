@@ -33,8 +33,18 @@
 !   Output format for ABINIT pspcod=8 and upf format for quantumespresso
 !
  use, intrinsic :: iso_fortran_env, only: stdin => input_unit, stdout => output_unit, stderr => error_unit
+ use, intrinsic :: iso_fortran_env, only: dp => real64
  use m_psmlout, only: psmlout
  use input_text_m, only: read_input_text
+ use output_text_m, only:
+ use postprocess_m, only: get_pseudo_linear_mesh_parameters, &
+&                         get_wavefunctions
+ use output_text_m, only: write_config_text, &
+&                         write_rho_vpuns_text, write_vloc_text, &
+&                         write_rho_rhoc_rhom_text, &
+&                         write_wavefunctions_vkb_text, &
+&                         write_convergence_profile_text, &
+&                         write_phsft_text
 #if (defined WITH_TOML)
  use input_toml_m, only: read_input_toml
 #endif
@@ -42,24 +52,32 @@
  use output_hdf5_m, only: write_output_hdf5
 #endif
  implicit none
- integer, parameter :: dp=kind(1.0d0)
 
+ integer, parameter :: mxprj = 5
+ real(dp), parameter :: amesh = 1.006_dp
+#if RELATIVISTIC == 1
+ logical, parameter :: srel = .true.
+#elif RELATIVISTIC == 0
+ logical, parameter :: srel = .false.
+#endif
 !
  integer :: ii,ierr,iexc,iexct,ios,iprint,irps,it,icmod,lpopt
  integer :: jj,kk,ll,l1,lloc,lmax,lt,inline
- integer :: mch,mchf,mmax,n1,n2,nc,nlim,nlloc,nlmax,irpsh,nrl
+ integer :: mch,mchf,mmax,n1,n2,n3,n4,nc,nlim,nlloc,nlmax,nrl
  integer :: nv,irct,ncnf,nvt
- integer :: iprj,mxprj
+ integer :: iprj
  integer,allocatable :: npa(:,:)
 !
  integer :: dtime(8),na(30),la(30),np(6)
  integer :: nacnf(30,5),lacnf(30,5),nvcnf(5)
- integer :: nat(30),lat(30),indxr(30),indxe(30)
+ !> Test configuration quantum numbers
+ integer :: nat(30),lat(30)
+ integer :: indxr(30),indxe(30)
  integer :: irc(6),nodes(4)
  integer :: nproj(6),npx(6),lpx(6)
  integer :: ncon(6),nbas(6)
 
- real(dp) :: al,amesh,csc,csc1,deblt,depsh,depsht,drl,eeel
+ real(dp) :: al,csc,csc1,deblt,depsh,depsht,drl,eeel
  real(dp) :: eeig,eexc
  real(dp) :: emax,epsh1,epsh1t,epsh2,epsh2t,rxpsh
  real(dp) :: et,etest,emin,sls
@@ -71,7 +89,12 @@
  real(dp) :: xdummy
 !
  real(dp) :: cl(6),debl(6),ea(30),ep(6),fa(30),facnf(30,5)
- real(dp) :: fat(30,2)
+ !> Test configuration occupations
+ real(dp) :: fat(30,3)
+ !> Test configuration eigenvalues (ae, ps)
+ real(dp) :: eat(30,3), eatp(30)
+ !> Test configuration total energies (ae, ps)
+ real(dp) :: eaetst, etsttot
  real(dp) :: fnp(6),fp(6)
  real(dp) :: qcut(6),qmsbf(6),rc(6),rc0(6)
  real(dp) :: rpk(30)
@@ -93,10 +116,48 @@
  real(dp), allocatable :: uua(:,:),upa(:,:)
  real(dp), allocatable :: vr(:,:,:)
 
+ ! Wavefunction variables for postprocessing
+ !> All-electron wavefunctions
+ real(dp), allocatable :: uu_ae(:,:,:)
+ !> Pseudo wavefunctions
+ real(dp), allocatable :: uu_ps(:,:,:)
+ !> All-electron wavefunction radial derivatives
+ real(dp), allocatable :: up_ae(:,:,:)
+ !> Pseudo wavefunction radial derivatives
+ real(dp), allocatable :: up_ps(:,:,:)
+ !> Matching points for all-electron wavefunctions
+ integer :: mch_ae(mxprj,4)
+ !> Matching points for pseudo wavefunctions
+ integer :: mch_ps(mxprj,4)
+ !> All-electron state energies
+ real(dp) :: e_ae(mxprj,4)
+ !> Pseudo state energies
+ real(dp) :: e_ps(mxprj,4)
+ !> Signs of all-electron wavefunctions at matching points
+ real(dp) :: sign_ae(mxprj,4)
+ !> Signs of pseudo wavefunctions at matching points
+ real(dp) :: sign_ps(mxprj,4)
+ !> .true. for scattering states, .false. for bound states
+ logical :: is_scattering(mxprj,4)
+
+ !> Phase shift variables for log derivative postprocessing
+ !> Log radial grid mesh index at which log derivative is calculated
+ integer :: irpsh(4)
+ !> Radius at which log derivative is calculated
+ real(dp) :: rpsh(4)
+ !> Size of phase shift energies
+ integer :: npsh
+ !> Phase shift (log derivative) energies
+ real(dp), allocatable :: epsh(:)
+ !> All-electron phase shifts (log derivatives)
+ real(dp), allocatable :: pshf(:,:)
+ !> Pseudo phase shifts (log derivatives)
+ real(dp), allocatable :: pshp(:,:)
+
  character*2 :: atsym
  character*4 :: psfile
 
- logical :: srel,cset
+ logical :: cset
 
  integer, parameter :: INPUT_STDIN=1, INPUT_TEXT=2, INPUT_TOML=3
  integer :: input_mode
@@ -116,9 +177,6 @@
 &      'While it is not required under the terms of the GNU GPL, it is',&
 &      'suggested that you cite D. R. Hamann, Phys. Rev. B 88, 085117 (2013)', &
 &      'in any publication utilizing these pseudopotentials.'
-
- srel=.true.
-!srel=.false.
 
  parse_args: block
     integer :: i
@@ -249,13 +307,6 @@
   if(mod(nrl,2)/=0) nrl=nrl+1
 !end if
 
-!amesh=1.012d0
- amesh=1.006d0
-!amesh=1.003d0
-!amesh=1.0015d0
-
- mxprj=5
-
  al=dlog(amesh)
  rr1=0.0005d0/zz
  rr1=dmin1(rr1,0.0005d0/10)
@@ -281,6 +332,7 @@
  allocate(epa(mxprj,6),fpa(mxprj,6))
  allocate(uua(mmax,mxprj),upa(mmax,mxprj))
  allocate(vr(mmax,mxprj,6))
+ allocate(uu_ae(mmax,mxprj,4), up_ae(mmax,mxprj,4), uu_ps(mmax,mxprj,4), up_ps(mmax,mxprj,4))
 
  vr(:,:,:)=0.0d0
  vp(:,:)=0.0d0
@@ -605,40 +657,51 @@
    end if
  end do
 
-
-! loop over reference plus test atom configurations
-!if(.false.) then
-
-!ncnf=0
- rhot(:)=rho(:)
+ ! loop over reference plus test atom configurations
  do jj=1,ncnf+1
-
-   write(6,'(/a,i2)') 'Test configuration',jj-1
-
-! charge density is initialized to that of reference configuration
-
+   ! charge density is initialized to that of reference configuration
    rhot(:)=rho(:)
-
+   write(6,'(/a,i2)') 'Test configuration',jj-1
    call run_config(jj,nacnf,lacnf,facnf,nc,nvcnf,rhot,rhomod,rr,zz, &
 &                  rcmax,mmax,mxprj,iexc,ea,etot,epstot,nproj,vpuns, &
-&                  lloc,vkb,evkb,srel)
-
+&                  lloc,vkb,evkb,srel, nvt, nat, lat, fat, eat, eatp, eaetst, etsttot)
+   call write_config_text(stdout, nc, nvt, nat, lat, fat(:,3), eat(:,3), eatp, etot, eaetst, epstot, etsttot)
+#if (defined WITH_HDF5)
+   if (do_hdf5) then
+      call write_config_hdf5(hdf5_file_id, nc, nvt, nat, lat, fat(:,3), eat(:,3), eatp, etot, eaetst, epstot, etsttot)
+   end if
+#endif
  end do !jj
 
- call run_plot(lmax,npa,epa,lloc,irc, &
-&                    vkb,evkb,nproj,rr,vfull,vp,vpuns,zz,mmax,mxprj,drl,nrl, &
-&                    rho,rhoc,rhomod,srel,cvgplt)
+ call get_pseudo_linear_mesh_parameters(mmax, rr, lmax, irc, drl, nrl, &
+&                                       n1, n2, n3, n4)
+ write(stdout, '(/a)') 'DATA FOR PLOTTING'
+ call write_rho_vpuns_text(stdout, mmax, lmax, drl, nrl, rr, irc, &
+&                          rho, vpuns)
+ call write_vloc_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
+&                     vpuns(:, lloc + 1))
+ call write_rho_rhoc_rhom_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
+&                              rho, rhoc, rhomod(:, 1))
+ call get_wavefunctions(zz, srel, mmax, rr, vfull, lloc, vp, lmax, &
+&                       irc, nproj, drl, nrl, mxprj, epa, npa, vkb, evkb, &
+&                       uu_ae, up_ae, uu_ps, up_ps, mch_ae, mch_ps, e_ae, e_ps, &
+&                       sign_ae, sign_ps, is_scattering)
+ call write_wavefunctions_vkb_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
+&                                  lloc, mxprj, npa, nproj, sign_ae, sign_ps, uu_ae, uu_ps, is_scattering, &
+&                                  vkb)
+ call write_convergence_profile_text(stdout, lmax, mxprj, &
+&                                    cvgplt)
 
-
-
- call run_phsft(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,vkb,evkb, &
-&               rr,vfull,vp,zz,mmax,mxprj,irc,srel)
+ npsh = int(((epsh2 - epsh1) / depsh) - 0.5_dp) + 1
+ allocate(epsh(npsh), pshf(npsh, 4), pshp(npsh, 4))
+ call run_phsft(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,npsh,vkb,evkb, &
+&               rr,vfull,vp,zz,mmax,mxprj,irc,srel, &
+&               irpsh,rpsh,epsh,pshf,pshp)
+ call write_phsft_text(stdout,rpsh,npsh,epsh,pshf,pshp)
 
  call gnu_script(epa,evkb,lmax,lloc,mxprj,nproj)
 
  if(trim(psfile)=='psp8' .or. trim(psfile)=='both') then
-
-
   call linout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
 &             rhotae,rhoc,zz,zion,mmax,mxprj,iexc,icmod,nrl,drl,atsym, &
 &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
@@ -654,12 +717,7 @@
 &             epsh1,epsh2,depsh,rlmax,psfile,uupsa,ea)
  end if
 
-
  if(trim(psfile)=='psml' .or. trim(psfile)=='both') then
-!
-! Write info for PSML format
-!
-   print *, 'calling psmlout'
    call psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
 &             irct, srel, &
 &             zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
