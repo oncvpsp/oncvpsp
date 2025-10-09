@@ -23,7 +23,7 @@ module postprocess_m
    implicit none
    private
    public :: get_wavefunctions, get_bound_wavefunctions, get_scattering_wavefunctions
-   public :: get_pseudo_linear_mesh_parameters
+   public :: run_test_configurations, get_pseudo_linear_mesh_parameters
 contains
 
 subroutine get_wavefunctions(zz, srel, mmax, rr, vfull, lloc, vp, lmax, &
@@ -108,7 +108,7 @@ subroutine get_wavefunctions(zz, srel, mmax, rr, vfull, lloc, vp, lmax, &
          if (epa(iproj, l1) < 0.0_dp) then
             is_scattering(iproj, l1) = .false.
             call get_bound_wavefunctions(epa(iproj, l1), npa(iproj, l1), ll, npr, iproj, zz, srel, mmax, rr, &
-&                                        vfull, vp(:, lloc + 1), mxprj, vkb(:, :, l1), evkb(:, l1), &
+                                         vfull, vp(:, lloc + 1), mxprj, vkb(:, :, l1), evkb(:, l1), &
                                          uu_ae(:, iproj, l1), up_ae(:, iproj, l1), &
                                          uu_ps(:, iproj, l1), up_ps(:, iproj, l1), &
                                          mch_ae(iproj, l1), mch_ps(iproj, l1), &
@@ -117,11 +117,13 @@ subroutine get_wavefunctions(zz, srel, mmax, rr, vfull, lloc, vp, lmax, &
          else
             is_scattering(iproj, l1) = .true.
             call get_scattering_wavefunctions(epa(iproj, l1), npa(iproj, l1), ll, nproj(l1), iproj, zz, srel, mmax, rr, &
-&                                            vfull, vp(:, lloc + 1), mxprj, vkb(:, :, l1), evkb(:, l1), n2, &
-&                                            uu_ae(:, iproj, l1), up_ae(:, iproj, l1), &
-&                                            uu_ps(:, iproj, l1), up_ps(:, iproj, l1), &
-&                                            e_ae(iproj, l1), e_ps(iproj, l1), &
-&                                            sign_ae(iproj, l1), sign_ps(iproj, l1))
+                                              vfull, vp(:, lloc + 1), mxprj, vkb(:, :, l1), evkb(:, l1), n2, &
+                                              uu_ae(:, iproj, l1), up_ae(:, iproj, l1), &
+                                              uu_ps(:, iproj, l1), up_ps(:, iproj, l1), &
+                                              e_ae(iproj, l1), e_ps(iproj, l1), &
+                                              sign_ae(iproj, l1), sign_ps(iproj, l1))
+            mch_ae(iproj, l1) = n2
+            mch_ps(iproj, l1) = n2
          end if
       end do
    end do
@@ -260,68 +262,9 @@ subroutine get_scattering_wavefunctions(e_in, n, l, nproj, iproj, z, srel, mmax,
    sign_ps = sign(1.0_dp, uu_ps(mch))
 end subroutine get_scattering_wavefunctions
 
-subroutine get_log_derivatives(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,vkb,evkb, &
-                               rr,vfull,vp,zz,mmax,mxprj,irc,srel, &
-                               npsh, epsh, pshf, pshp)
-   implicit none
-   ! Input variables
-   real(dp), intent(in) :: zz
-   integer, intent(in) :: lmax
-   integer, intent(in) :: lloc
-   integer, intent(in) :: mxprj
-   logical, intent(in) :: srel
-   integer, intent(in) :: mmax
-   real(dp), intent(in) :: rr(mmax)
-   integer, intent(in) :: irc(6)
-   integer, intent(in) :: nproj(6)
-   real(dp), intent(in) :: epa(mxprj, 6)
-   real(dp), intent(in) :: vfull(mmax)
-   real(dp), intent(in) :: vp(mmax, 5)
-   real(dp), intent(in) :: vkb(mmax, mxprj, 4)
-   real(dp), intent(in) :: evkb(mxprj, 4)
-   real(dp), intent(in) :: epsh1
-   real(dp), intent(in) :: epsh2
-   real(dp), intent(in) :: depsh
-
-   ! Output variables
-   integer, intent(out) :: npsh
-   real(dp), allocatable, intent(out) :: epsh(:)
-   real(dp), allocatable, intent(out) :: pshf(:, :)
-   real(dp), allocatable, intent(out) :: pshp(:, :)
-
-   ! Local variables
-   integer :: ii, l1, ll, irpsh, nproj_l
-
-   npsh = int(((epsh2 - epsh1) / depsh) - 0.5_dp) + 1
-
-   allocate(epsh(npsh), pshf(npsh, 4), pshp(npsh, 4))
-
-   do ii = 1, npsh
-      epsh(ii) = epsh2 - depsh * real(ii - 1, dp)
-   end do
-
-   do l1 = 1, 4
-      ll = l1 - 1
-      if (ll <= lmax) then
-         irpsh = irc(l1) + 2
-      else
-         irpsh = irc(lloc + 1)
-      end if
-      if (ll == lloc) then
-         nproj_l = 0
-      else
-         nproj_l = nproj(l1)
-      end if
-      call fphsft(ll, epsh2, depsh, pshf(:, l1), rr, vfull, zz, mmax, irpsh, npsh, srel)
-      call vkbphsft(ll, nproj_l, epsh2, depsh, epa(:, l1), pshf(:, l1), pshp(:, l1), rr, &
-                    vp(:, lloc + 1), vkb(:, :, l1), evkb(:, l1), mmax, irpsh, npsh)
-   end do
-
-end subroutine get_log_derivatives
-
-subroutine run_test_configurations(ncnf, nacnf,lacnf,facnf,nc,nvcnf,rho,rhomod,rr,zz, &
+subroutine run_test_configurations(ncnf,nacnf,lacnf,facnf,nc,nvcnf,rho,rhomod,rr,zz, &
                                    rcmax,mmax,mxprj,iexc,ea,etot,epstot,nproj,vpuns, &
-                                   lloc,vkb,evkb,srel,nat,lat,fat,eat,eatp,eaetst,etsttot)
+                                   lloc,vkb,evkb,srel,nvt,nat,lat,fat,eat,eatp,eaetst,etsttot)
    implicit none
    ! Input variables
    !> Number of test configurations
@@ -372,25 +315,27 @@ subroutine run_test_configurations(ncnf, nacnf,lacnf,facnf,nc,nvcnf,rho,rhomod,r
    logical, intent(in) :: srel
 
    !> Output variables
+   integer, intent(out) :: nvt(5)
    !> principal quantum number array for test configuration
-   integer, intent(out) :: nat(30, ncnf + 1)
+   integer, intent(out) :: nat(30, 5)
    !> angular momentum array for test configuration
-   integer, intent(out) :: lat(30, ncnf + 1)
+   integer, intent(out) :: lat(30, 5)
    !> occupation number array for test configuration
-   real(dp), intent(out) :: fat(30, 3, ncnf + 1)
+   real(dp), intent(out) :: fat(30, 3, 5)
    !> all-electron energy of test state
-   real(dp), intent(out) :: eat(30, 3, ncnf + 1)
+   real(dp), intent(out) :: eat(30, 3, 5)
    !> pseudo energy of test state
-   real(dp), intent(out) :: eatp(30, ncnf + 1)
+   real(dp), intent(out) :: eatp(30, 5)
    !> test configuration all-electron total energy
-   real(dp), intent(out) :: eaetst(ncnf + 1)
+   real(dp), intent(out) :: eaetst(5)
    !> test configuration pseudoatom total energy
-   real(dp), intent(out) :: etsttot(ncnf + 1)
+   real(dp), intent(out) :: etsttot(5)
 
    !> Local variables
    integer :: jj, ierr
-   real(dp) :: rhotmp(mmax)
+   real(dp) :: rhot(mmax)
 
+   nvt(:) = 0
    nat(:, :) = 0
    lat(:, :) = 0
    fat(:, :, :) = 0.0_dp
@@ -401,12 +346,11 @@ subroutine run_test_configurations(ncnf, nacnf,lacnf,facnf,nc,nvcnf,rho,rhomod,r
 
    do jj = 1, ncnf + 1
       ! charge density is initialized to that of reference configuration
-      rhotmp(:) = rho(:)
-      call run_config(jj, nacnf, lacnf, facnf, nc, nvcnf, rhotmp, rhomod, rr, zz, &
-                      rcmax, mmax, mxprj, iexc, ea, etot, epstot, nproj, vpuns, &
-                      lloc, vkb, evkb, srel, &
-                      nat(:, jj), lat(:, jj), fat(:, :, jj), eat(:, :, jj), eatp(:, jj), &
-                      eaetst(jj), etsttot(jj), ierr)
+      rhot(:) = rho(:)
+      call run_config(jj,nacnf,lacnf,facnf,nc,nvcnf,rhot,rhomod,rr,zz, &
+                      rcmax,mmax,mxprj,iexc,ea,etot,epstot,nproj,vpuns, &
+                      lloc,vkb,evkb,srel,nvt(jj),nat(:,jj),lat(:,jj),fat(:,:,jj),eat(:,:,jj),eatp(:,jj),eaetst(jj), &
+                      etsttot(jj))
    end do
 
 end subroutine run_test_configurations

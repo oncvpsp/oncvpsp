@@ -4,7 +4,8 @@ module output_text_m
    use postprocess_m, only: get_pseudo_linear_mesh_parameters
    implicit none
    private
-   public :: write_config_text, &
+   public :: write_test_config_text, &
+      write_test_configs_text, &
       write_rho_vpuns_text, &
       write_vloc_text, &
       write_rho_rhoc_rhom_text, &
@@ -147,7 +148,7 @@ subroutine write_input_with_ae_eig_text(unit, &
 
 end subroutine write_input_with_ae_eig_text
 
-subroutine write_config_text(unit, nc, nvt, nat, lat, fat, eat, eatp, etot, eaetst, epstot, etsttot)
+subroutine write_test_config_text(unit, nc, nvt, nat, lat, fat, eat, eatp, etot, eaetst, epstot, etsttot)
    implicit none
    ! Input variables
    !> Output unit
@@ -192,7 +193,47 @@ subroutine write_config_text(unit, nc, nvt, nat, lat, fat, eat, eatp, etot, eaet
    write(unit,'(a,1p,d16.8,a,d16.8,a,d10.2)') '      AE_ref=', etot, '  AE_tst=', eaetst, '  dif=', eaetst - etot
    write(unit,'(a,1p,d16.8,a,d16.8,a,d10.2)') '      PS_ref=', epstot, '  PS_tst=', etsttot, '  dif=', etsttot - epstot
    write(unit,'(a,1p,d10.2)') '      PSP excitation error=', eaetst - etot - etsttot + epstot
-end subroutine write_config_text
+end subroutine write_test_config_text
+
+subroutine write_test_configs_text(unit, ncnf, nc, nvt, nat, lat, fat, eat, eatp, etot, eaetst, epstot, etsttot)
+   implicit none
+   ! Input variables
+   !> Output unit
+   integer, intent(in) :: unit
+   !> Number of test configurations
+   integer, intent(in) :: ncnf
+   !> Number of core states
+   integer, intent(in) :: nc
+   !> Number of valence states for this test configuration
+   integer, intent(in) :: nvt(5)
+   !> Array of state principal quantum numbers
+   integer, intent(in) :: nat(30,5)
+   !> Array of state angular momenta
+   integer, intent(in) :: lat(30,5)
+   !> Array of occupation numbers and energies for test configuration
+   real(dp), intent(in) :: fat(30,5)
+   !> All-electron energies for test configuration
+   real(dp), intent(in) :: eat(30,5)
+   !> Pseudo energies for test configuration
+   real(dp), intent(in) :: eatp(30,5)
+   !> Reference all-electron total energy
+   real(dp), intent(in) :: etot
+   !> Test all-electron total energy
+   real(dp), intent(in) :: eaetst(5)
+   !> Reference pseudo total energy
+   real(dp), intent(in) :: epstot
+   !> Test pseudo total energy
+   real(dp), intent(in) :: etsttot(5)
+
+   ! Local variables
+   integer :: ii
+
+   do ii = 1, ncnf + 1
+      write(unit, '(/a,i2)') 'Test configuration', ii - 1
+      call write_test_config_text(unit, nc, nvt(ii), nat(:,ii), lat(:,ii), fat(:,ii), eat(:,ii), eatp(:,ii), &
+                                  etot, eaetst(ii), epstot, etsttot(ii))
+   end do
+end subroutine write_test_configs_text
 
 subroutine write_rho_vpuns_text(unit, mmax, lmax, drl, nrl, rr, irc, rho, vpuns)
    implicit none

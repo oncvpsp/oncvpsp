@@ -107,14 +107,6 @@
 &                   rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
 &                   mmax,irpsh(l1),npsh)
    end if
-
-  !  write(6,'(/a,i2)') 'log derivativve data for plotting, l=',ll
-  !  write(6,'(a,f6.2)') 'atan(r * ((d psi(r)/dr)/psi(r))), r=',rr(irphs)
-  !  write(6,'(a/)') 'l, energy, all-electron, pseudopotential'
-  !  do ii = 1, npsh
-  !    epsh = epsh2 - depsh * dfloat(ii - 1)
-  !    write(6,'(a, i6, 3f12.6)') '! ',ll, epsh, pshf(ii), pshp(ii)
-  !  end do
  end do
  return
  end subroutine run_phsft

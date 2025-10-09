@@ -38,8 +38,8 @@
  use input_text_m, only: read_input_text
  use output_text_m, only:
  use postprocess_m, only: get_pseudo_linear_mesh_parameters, &
-&                         get_wavefunctions
- use output_text_m, only: write_config_text, &
+&                         get_wavefunctions, run_test_configurations
+ use output_text_m, only: write_test_configs_text, &
 &                         write_rho_vpuns_text, write_vloc_text, &
 &                         write_rho_rhoc_rhom_text, &
 &                         write_wavefunctions_vkb_text, &
@@ -49,6 +49,7 @@
  use input_toml_m, only: read_input_toml
 #endif
 #if (defined WITH_HDF5)
+ use hdf5_utils_m, only: HID_T, hdf_open_file, hdf_close_file
  use output_hdf5_m, only: write_output_hdf5
 #endif
  implicit none
@@ -64,14 +65,12 @@
  integer :: ii,ierr,iexc,iexct,ios,iprint,irps,it,icmod,lpopt
  integer :: jj,kk,ll,l1,lloc,lmax,lt,inline
  integer :: mch,mchf,mmax,n1,n2,n3,n4,nc,nlim,nlloc,nlmax,nrl
- integer :: nv,irct,ncnf,nvt
+ integer :: nv,irct,ncnf
  integer :: iprj
  integer,allocatable :: npa(:,:)
 !
  integer :: dtime(8),na(30),la(30),np(6)
  integer :: nacnf(30,5),lacnf(30,5),nvcnf(5)
- !> Test configuration quantum numbers
- integer :: nat(30),lat(30)
  integer :: indxr(30),indxe(30)
  integer :: irc(6),nodes(4)
  integer :: nproj(6),npx(6),lpx(6)
@@ -89,12 +88,6 @@
  real(dp) :: xdummy
 !
  real(dp) :: cl(6),debl(6),ea(30),ep(6),fa(30),facnf(30,5)
- !> Test configuration occupations
- real(dp) :: fat(30,3)
- !> Test configuration eigenvalues (ae, ps)
- real(dp) :: eat(30,3), eatp(30)
- !> Test configuration total energies (ae, ps)
- real(dp) :: eaetst, etsttot
  real(dp) :: fnp(6),fp(6)
  real(dp) :: qcut(6),qmsbf(6),rc(6),rc0(6)
  real(dp) :: rpk(30)
@@ -154,6 +147,17 @@
  !> Pseudo phase shifts (log derivatives)
  real(dp), allocatable :: pshp(:,:)
 
+ !> Test configuration variables
+ integer :: nvt(5)
+ integer :: nat(30,5)
+ integer :: lat(30,5)
+ real(dp) :: fat(30,3,5)
+ real(dp) :: fat3(30,5)
+ real(dp) :: eat(30,3,5)
+ real(dp) :: eat3(30,5)
+ real(dp) :: eatp(30,5)
+ real(dp) :: eaetst(5), etsttot(5)
+
  character*2 :: atsym
  character*4 :: psfile
 
@@ -163,7 +167,12 @@
  integer :: input_mode
  integer :: unit
  character(len=1024) :: input_filename
+
+#if (defined WITH_HDF5)
  character(len=1024) :: hdf5_filename
+ logical :: do_hdf5
+ integer(HID_T) :: hdf5_file_id
+#endif
 
  input_mode = INPUT_STDIN
  input_filename = ''
@@ -271,6 +280,15 @@
         write (stderr, '(a,i2)') 'Error: Unknown input mode =', input_mode
         stop 1
  end select
+
+#if (defined WITH_HDF5)
+ if (trim(hdf5_filename) /= '') then
+    do_hdf5 = .true.
+    call hdf_open_file(hdf5_file_id, hdf5_filename, 'REPLACE', 'WRITE')
+ else
+    do_hdf5 = .false.
+ end if
+#endif
 
  if(ios /= 0) then
     write(6,'(a)') 'oncvpsp: ERROR reading input file'
@@ -658,20 +676,13 @@
  end do
 
  ! loop over reference plus test atom configurations
- do jj=1,ncnf+1
-   ! charge density is initialized to that of reference configuration
-   rhot(:)=rho(:)
-   write(6,'(/a,i2)') 'Test configuration',jj-1
-   call run_config(jj,nacnf,lacnf,facnf,nc,nvcnf,rhot,rhomod,rr,zz, &
-&                  rcmax,mmax,mxprj,iexc,ea,etot,epstot,nproj,vpuns, &
-&                  lloc,vkb,evkb,srel, nvt, nat, lat, fat, eat, eatp, eaetst, etsttot)
-   call write_config_text(stdout, nc, nvt, nat, lat, fat(:,3), eat(:,3), eatp, etot, eaetst, epstot, etsttot)
-#if (defined WITH_HDF5)
-   if (do_hdf5) then
-      call write_config_hdf5(hdf5_file_id, nc, nvt, nat, lat, fat(:,3), eat(:,3), eatp, etot, eaetst, epstot, etsttot)
-   end if
-#endif
- end do !jj
+ call run_test_configurations(ncnf,nacnf,lacnf,facnf,nc,nvcnf,rho,rhomod,rr,zz, &
+                              rcmax,mmax,mxprj,iexc,ea,etot,epstot,nproj,vpuns, &
+                              lloc,vkb,evkb,srel, &
+                              nvt,nat,lat,fat,eat,eatp,eaetst,etsttot)
+ fat3(:,:)=fat(:,3,:)
+ eat3(:,:)=eat(:,3,:)
+ call write_test_configs_text(stdout,ncnf,nc,nvt,nat,lat,fat3,eat3,eatp,etot,eaetst,epstot,etsttot)
 
  call get_pseudo_linear_mesh_parameters(mmax, rr, lmax, irc, drl, nrl, &
 &                                       n1, n2, n3, n4)
@@ -701,6 +712,24 @@
 
  call gnu_script(epa,evkb,lmax,lloc,mxprj,nproj)
 
+#if (defined WITH_HDF5)
+ if (trim(hdf5_filename) /= '') then
+    call write_output_hdf5(trim(hdf5_filename), &
+                           zz, nc, mxprj, lmax, lloc, npa, epa, irc, nproj, &
+                           mmax, rr, &  ! log radial mesh
+                           drl, nrl, &  ! linear radial mesh
+                           ncnf, nvt, nat, lat, fat3, eat3, eatp, etot, eaetst, epstot, etsttot, & ! test configurations
+                           vfull, vp, vpuns, &  ! potentials
+                           rho, rhoc, rhomod, &  ! charge densities
+                           sign_ae, uu_ae, up_ae, mch_ae, e_ae, &  ! all-electron wavefunctions
+                           sign_ps, uu_ps, up_ps, mch_ps, e_ps, &  ! pseudo wavefunctions
+                           is_scattering, &  ! wavefunction scattering flags
+                           vkb, evkb, &  ! KB projectors
+                           rpsh, npsh, epsh1, epsh2, depsh, epsh, pshf, pshp, & ! phase shift / log derivative
+                           cvgplt)  ! convergence profiles
+ end if
+#endif
+
  if(trim(psfile)=='psp8' .or. trim(psfile)=='both') then
   call linout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
 &             rhotae,rhoc,zz,zion,mmax,mxprj,iexc,icmod,nrl,drl,atsym, &
@@ -725,14 +754,6 @@
 &             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
 &             epsh1,epsh2,depsh,rlmax,psfile)
  end if
-
-#if (defined WITH_HDF5)
- if (trim(hdf5_filename) /= '') then
-    call write_output_hdf5(trim(hdf5_filename), lmax, npa, epa, lloc, irc, &
-                           vkb, evkb, nproj, rr, vfull, vp, vpuns, zz, mmax, mxprj, drl, nrl, &
-                           rho, rhoc, rhomod, srel, cvgplt, epsh1, epsh2, depsh, rxpsh)
- end if
-#endif
 
  stop
  end program oncvpsp
