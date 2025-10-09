@@ -689,8 +689,10 @@
  write(stdout, '(/a)') 'DATA FOR PLOTTING'
  call write_rho_vpuns_text(stdout, mmax, lmax, drl, nrl, rr, irc, &
 &                          rho, vpuns)
- call write_vloc_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
-&                     vpuns(:, lloc + 1))
+ if (lloc == 4) then
+    call write_vloc_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
+&                        vpuns(:, lloc + 1))
+ end if
  call write_rho_rhoc_rhom_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
 &                              rho, rhoc, rhomod(:, 1))
  call get_wavefunctions(zz, srel, mmax, rr, vfull, lloc, vp, lmax, &

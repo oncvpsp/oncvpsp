@@ -156,46 +156,38 @@ subroutine write_output_hdf5(filename, &
    ! Create HDF5 file
    call hdf_open_file(file_id, filename, 'REPLACE', 'WRITE')
    ! Test results
-   ! write(*,*) 'Writing test results to HDF5 file: ', trim(filename)
    call write_test_results_hdf5(file_id, nc, ncnf, nvt, nat, lat, fat, eat, eatp, etot, eaetst, epstot, etsttot)
    ! Logarithmic radial grid
-   ! write(*,*) 'Writing pseudopotential data to HDF5 file: ', trim(filename)
    call hdf_write_dataset(file_id, 'logarithmic_radial_mesh', rr)
    call hdf_set_data_scale(file_id, 'logarithmic_radial_mesh', 'r (a.u.)')
    call hdf_write_attribute(file_id, 'logarithmic_radial_mesh', 'description', 'Logarithmic radial mesh')
    call hdf_write_attribute(file_id, 'logarithmic_radial_mesh', 'units', 'Bohr')
    ! Angular momenta
-   ! write(*,*) 'Writing angular momenta to HDF5 file: ', trim(filename)
    call hdf_write_dataset(file_id, 'angular_momentum', [(ll, ll = 0, lmax)])
    call hdf_set_data_scale(file_id, 'angular_momentum', 'angular_momentum')
    call hdf_write_attribute(file_id, 'angular_momentum', 'description', 'Angular momentum quantum numbers')
    ! Derivative orders (for model core charge)
-   ! write(*,*) 'Writing derivative orders to HDF5 file: ', trim(filename)
    call hdf_write_dataset(file_id, 'derivative_order', [(ii - 1, ii = 1, 5)])
    call hdf_set_data_scale(file_id, 'derivative_order', 'derivative_order')
    call hdf_write_attribute(file_id, 'derivative_order', 'description', &
                             'Derivative orders for model core charge density')
    ! Pseudo valence charge density
-   ! write(*,*) 'Writing charge densities to HDF5 file: ', trim(filename)
    call hdf_write_dataset(file_id, 'ps_valence_charge_density', rho)
    call hdf_attach_data_scale(file_id, 'logarithmic_radial_mesh', file_id, 'ps_valence_charge_density')
    call hdf_write_attribute(file_id, 'ps_valence_charge_density', 'description', &
                             'Pseudo valence charge density')
    ! Core charge density
-   ! write(*,*) 'Writing charge densities to HDF5 file: ', trim(filename)
    call hdf_write_dataset(file_id, 'ae_core_charge_density', rhoc)
    call hdf_attach_data_scale(file_id, 'logarithmic_radial_mesh', file_id, 'ae_core_charge_density')
    call hdf_write_attribute(file_id, 'ae_core_charge_density', 'description', &
                             'All-electron core charge density')
    ! Model core charge density
-   ! write(*,*) 'Writing charge densities to HDF5 file: ', trim(filename)
    call hdf_write_dataset(file_id, 'model_core_charge_density', rhomod)
    call hdf_attach_data_scale(file_id, 'logarithmic_radial_mesh', file_id, 'model_core_charge_density', 1)
    call hdf_attach_data_scale(file_id, 'derivative_order', file_id, 'model_core_charge_density', 2)
    call hdf_write_attribute(file_id, 'model_core_charge_density', 'description', &
                             'Model core charge density and its derivatives')
    ! Unscreened pseudopotentials
-   ! write(*,*) 'Writing unscreened pseudopotentials to HDF5 file: ', trim(filename)
    call hdf_create_group(file_id, 'unscreened_pseudotentials')
    call hdf_open_group(file_id, 'unscreened_pseudotentials', group_id)
    do l1 = 1, lmax + 1
@@ -205,11 +197,9 @@ subroutine write_output_hdf5(filename, &
    end do
    call hdf_close_group(group_id)
    ! Local potential
-   ! write(*,*) 'Writing local potential to HDF5 file: ', trim(filename)
    call hdf_write_dataset(file_id, 'local_potential', vpuns(:, lloc + 1))
    call hdf_attach_data_scale(file_id, 'logarithmic_radial_mesh', file_id, 'local_potential')
    ! Semi-local pseudopotentials
-   ! write(*,*) 'Writing semi-local pseudopotentials to HDF5 file: ', trim(filename)
    call hdf_create_group(file_id, 'semilocal_pseudopotentials')
    call hdf_open_group(file_id, 'semilocal_pseudopotentials', group_id)
    do l1 = 1, lmax + 1
@@ -219,20 +209,16 @@ subroutine write_output_hdf5(filename, &
    end do
    call hdf_close_group(group_id)
    ! Wavefunctions
-   ! write(*,*) 'Writing wavefunctions to HDF5 file: ', trim(filename)
    call write_wavefunctions_hdf5(file_id, mmax, rr, lmax, &
                                  lloc, mxprj, npa, nproj, &
                                  sign_ae, uu_ae, up_ae, mch_ae, e_ae, &
                                  sign_ps, uu_ps, up_ps, mch_ps, e_ps, &
                                  is_scattering)
    ! VKB projectors
-   ! write(*,*) 'Writing Vanderbilt-Kleinman-Bylander projectors to HDF5 file: ', trim(filename)
    call write_vkb_projectors_hdf5(file_id, mmax, mxprj, lmax, vkb, nproj)
    ! Convergence profiles
-   ! write(*,*) 'Writing convergence profiles to HDF5 file: ', trim(filename)
    call write_convergence_profiles_hdf5(file_id, cvgplt, mxprj, lmax, nproj)
    ! Log derivative phase shift analysis
-   ! write(*,*) 'Writing phase shifts to HDF5 file: ', trim(filename)
    call write_phase_shift_hdf5(file_id, npsh, epsh1, epsh2, depsh, epsh, rpsh, pshf, pshp)
    ! Close HDF5 file
    call hdf_close_file(file_id)
