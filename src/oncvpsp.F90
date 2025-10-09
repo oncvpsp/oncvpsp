@@ -749,6 +749,7 @@
  end if
 
  if(trim(psfile)=='psml' .or. trim(psfile)=='both') then
+   write(stdout, '(a)') ' calling psmlout'
    call psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
 &             irct, srel, &
 &             zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
