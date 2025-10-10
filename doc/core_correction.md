@@ -1,8 +1,8 @@
 
 ## MODEL CORE CHARGE
 
-Release 3.2.3 changed modcore2.f90 and modcore3.f90.  See the release
-notes for details.
+Release 3.2.3 changed modcore2.f90 and modcore3.f90.
+See the release notes for details.
 
 Releases prior to 3.2.1 had the option of including a model core charge
 to give a "non-linear core correction" in the spirit of Louie, Froyen, and

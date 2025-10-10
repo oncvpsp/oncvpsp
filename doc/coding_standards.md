@@ -1,8 +1,8 @@
 ## ONCVPSP CODING STANDARDS
 
 The coding standards I've tried to follow and will want for any contributed
-additions are pretty basic.  They should also be obvious from examining
-a few of the source routines.
+additions are pretty basic.
+They should also be obvious from examininga few of the source routines.
 
 1) Fortran 95 free-format.
 
