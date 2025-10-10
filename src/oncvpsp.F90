@@ -176,9 +176,9 @@
 
  input_mode = INPUT_STDIN
  input_filename = ''
- #if (defined WITH_HDF5)
+#if (defined WITH_HDF5)
    hdf5_filename = ''
- #endif
+#endif
 
  write(6,'(a/a//)') &
 &      'ONCVPSP  (Optimized Norm-Conservinng Vanderbilt PSeudopotential)', &
