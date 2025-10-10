@@ -5,7 +5,7 @@ strictly ordered in energy by their number of nodes.  This is not necessarily
 true for separable non-local pseudopotentials.  Spurious bound states with
 more nodes can arise below or between the zero- and one-node states which the
 projectors are designed to reproduce.  While in the case of single Kleinman-
-Bylander projectors, a simple test can predict their presence from the bound 
+Bylander projectors, a simple test can predict their presence from the bound
 states of the local potential and the non-local projector coefficient,
 (Ref. 25 of the paper), no such test exists for multiple-projector potentials.
 
@@ -17,11 +17,11 @@ they are below the limits for any useful scan of the valence region.
 The routine solves the problem of the pseudo-atom surrounded by a spherical
 hard wall by a basis function method, mimicking how ghosts would show up
 in a plane-wave calculation.  For each angular momentum, the routine computes
-a set of radial basis functions that allow efficient calculation of a 
-Hamiltonian matrix of the walled pseudopotential, and diagonalizes it.  
+a set of radial basis functions that allow efficient calculation of a
+Hamiltonian matrix of the walled pseudopotential, and diagonalizes it.
 Eigenvalues lying below the wanted bound states (of the un-walled atom)
 are tagged as ghosts.  "Proper" eigenvalues fall above these states because
-of the wall, although very close for deeply-bound states.  These are 
+of the wall, although very close for deeply-bound states.  These are
 simply compared to the unwalled radial Schroeinger equation eigenvalues
 in the new "Testing for bound ghosts" section of the output file. The
 effective basis cutoff energies of the basis functions are also listed.
@@ -51,8 +51,8 @@ should be a reliable test.
 
 ### Old Approach
 
-Our approach is to compute phi(E) = arctan(R * d psi(r)/dr |_R) for some R 
-greater than the core radius, where psi is the solution of the non-local 
+Our approach is to compute phi(E) = arctan(R * d psi(r)/dr |_R) for some R
+greater than the core radius, where psi is the solution of the non-local
 radial equation regular at the origin (ie., the outward-integrated solution).
 Scanning downward in energy, usually from a positive energy of a few Ha, phi(E)
 for the corresponding all-electron potential takes smooth positive steps

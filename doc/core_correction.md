@@ -23,8 +23,8 @@ such a model core charge designed to have good convergence properties
 in Fourier space.  This function was used in some pseudopotentials
 packaged with the ABINIT code [4}, and some tabulated on that web site.
 It  does not appear that the "Teter metric" was actually used in the
-generation of these potentials [5].  Routines gg1cc.f90, gp1cc.f90, and 
-gpp1cc.f90 to calculate  this function and its first two derivatives have 
+generation of these potentials [5].  Routines gg1cc.f90, gp1cc.f90, and
+gpp1cc.f90 to calculate  this function and its first two derivatives have
 been adapted from ABINIT.
 
 Since ONCVPSP can include shallow core states as valence while
@@ -37,7 +37,7 @@ included, with 4 options specified by the input variable icmod.
 
 To my knowledge there is no systematic evidence that "Teter hardness
 metric" accuracy correlates with improved agreement between all-electron
-and pseudopotential results. Its use to tune oncvpsp potentials should be 
+and pseudopotential results. Its use to tune oncvpsp potentials should be
 regarded as experimental.
 
 Model core options:
@@ -49,9 +49,9 @@ icmod==1:
     The previous polynomial continuation of the all-electron core density
     to the origin, performed at a radius at which the core charge is
     the fcfact times the valence pseudocharge.  fcfact is typically chosen
-    to be less than 1, eg. 0.25-0.5.  Exc 2nd derivatives are calculated 
+    to be less than 1, eg. 0.25-0.5.  Exc 2nd derivatives are calculated
     with and without this charge, and the rms discripancies reported in the
-    *.out file, but play no active role.  This option is executed by 
+    *.out file, but play no active role.  This option is executed by
     modcore.f90.
 
 icmod==2:
@@ -71,20 +71,20 @@ icmod==3:
     The amlitude and scale parameters for the Teter function are taken
     from the input file, with the fcfact input re-interpreted and the
     rcfact argument added as follows:
- 
+
         # MODEL CORE CHARGE
-        # icmod, fcfact, rcfact 
+        # icmod, fcfact, rcfact
             3    5.0  1.3
-    
+
     These parameters are defined consisently with option 4 below.  They
-    are also given the the out  files of options 2 and 4 as " amplitude 
+    are also given the the out  files of options 2 and 4 as " amplitude
     prefactor, scale prefactor."  Note that "fcfact" in this context
-    has a DIFFERENT MEANING than in options 1 and 2.  Blending to the 
-    all-electron rhoc is done as in option 2 above.  Exc 2nd derivatives 
+    has a DIFFERENT MEANING than in options 1 and 2.  Blending to the
+    all-electron rhoc is done as in option 2 above.  Exc 2nd derivatives
     are computed but not used.  This option is executed by modcore3.f90.
 
 icmod==4:
-    The "blended" Teter function parameters are optimized to reduce Exc 
+    The "blended" Teter function parameters are optimized to reduce Exc
     2nd-derivative discrepancies in rhomod3.f90.  The optimization is
     initiated by finding the radius rmatch at which rhoc=pseudo-rho, and
     this charge value is stored as rhocmatch.  The core model is then
@@ -94,9 +94,9 @@ icmod==4:
     with blending applied.  Exc 2nd derivatives are then computed on a
     coarse grid of plausible fcfact and rcfact values, the rms error
     is printed as a matrix in the out file.  The minimum on this grid
-    is then refined using the Nelder-Mead simplex algorithm.  This option 
-    is now used by tests/data/40_Zr.dat, and an annotated version of the 
-    relevant section of tests/refs/40_Zr.out follows this text.  A 1-2 
+    is then refined using the Nelder-Mead simplex algorithm.  This option
+    is now used by tests/data/40_Zr.dat, and an annotated version of the
+    relevant section of tests/refs/40_Zr.out follows this text.  A 1-2
     order-of-magntude reduction of the rms error is often obtained.
     However, the minimization may converge to yield a wildly implausalbe
     model, or may not converge.  An local minimum on the initial grid

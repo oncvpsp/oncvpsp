@@ -31,7 +31,7 @@ generate and that using libxc look essentially identical to the compare.sh
 test.
 
 Meta-ggas and hybrid exc functions are not implemented in oncvpsp.  Metas
-may come is a subsequent release.  HF and hybrid functionals are incompatible 
+may come is a subsequent release.  HF and hybrid functionals are incompatible
 with norm and generalized-norm conservation.
 
 ### BIG LIST FROM LIBXC-4.2.3

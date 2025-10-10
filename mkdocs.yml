@@ -1,0 +1,15 @@
+site_name: Oncvpsp Docs
+nav:
+    - Users Guide: users_guide.md
+    - Ghosts: ghosts.md
+    - Core correction: core_correction.md
+    - Relativistic : relativistic.md
+    - Program Overview: program_overview.md
+    - Libxc Use: libxc_use.md
+    - Coding Standards: coding_standards.md
+    - Pwscf Exc: pwscf_exc.md
+    - Release Notes: release_notes.md
+
+docs_dir: doc
+theme:
+  name: material

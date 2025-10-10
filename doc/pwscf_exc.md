@@ -1,23 +1,23 @@
 ## PWSCF EXC FUNCTIONAL NAMES
 
-List of translations from libxc numerical iexc values to pwscf 
+List of translations from libxc numerical iexc values to pwscf
 "dft_shortnames" as presently implemented in src/upfout.f90 and upfout_r.f90
 
 ```
     iexc==3 .or. iexc==-001009, 'functional="PZ"'
-    
+
     iexc==4 .or. iexc==-101130, 'functional="PBE"'
-    
+
     iexc==-109134, 'functional="PW91"'
-    
+
     iexc==-116133, 'functional="PBESOL"'
-    
-    iexc==-102130, 'functional="REVPBE"' 
-    
+
+    iexc==-102130, 'functional="REVPBE"'
+
     iexc==-106132, 'functional="BP"'
-    
+
     iexc==-106131, 'functional="BLYP"'
-    
+
     iexc==-118130, 'functional="WC"'
 ```
 
@@ -34,9 +34,9 @@ List of all pwscf dft_shortnames from expresso-5.0.2
 !-------------------------------------------------------------------
 module funct
 !-------------------------------------------------------------------
-! This module contains data defining the DFT functional in use 
+! This module contains data defining the DFT functional in use
 ! and a number of functions and subroutines to manage them.
-!  
+!
   !
   ! dft is the exchange-correlation functional, described by
   ! one of the following keywords ("dft_shortname"):
@@ -55,7 +55,7 @@ module funct
   !              "tpss"  = "sla+pw+tpss+tpss"  = TPSS Meta-GGA
   !              "m06l"  = "nox+noc+m6lx+m6lc" = M06L Meta-GGA
   !              "pbe0"  = "pb0x+pw+pb0x+pbc"  = PBE0
-  !              "hse"   = "sla+pw+hse+pbc"    = Heyd-Scuseria-Ernzerhof 
+  !              "hse"   = "sla+pw+hse+pbc"    = Heyd-Scuseria-Ernzerhof
   !                                              (HSE 06, see note below)
   !              "b3lyp" = "b3lp+vwn+b3lp+b3lp"= B3LYP
   !              "vdw-df"= "sla+pw+rpb+vdw1"   = vdW-DF
@@ -131,13 +131,13 @@ module funct
   !              "vdw2"    vdW-DF2                        inlc =2
   !
   ! References:
-  !              pz      J.P.Perdew and A.Zunger, PRB 23, 5048 (1981) 
+  !              pz      J.P.Perdew and A.Zunger, PRB 23, 5048 (1981)
   !              vwn     S.H.Vosko, L.Wilk, M.Nusair, Can.J.Phys. 58,1200(1980)
-  !              wig     E.P.Wigner, Trans. Faraday Soc. 34, 67 (1938) 
+  !              wig     E.P.Wigner, Trans. Faraday Soc. 34, 67 (1938)
   !              hl      L.Hedin and B.I.Lundqvist, J. Phys. C4, 2064 (1971)
   !              gl      O.Gunnarsson and B.I.Lundqvist, PRB 13, 4274 (1976)
-  !              pw      J.P.Perdew and Y.Wang, PRB 45, 13244 (1992) 
-  !              obpz    G.Ortiz and P.Ballone, PRB 50, 1391 (1994) 
+  !              pw      J.P.Perdew and Y.Wang, PRB 45, 13244 (1992)
+  !              obpz    G.Ortiz and P.Ballone, PRB 50, 1391 (1994)
   !              obpw    as above
   !              b88     A.D.Becke, PRA 38, 3098 (1988)
   !              p86     J.P.Perdew, PRB 33, 8822 (1986)
@@ -149,7 +149,7 @@ module funct
   !              revPBE  Zhang and Yang, PRL 80, 890 (1998)
   !              pbesol  J.P. Perdew et al., PRL 100, 136406 (2008)
   !              q2d     L. Chiodo et al., PRL 108, 126402 (2012)
-  !              rw86    E. Amonn D. Murray et al, J. Chem. Theory comp. 5, 2754 (2009) 
+  !              rw86    E. Amonn D. Murray et al, J. Chem. Theory comp. 5, 2754 (2009)
   !              wc      Z. Wu and R. E. Cohen, PRB 73, 235116 (2006)
   !              kzk     H.Kwee, S. Zhang, H. Krakauer, PRL 100, 126404 (2008)
   !              pbe0    J.P.Perdew, M. Ernzerhof, K.Burke, JCP 105, 9982 (1996)
@@ -161,20 +161,20 @@ module funct
   !                      T. Thonhauser et al., PRB 76, 125112 (2007)
   !              vdw-DF2 Lee et al., Phys. Rev. B 82, 081101 (2010)
   !              c09x    V. R. Cooper, Phys. Rev. B 81, 161104(R) (2010)
-  !              tpss    J.Tao, J.P.Perdew, V.N.Staroverov, G.E. Scuseria, 
+  !              tpss    J.Tao, J.P.Perdew, V.N.Staroverov, G.E. Scuseria,
   !                      PRL 91, 146401 (2003)
   !              sogga   Y. Zhao and D. G. Truhlar, JCP 128, 184109 (2008)
   !              m06l    Y. Zhao and D. G. Truhlar, JCP 125, 194101 (2006)
   !
-  ! NOTE ABOUT HSE: there are two slight deviations with respect to the HSE06 
+  ! NOTE ABOUT HSE: there are two slight deviations with respect to the HSE06
   ! functional as it is in Gaussian code (that is considered as the reference
   ! in the chemistry community):
-  ! - The range separation in Gaussian is precisely 0.11 bohr^-1, 
+  ! - The range separation in Gaussian is precisely 0.11 bohr^-1,
   !   instead of 0.106 bohr^-1 in this implementation
-  ! - The gradient scaling relation is a bit more complicated 
+  ! - The gradient scaling relation is a bit more complicated
   !   [ see: TM Henderson, AF Izmaylov, G Scalmani, and GE Scuseria,
   !          J. Chem. Phys. 131, 044108 (2009) ]
-  ! These two modifications accounts only for a 1e-5 Ha difference for a 
+  ! These two modifications accounts only for a 1e-5 Ha difference for a
   ! single He atom. Info by Fabien Bruneval
   !
 ```

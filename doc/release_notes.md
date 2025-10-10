@@ -2,7 +2,7 @@
 
 1) The wellstate approach for relativistic calculations has been modified
    in light of the wellstate changes described below.  The confining well
-   potential and node counts found for J=L+1/2 are now carried over and 
+   potential and node counts found for J=L+1/2 are now carried over and
    used for J=L-1/2 to avoid possible inconsistencies in the corresponding
    projectors.
 
@@ -20,8 +20,8 @@
    momentum L.  Bound states in successive shells and scattering states are
    processed together in loops over [1:nproj(l1)] throughout the code. This
    replaces the separate treatment of the first and second projectors used
-   in earlier versions.  The maximum allowed nproj is set by mxprj, 
-   presently 5, in oncvpsp.f90. (Going beyond 5 is probably useless, and 
+   in earlier versions.  The maximum allowed nproj is set by mxprj,
+   presently 5, in oncvpsp.f90. (Going beyond 5 is probably useless, and
    would require modifying some format statements by hand.)
 
   The following routines have been reorganized in this manner:
@@ -44,8 +44,8 @@
 2) The overall optimization approach is retained, in the sense that each
    successive projector pseudo wave function (ppwf) is calculated independently
    enforcing off-diagonal overlap constraints with lower-index (presumably
-   lower energy) ppwfs.  The underlying spherical Bessel function basis is 
-   calculated based on the first ppwf's value and slope constraints at rc 
+   lower energy) ppwfs.  The underlying spherical Bessel function basis is
+   calculated based on the first ppwf's value and slope constraints at rc
    as in the two-projector code, but is expanded at each stage to retain
    the same number of "null" functions for consistent variational flexibily
    in convergence optimization.  Convergence is typically found to be
@@ -75,7 +75,7 @@
    deeper core shells are treated as valence.  Ghost-detection has been
    incorporated in the fully-relativistic code.  Note that a legitimate
    low-energy scattering resonance may be reported as a positive-energy
-   ghost, especially for L=3.  
+   ghost, especially for L=3.
 
 5) The graphics output has been modified.  The usual semi-local plus
   local potential and charge density plots are displayed first.  Then,
@@ -127,13 +127,13 @@
    are new or have been modified to demonstrate new capabilities. Input data
    from the two presently published oncvpsp periodic tables runs without error.
 
-     http://www.pseudo-dojo.org/ 
-     http://www.quantum-simulation.org/potentials/sg15_oncv/ 
+     http://www.pseudo-dojo.org/
+     http://www.quantum-simulation.org/potentials/sg15_oncv/
 
 10) The unscreened local potetial at the origin of the linear output mesh
     is now set to the value on the first point of the internal log mesh.
-    This suggestion of F. Gygi partially mitigates the erratic behavior of 
-    GGA potentials arising from very small values of the psedo-chargre 
+    This suggestion of F. Gygi partially mitigates the erratic behavior of
+    GGA potentials arising from very small values of the psedo-chargre
     density near the origin.  (Even a small model core charge completely
     eliminates this problem.)
 
@@ -161,7 +161,7 @@
    will differ slightly from those of previous releases.  The energy ranges
    have been increased for some of the tests/data examples.
 
-3) An indexing bug in the diagnostic tests which could change the test radii 
+3) An indexing bug in the diagnostic tests which could change the test radii
    from those intended has been fixed.  Some numbers in the Diagnosics
    will change as a result.
 
@@ -195,14 +195,14 @@
 
 1) An unfortunate math error made its way from my notes into the oncvpsp
    paper and into optimize.f90.  Fortunately, the only effect of this has
-   been to keep this routine from reaching the exact minimum of the 
+   been to keep this routine from reaching the exact minimum of the
    residual kinetic energy above the cutoff qc, which has proven a very
    good proxy for plane-wave code convergence.  The corrected routine also
    significantly simplifies the algorithm to find the minimum.  Details
    are explained in Erratum_PhysRevB.88.085117.pdf in this directory which
    has been submitted.  The new version of run_optimize.f90 calls the
    renamed old_optimize.f90 and reports the new minimum and the typically
-   extremely small difference.  Benchmark tests against all-electron results 
+   extremely small difference.  Benchmark tests against all-electron results
    using input designed with the old code show insignificant differences.
    The 3.2.3 results can be reproduced by commenting out lines 177-180 and
    293-296 of run_optimize.  The preceding old_optimize calls will be
@@ -221,9 +221,9 @@
    occurred far out in the tails of both functions, so that for all
    practical purposes, the model core was "pure Teter."  Correcting this
    to the intended blending region (from the model-core / AE-core crossing
-   radius to the first zero of the Teter function) produced significant 
+   radius to the first zero of the Teter function) produced significant
    undesirable structure in the derivatives of the blended model charge,
-   likely to cause convergence errors, and especially acoustic sum rule 
+   likely to cause convergence errors, and especially acoustic sum rule
    violations in phonon calculations.  The new versions of these routines
    simply use the Teter function for all radii, which essentially reproduces
    the results of 3.2.2 and 3.2.1.
@@ -238,7 +238,7 @@
 
 3) A similar echo of the input data is now appended to the end of the
    psp8 files, and is ignored by abinit.  (The actual log-grid-point
-   rcs are given as "r_core=" on the first psp8 line, and the input rcs 
+   rcs are given as "r_core=" on the first psp8 line, and the input rcs
    in the trailing echo.)
 
 4) The psfile input datum may now have the values "psp8," "upf," and "both."
@@ -260,13 +260,13 @@
    6 of the psp8 file which is ignored by abinit.
 
 7) Numerous small corrections to enhance inter-platform transferability
-   have been incorporated (uninitialized variables, single-precision 
+   have been incorporated (uninitialized variables, single-precision
    constants, overreaching array bounds, etc.)
    (Thanks to J. E. Pask)
 
 8) A simple modification of FFLAGS in make.inc allows the use of newer
    libxc releases.  This has been tested with libxc-2.2.1, used in
-   abinit-8.0.8.  The list of XC functions and their identifying 
+   abinit-8.0.8.  The list of XC functions and their identifying
    3-digit numbers in libxc_use.txt has been updated to 2.2.1.
    Be sure to uncomment the appropriate "LIBS +=" line for your
    make.inc.  upfout.f90 has not been updated to include more
@@ -288,18 +288,18 @@
    corrected in item 2 above, be sure you are using the actual input data
    files rather than the echo in their upf files (at least until their rcs
    appear in 5-decimal format).
-   
+
 (Thanks for suggestions and feedback to M. van Setten, M. Giantomassi,
  M. Verstraete and F. Gygi.)
 
 
 ## Version 3.2.2
 
-1) The new core features crashed for the relativistic treatment of a 
+1) The new core features crashed for the relativistic treatment of a
    partiularly challenging data set one of you came up with.  The solution
-   was to use multiplicity-weighted averages of the fully-relativistic 
-   state-by-state all-electron charges and valence pseudocharges in the 
-   Teter metric analysis.  There is essentially no difference in the output.  
+   was to use multiplicity-weighted averages of the fully-relativistic
+   state-by-state all-electron charges and valence pseudocharges in the
+   Teter metric analysis.  There is essentially no difference in the output.
 
    Efficient coding of this scheme required a significant reorgainzation
    of oncvpsp*.f90 and modcore*.f90, but the underlying math is unchanged
@@ -324,7 +324,7 @@
    these additions)
 
 3) The upf output now includes pseudo wave funtions for the occupied states.
-   This will allow LDA+U calculations in some codes.  Please note that 
+   This will allow LDA+U calculations in some codes.  Please note that
    ONCVPSP potentials have not been tested or benchmarked for this use.
    Also be aware that LDA+U is a semi-empirical mean field theory, and
    does NOT represent many-body phyysics.  (Thanks to R. Sundararaman
@@ -334,9 +334,9 @@
    disabled in 3.0.0 and has been restored.  This can be used to verify
    that the small errors discussed following Eq.(24) in my paper arising
    from the scalar-relativistic (and relativistic) issues with general
-   norm conservation are corrected.  
+   norm conservation are corrected.
 
-   This also applies to the accuracy of convergence of the unscreened 
+   This also applies to the accuracy of convergence of the unscreened
    potentials to  Coulombic beyond r_c discussed in item 6 below.
 
 5) The automated plots now include log-derivative comparisons for angular
@@ -359,7 +359,7 @@
    point.  When this point is inside r_c, this will be different for
    the all-electron and pseudopotentials.  The charge densities in
    this region are negligible (~1e-12) but their one-third power in the
-   exchange-correlation potential is large enough to notice. (Thanks to 
+   exchange-correlation potential is large enough to notice. (Thanks to
    C. Fortmann)
 
 7) A typo in a format statement in oncvpsp_r.f90 which bothered some
@@ -370,13 +370,13 @@
 1) The routine dp3int which performed cubic polynomial interpolation from
    the internal log radial grid to our preferred linear output grid has
    been upgraded to enable nth-order interpolation, with the internal
-   parameter npoly presently set to 7.  This allows the polymial model 
+   parameter npoly presently set to 7.  This allows the polymial model
    core charge for the non-linear core correction to be exact on the
    linear grid, and eliminates noise when the application code take
    derivatives internally.  dpnint is also used in eresid.  The changes
    in the output are negligible.  The output routines linout, linout_r,
    upfout, and upfout_r have been "cleaned up" to take further advantage
-   of dpnint.  (Thanks to Matthieu Verstrate and Alberto Garcia for 
+   of dpnint.  (Thanks to Matthieu Verstrate and Alberto Garcia for
    calling my attention to the external-derivative issue.)
 
 2) The gnu_script* routines have been modified to take advantage of
@@ -384,7 +384,7 @@
    visibility of the graphics.  With older versions, changing the
    text 'set termoption dash' to '#set termoption dash', line 137
    in gnu_script.f90 and 181 in gnu_script_r.f90 should suffice to
-   run the graphics without dashed lines.  Several intermediate points 
+   run the graphics without dashed lines.  Several intermediate points
    have been added to the "Energy Error" convergence plots. The file
    docs/40_Zr_plots.pdf illustrates the new graphics.
 
@@ -426,9 +426,9 @@
 
 ## Version 2.1.2
 
-1) A bug has been fixed so that the "First projector wave function 
+1) A bug has been fixed so that the "First projector wave function
    outermost peak radius" diagnostic result is calculated correctly for
-   positive-energy well-bound states. Nothing else in the output changes. 
+   positive-energy well-bound states. Nothing else in the output changes.
 
 ## Version 2.1.1
 
@@ -461,8 +461,8 @@
 1) Minor bug fix in pspot: In line 125, finite small eps in if statement
    caused screened semi-local psps to be set to zero at very small radii.
 
-2) Minor bug fix in run_diag*: For some choices of rc and positive 
-   second-projector energies, scattering states can be nodeless inside rc. 
+2) Minor bug fix in run_diag*: For some choices of rc and positive
+   second-projector energies, scattering states can be nodeless inside rc.
    If lschvkbbe returns an error searching for a state with a node
    that matches the all-electron log derivative, it is called again to
    search for a nodeless one before run_diag* reports an error.
@@ -492,7 +492,7 @@ examples, but there were a few spurious diagnostic error reports.
 
 5) Minor changes in the main routines (oncvpsp*) correct their behavior when
    a negative-energy is specified for the second projector and this is not
-   just an occupied valence state over a semi-core being treated as valence.  
+   just an occupied valence state over a semi-core being treated as valence.
    A WARNING will be issued since this is probably inadvertent, and it is
    probably better to adjust debl for a small positive energy.
 
@@ -537,7 +537,7 @@ Very minor changes
 2) Inconsistencies in the comments in some of the tests/data/*.dat files
    have been corrected.  None of the data has been changed.
 
-3) tests/data/03_Li.dat has been added, but not tested in any calculations 
+3) tests/data/03_Li.dat has been added, but not tested in any calculations
    for solids.
 
 3) Item 2 under "Potential Issues" in doc/users_guide.txt has been expanded.
