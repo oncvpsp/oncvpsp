@@ -8,7 +8,7 @@
 
 2) Several minor bugs (uninitialized variables, single-precision constants,
    potential array overwrites, overflowing buffers, etc.) have been
-   corrected.  Thanks to  J. E. Pask and A. C. Medina
+   corrected. Thanks to  J. E. Pask and A. C. Medina
 
 3) modcore2.f90 and modcore3.f90 have been modified to remove numerical noise
    in the 3rd and 4th derivatives that could influence the output on the linear

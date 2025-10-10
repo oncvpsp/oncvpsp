@@ -1,6 +1,6 @@
 ## USING LIBXC
 
-To use the vast array of possible libxc functions, the input variable iexc
+To use the vast array of possible libxc functionals, the input variable `iexc`
 on the first line of input data must be set to a negative number formed
 (usually) from a pair of THREE DIGIT integers,
 
@@ -38,7 +38,7 @@ with norm and generalized-norm conservation.
 
 ### BIG LIST FROM LIBXC-4.2.3
 
-```
+```fortran
   XC_LDA_X                       =   1  ! Exchange
   XC_LDA_C_WIGNER                =   2  ! Wigner parametrization
   XC_LDA_C_RPA                   =   3  ! Random Phase Approximation

@@ -97,7 +97,6 @@ The main program is oncvpsp.f90, and has the following major sections:
    repeated at the energies used to construct the second projector.
    "Extra" valence states are treated as bound states here.
 
-
 7) The routine *run_config* performs all-electron and VKB pseudopotential
    self-consistent atom calculations on several configurations.
    Configuration 0 is always the reference configuration, and minimal

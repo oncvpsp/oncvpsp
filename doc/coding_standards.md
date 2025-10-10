@@ -24,9 +24,8 @@ before or after the subroutine statement.
 9) All subroutine arguments should be defined in comments following the
 subroutine statement.
 
-10) There should be comments throughout to indicate what is going on.  Any
-new math should be described in a text or pdf contribution to the doc
-directory.
+10) There should be comments throughout to indicate what is going on.  
+Any new math should be described in a text or pdf contribution to the doc directory.
 
 11) I'd like to stick to one input file read on standard input and one
 output file to standard output, with shell scripts to extract any new
