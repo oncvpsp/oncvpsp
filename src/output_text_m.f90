@@ -1,10 +1,12 @@
 module output_text_m
    use, intrinsic :: iso_fortran_env, only: stdout => output_unit, stderr => error_unit
    use, intrinsic :: iso_fortran_env, only: dp => real64
-   use postprocess_m, only: get_pseudo_linear_mesh_parameters
    implicit none
    private
-   public :: write_test_config_text, &
+   public :: get_pseudo_linear_mesh_parameters, &
+      write_input_text, &
+      write_reference_configuration_results_text, &
+      write_test_config_text, &
       write_test_configs_text, &
       write_rho_vpuns_text, &
       write_vloc_text, &
@@ -13,20 +15,57 @@ module output_text_m
       write_vkb_projectors_text, &
       write_wavefunctions_vkb_text, &
       write_convergence_profile_text, &
-      write_phsft_text
+      write_phsft_text, &
+      write_teter_grid_search_text, &
+      write_teter_nelder_mead_text
 contains
 
-subroutine write_input_with_ae_eig_text(unit, &
-                                        atsym, zz, nc, nv, iexc, psfile, &
-                                        na, la, fa, ea, &
-                                        lmax, &
-                                        rc, ep, ncon, nbas, qcut, &
-                                        lloc, lpopt, dvloc0, &
-                                        nproj, debl, &
-                                        icmod, fcfact, rcfact, &
-                                        epsh1, epsh2, depsh, &
-                                        rlmax, drl, &
-                                        ncnf, nvcnf, nacnf, lacnf, facnf)
+subroutine get_pseudo_linear_mesh_parameters(mmax, rr, lmax, irc, drl, nrl, n1, n2, n3, n4)
+   implicit none
+   ! Input variables
+   !> Size of radial grid
+   integer, intent(in) :: mmax
+   !> Log radial grid
+   real(dp), intent(in) :: rr(mmax)
+   !> Maximum angular momentum
+   integer, intent(in) :: lmax
+   !> Indices of core radii on the logarithmic radial mesh
+   integer, intent(in) :: irc(6)
+   !> Spacing of linear radial mesh
+   real(dp), intent(in) :: drl
+   !> Number of points in linear radial mesh
+   integer, intent(in) :: nrl
+
+   ! Output variables
+   integer, intent(out) :: n1, n2, n3, n4
+
+   ! Local variables
+   integer :: l1
+   real(dp) :: al
+
+   al = 0.01_dp * log(rr(101) / rr(1))
+   n1 = int(log(drl / rr(1)) / al + 1.0_dp)
+   n2 = int(log(real(nrl, dp) * drl / rr(1)) / al + 1.0_dp)
+   n3 = 0
+   do l1 = 1, lmax + 1
+      n3 = max(n3, irc(l1) - 1)
+   end do
+   n4 = min(n2, int(log((rr(n3) + 1.0_dp) / rr(1)) / al))
+   n3 = int(log(1.1_dp * rr(n3) / rr(1)) / al + 1.0d0)
+end subroutine get_pseudo_linear_mesh_parameters
+
+subroutine write_input_text(unit, &
+                            atsym, zz, nc, nv, iexc, psfile, &
+                            na, la, fa, &
+                            lmax, &
+                            rc, ep, ncon, nbas, qcut, &
+                            lloc, lpopt, dvloc0, &
+                            nproj, debl, &
+                            icmod, fcfact, rcfact, &
+                            epsh1, epsh2, depsh, &
+                            rlmax, drl, &
+                            ncnf, nvcnf, nacnf, lacnf, facnf, &
+                            ea)
    implicit none
    ! Input variables
    !> Output unit
@@ -49,8 +88,6 @@ subroutine write_input_with_ae_eig_text(unit, &
    integer, intent(in) :: la(30)
    !> Reference configuration occupation number array
    real(dp), intent(in) :: fa(30)
-   !> Reference configuration all-electron eigenvalue array
-   real(dp), intent(in) :: ea(30)
    !> Maximum angular momentum
    integer, intent(in) :: lmax
    !> Core radii for each l
@@ -99,6 +136,8 @@ subroutine write_input_with_ae_eig_text(unit, &
    integer, intent(in) :: lacnf(30,5)
    !> Occupation number array for test configurations
    real(dp), intent(in) :: facnf(30,5)
+   !> Reference configuration all-electron eigenvalue array
+   real(dp), intent(in), optional :: ea(30)
 
    ! Local variables
    integer :: ii, jj, l1
@@ -106,10 +145,17 @@ subroutine write_input_with_ae_eig_text(unit, &
    write(unit, '(a)') '# ATOM AND REFERENCE CONFIGURATION'
    write(unit, '(a)') '# atsym  z   nc   nv     iexc    psfile'
    write(unit, '(a,a,f6.2,2i5,i8,2a)') '  ', trim(atsym), zz, nc, nv, iexc, '      ', psfile
-   write(unit, '(a/a)') '#','#   n    l    f        energy (Ha)'
-   do ii = 1, nc + nv
-      write(unit, '(2i5,f8.2,1pe18.7)') na(ii), la(ii), fa(ii), ea(ii)
-   end do
+   if (present(ea)) then
+      write(unit, '(a/a)') '#','#   n    l    f        energy (Ha)'
+      do ii = 1, nc + nv
+         write(unit, '(2i5,f8.2,1pe18.7)') na(ii), la(ii), fa(ii), ea(ii)
+      end do
+   else
+      write(unit, '(a/a)') '#','#   n    l    f'
+      do ii = 1, nc + nv
+         write(unit, '(2i5,f8.2,1pe18.7)') na(ii), la(ii), fa(ii)
+      end do
+   end if
 
    write(unit, '(a/a/a)') '#','# PSEUDOPOTENTIAL AND OPTIMIZATION','# lmax'
    write(unit, '(i5)')  lmax
@@ -146,7 +192,28 @@ subroutine write_input_with_ae_eig_text(unit, &
       write(unit, '(a)') '#'
    end do
 
-end subroutine write_input_with_ae_eig_text
+end subroutine write_input_text
+
+subroutine write_reference_configuration_results_text(unit, it, itmax, etot)
+   implicit none
+   ! Input variables
+   !> Output unit
+   integer, intent(in) :: unit
+   !> Iteration number
+   integer, intent(in) :: it
+   !> Maximum number of iterations
+   integer, intent(in) :: itmax
+   !> Total energy
+   real(dp), intent(in) :: etot
+
+   write (stdout, '(//a)') 'Reference configufation results'
+   write (stdout, '(a,i6)') '  iterations', it
+   if (it >= itmax) then
+      write (stdout, '(a)') 'oncvpsp: ERROR all-electron reference atom not converged'
+      stop
+   end if
+   write (stdout, '(a,1p,d18.8)') '  all-electron total energy (Ha)', etot
+end subroutine write_reference_configuration_results_text
 
 subroutine write_test_config_text(unit, nc, nvt, nat, lat, fat, eat, eatp, etot, eaetst, epstot, etsttot)
    implicit none
@@ -583,5 +650,70 @@ subroutine write_phsft_text(unit, rpsh, npsh, epsh, pshf, pshp)
       end do
    end do
 end subroutine write_phsft_text
+
+subroutine write_teter_grid_search_text(unit, &
+                                        n_amp_param, amp_prefacs, &
+                                        n_scale_param, scale_prefacs, &
+                                        d2exc_rmse_grid)
+   implicit none
+   ! Input variables
+   !> Output unit
+   integer, intent(in) :: unit
+   !> Number of amplitude parameters
+   integer, intent(in) :: n_amp_param
+   !> Amplitude prefactors
+   real(dp), intent(in) :: amp_prefacs(n_amp_param)
+   !> Number of scaling parameters
+   integer, intent(in) :: n_scale_param
+   !> Scaling prefactors
+   real(dp), intent(in) :: scale_prefacs(n_scale_param)
+   !> RMSE grid of d^2E_xc values
+   real(dp), intent(in) :: d2exc_rmse_grid(n_amp_param, n_scale_param)
+
+   ! Local variables
+   integer :: ii, jj
+   character(len=1024) :: headerfmt, rowfmt
+
+   write (headerfmt, '(a,i4,a)') '(/7x,', n_amp_param, 'f7.3/)'
+   write (rowfmt, '(a,i4,a)') '(f5.1,f9.3,', n_amp_param - 1, 'f7.3)'
+
+   write (unit, '(/a)') 'Coarse scan for minimum error'
+   write (unit, '(a)') '  matrix elements: rms 2nd-derivative errors (mHa)'
+   write (unit, '(a)') '  column index : amplitude prefactor to rhocmatch'
+   write (unit, '(a)') '  row index : scale prefactor to rmatch'
+
+   write (stdout, headerfmt) (amp_prefacs(ii), ii = 1, n_amp_param)
+   do ii = 1, n_scale_param
+      write (unit, rowfmt) scale_prefacs(ii), (d2exc_rmse_grid(jj, ii) * 1.0e3_dp, jj = 1, n_amp_param)
+   end do
+
+end subroutine write_teter_grid_search_text
+
+subroutine write_teter_nelder_mead_text(unit, iter, max_iter, rhocmatch, rmatch, amp_param, scale_param)
+   implicit none
+   ! Input variables
+   !> Output unit
+   integer, intent(in) :: unit
+   !> Iteration number
+   integer, intent(in) :: iter
+   !> Maximum number of iterations
+   integer, intent(in) :: max_iter
+   !> Value of core charge when rhoc==rhotps
+   real(dp), intent(in) :: rhocmatch
+   !> Radius at which core and valence charge densities match
+   real(dp), intent(in) :: rmatch
+   !> Amplitude parameter
+   real(dp), intent(in) :: amp_param
+   !> Scaling parameter
+   real(dp), intent(in) :: scale_param
+
+   if (iter > max_iter) then
+      write(stdout,'(a,i4,a)') ' WARNING: not fully converged in ', max_iter ,' steps'
+   else
+      write(stdout,'(a,i4,a)') ' converged in', iter,' steps'
+   end if
+   write(stdout,'(a)') 'amplitude prefactor, scale prefactor'
+   write(stdout,'(2f10.4)') amp_param / rhocmatch, scale_param / rmatch
+end subroutine write_teter_nelder_mead_text
 
 end module output_text_m

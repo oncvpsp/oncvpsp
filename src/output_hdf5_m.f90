@@ -11,10 +11,215 @@ module output_hdf5_m
    use hdf5, only: h5dopen_f, h5dclose_f
    implicit none
    private
-   public :: write_output_hdf5
+   public :: write_input_hdf5, &
+             write_reference_configuration_results_hdf5, &
+             write_output_hdf5, &
+             write_teter_optimization_hdf5
+
+   !> HDF5 output file identifier
+   integer(HID_T), public :: hdf5_file_id
+   !> .true. to enable HDF5 output
+   logical, public :: do_hdf5 = .false.
 contains
 
-subroutine write_output_hdf5(filename, &
+subroutine write_input_hdf5(file_id, &
+                            atsym, zz, nc, nv, iexc, psfile, &
+                            na, la, fa, &
+                            lmax, &
+                            rc, ep, ncon, nbas, qcut, &
+                            lloc, lpopt, dvloc0, &
+                            nproj, debl, &
+                            icmod, fcfact, rcfact, &
+                            epsh1, epsh2, depsh, &
+                            rlmax, drl, &
+                            ncnf, nvcnf, nacnf, lacnf, facnf)
+   implicit none
+   ! Input variables
+   !> Output unit
+   integer(HID_T), intent(in) :: file_id
+   !> Atomic symbol
+   character(len=2), intent(in) :: atsym
+   !> Atomic number
+   real(dp), intent(in) :: zz
+   !> Number of core states
+   integer, intent(in) :: nc
+   !> Number of valence states
+   integer, intent(in) :: nv
+   !> Exchange-correlation functional ID
+   integer, intent(in) :: iexc
+   !> Pseudopotential output type
+   character(len=4), intent(in) :: psfile
+   !> Reference configuration rincipal quantum number array
+   integer, intent(in) :: na(30)
+   !> Reference configuration ngular momentum array
+   integer, intent(in) :: la(30)
+   !> Reference configuration occupation number array
+   real(dp), intent(in) :: fa(30)
+   !> Maximum angular momentum
+   integer, intent(in) :: lmax
+   !> Core radii for each l
+   real(dp), intent(in) :: rc(6)
+   !> Reference energies for each l
+   real(dp), intent(in) :: ep(6)
+   !> Number of constraints for each l
+   integer, intent(in) :: ncon(6)
+   !> Number of basis functions for each l
+   integer, intent(in) :: nbas(6)
+   !> qcut for each l
+   real(dp), intent(in) :: qcut(6)
+   !> l for local potential
+   integer, intent(in) :: lloc
+   !>
+   integer, intent(in) :: lpopt
+   !> Local potential shift at origin
+   real(dp), intent(in) :: dvloc0
+   !> Number of projectors for each l
+   integer, intent(in) :: nproj(6)
+   !> Energy shift for each l
+   real(dp), intent(in) :: debl(6)
+   !> Model core charge type
+   integer, intent(in) :: icmod
+   !> Model core charge scaling factor
+   real(dp), intent(in) :: fcfact
+   !> Model core charge radial scaling factor
+   real(dp), intent(in) :: rcfact
+   !> Log derivative analysis energy minimum
+   real(dp), intent(in) :: epsh1
+   !> Log derivative analysis energy maximum
+   real(dp), intent(in) :: epsh2
+   !> Log derivative analysis energy step
+   real(dp), intent(in) :: depsh
+   !> Maximum radius for output grid
+   real(dp), intent(in) :: rlmax
+   !> Spacing of linear radial mesh
+   real(dp), intent(in) :: drl
+   !> Number of test configurations
+   integer, intent(in) :: ncnf
+   !> Number of valence states for each test configuration
+   integer, intent(in) :: nvcnf(5)
+   !> Principal quantum number array for test configurations
+   integer, intent(in) :: nacnf(30,5)
+   !> Angular momentum array for test configurations
+   integer, intent(in) :: lacnf(30,5)
+   !> Occupation number array for test configurations
+   real(dp), intent(in) :: facnf(30,5)
+
+   ! Local variables
+   integer(HID_T) :: group_id
+   integer(HID_T) :: subgroup_id
+   integer(HID_T) :: subsubgroup_id
+   integer :: psp_l(lmax + 1)
+   integer :: ii, jj, l1
+   character(len=8) :: name
+
+   call hdf_create_group(file_id, 'input_parameters')
+   call hdf_open_group(file_id, 'input_parameters', group_id)
+
+   call hdf_create_group(group_id, 'oncvpsp')
+   call hdf_write_attribute(group_id, 'oncvpsp', 'atsym', atsym)
+   call hdf_write_attribute(group_id, 'oncvpsp', 'z', zz)
+   call hdf_write_attribute(group_id, 'oncvpsp', 'nc', nc)
+   call hdf_write_attribute(group_id, 'oncvpsp', 'nv', nv)
+   call hdf_write_attribute(group_id, 'oncvpsp', 'iexc', iexc)
+
+   call hdf_create_group(group_id, 'linear_mesh')
+   call hdf_write_attribute(group_id, 'linear_mesh', 'rmax', rlmax)
+   call hdf_write_attribute(group_id, 'linear_mesh', 'a', drl)
+
+   call hdf_create_group(group_id, 'reference_configuration')
+   call hdf_open_group(group_id, 'reference_configuration', subgroup_id)
+   call hdf_write_dataset(subgroup_id, 'n', na(1:nc + nv))
+   call hdf_write_dataset(subgroup_id, 'l', la(1:nc + nv))
+   call hdf_write_dataset(subgroup_id, 'f', fa(1:nc + nv))
+   call hdf_close_group(subgroup_id)
+
+   call hdf_create_group(group_id, 'pseudopotentials')
+   call hdf_open_group(group_id, 'pseudopotentials', subgroup_id)
+   call hdf_write_attribute(group_id, 'pseudopotentials', 'lmax', lmax)
+   do ii = 1, lmax + 1
+      psp_l(ii) = ii - 1
+   end do
+   call hdf_write_dataset(subgroup_id, 'l', psp_l)
+   call hdf_write_dataset(subgroup_id, 'rc', rc(1:lmax + 1))
+   call hdf_write_dataset(subgroup_id, 'ep', ep(1:lmax + 1))
+   call hdf_write_dataset(subgroup_id, 'ncon', ncon(1:lmax + 1))
+   call hdf_write_dataset(subgroup_id, 'nbas', nbas(1:lmax + 1))
+   call hdf_write_dataset(subgroup_id, 'qcut', qcut(1:lmax + 1))
+   call hdf_close_group(subgroup_id)
+
+   call hdf_create_group(group_id, 'local_potential')
+   call hdf_write_attribute(group_id, 'local_potential', 'lloc', lloc)
+   call hdf_write_attribute(group_id, 'local_potential', 'lpopt', lpopt)
+   call hdf_write_attribute(group_id, 'local_potential', 'dvloc0', dvloc0)
+   call hdf_write_attribute(group_id, 'local_potential', 'rcloc', rc(5))
+
+   call hdf_create_group(group_id, 'vkb_projectors')
+   call hdf_open_group(group_id, 'vkb_projectors', subgroup_id)
+   call hdf_write_dataset(subgroup_id, 'l', psp_l)
+   call hdf_write_dataset(subgroup_id, 'nproj', nproj(1:lmax + 1))
+   call hdf_write_dataset(subgroup_id, 'debl', debl(1:lmax + 1))
+   call hdf_close_group(subgroup_id)
+
+   call hdf_create_group(group_id, 'model_core_charge')
+   call hdf_write_attribute(group_id, 'model_core_charge', 'icmod', icmod)
+
+   call hdf_create_group(group_id, 'log_derivative_analysis')
+   call hdf_write_attribute(group_id, 'log_derivative_analysis', 'epsh1', epsh1)
+   call hdf_write_attribute(group_id, 'log_derivative_analysis', 'epsh2', epsh2)
+   call hdf_write_attribute(group_id, 'log_derivative_analysis', 'depsh', depsh)
+
+   call hdf_create_group(group_id, 'pp_output')
+   call hdf_write_attribute(group_id, 'pp_output', 'psfile', psfile)
+
+   call hdf_create_group(group_id, 'test_configurations')
+   call hdf_open_group(group_id, 'test_configurations', subgroup_id)
+   do ii = 2, ncnf + 1
+      write(name, '(i0)') ii - 1
+      call hdf_create_group(subgroup_id, trim(name))
+      call hdf_open_group(subgroup_id, trim(name), subsubgroup_id)
+         call hdf_write_dataset(subsubgroup_id, 'n', nacnf(nc + 1:nc + nvcnf(ii), ii))
+         call hdf_write_dataset(subsubgroup_id, 'l', lacnf(nc + 1:nc + nvcnf(ii), ii))
+         call hdf_write_dataset(subsubgroup_id, 'f', facnf(nc + 1:nc + nvcnf(ii), ii))
+      call hdf_close_group(subsubgroup_id)
+   end do
+   call hdf_close_group(subgroup_id)
+
+   call hdf_close_group(group_id)
+end subroutine write_input_hdf5
+
+subroutine write_reference_configuration_results_hdf5(file_id, ncv, it, itmax, etot, ea)
+   implicit none
+   ! Input variables
+   integer(HID_T), intent(in) :: file_id
+   !> Number of core + valence states
+   integer, intent(in) :: ncv
+   !> Iteration number
+   integer, intent(in) :: it
+   !> Maximum number of iterations
+   integer, intent(in) :: itmax
+   !> Total energy
+   real(dp), intent(in) :: etot
+   !> All-electron eigenvalues
+   real(dp), intent(in) :: ea(ncv)
+
+   ! Local variables
+   integer(HID_T) :: group_id
+
+   call hdf_create_group(file_id, 'reference_configuration_results')
+   call hdf_open_group(file_id, 'reference_configuration_results', group_id)
+   call hdf_write_attribute(file_id, 'reference_configuration_results', 'iteration', it)
+   call hdf_write_attribute(file_id, 'reference_configuration_results', 'max_iterations', itmax)
+   if (it < itmax) then
+      call hdf_write_attribute(file_id, 'reference_configuration_results', 'converged', 'true')
+   else
+      call hdf_write_attribute(file_id, 'reference_configuration_results', 'converged', 'false')
+   end if
+   call hdf_write_attribute(file_id, 'reference_configuration_results', 'total_energy', etot)
+   call hdf_write_dataset(group_id, 'eigenvalues', ea)
+   call hdf_close_group(group_id)
+end subroutine write_reference_configuration_results_hdf5
+
+subroutine write_output_hdf5(file_id, &
                              zz, nc, mxprj, lmax, lloc, npa, epa, irc, nproj, &
                              mmax, rr, &  ! log radial mesh
                              drl, nrl, &  ! linear radial mesh
@@ -28,8 +233,7 @@ subroutine write_output_hdf5(filename, &
                              rpsh, npsh, epsh1, epsh2, depsh, epsh, pshf, pshp, & ! phase shift / log derivative
                              cvgplt)  ! convergence profiles
    ! Input variables
-   !> HDF5 filename
-   character(*), intent(in) :: filename
+   integer(HID_T), intent(in) :: file_id
    !> Atomic number
    real(dp), intent(in) :: zz
    !> Number of core states
@@ -146,15 +350,11 @@ subroutine write_output_hdf5(filename, &
    integer :: l1
 
    ! HDF5 variables
-   !> HDF5 file identifier
-   integer(HID_T) :: file_id
    !> Group identifier
    integer(HID_T) :: group_id
    !> Group/dataset name
    character(len=1024) :: name
 
-   ! Create HDF5 file
-   call hdf_open_file(file_id, filename, 'REPLACE', 'WRITE')
    ! Test results
    call write_test_results_hdf5(file_id, nc, ncnf, nvt, nat, lat, fat, eat, eatp, etot, eaetst, epstot, etsttot)
    ! Logarithmic radial grid
@@ -626,5 +826,85 @@ subroutine write_phase_shift_hdf5(file_id, npsh, epsh1, epsh2, depsh, epsh, rpsh
    call hdf_close_group(ae_group_id)
    call hdf_close_group(psh_group_id)
 end subroutine write_phase_shift_hdf5
+
+subroutine write_teter_optimization_hdf5(file_id, &
+                                         rhocmatch, n_amp, amp_prefacs, &
+                                         rmatch, n_scale, scale_prefacs, &
+                                         d2exc_rmse_grid, &
+                                         iter, max_iter, amp_param, scale_param)
+   implicit none
+   ! Input variables
+   integer(HID_T), intent(in) :: file_id
+   !> Core radius used for matching
+   real(dp), intent(in) :: rhocmatch
+   !> Number of Teter amplitude prefactors tested
+   integer, intent(in) :: n_amp
+   !> Teter amplitude prefactors tested
+   real(dp), intent(in) :: amp_prefacs(n_amp)
+   !> Matching radius used for testing
+   real(dp), intent(in) :: rmatch
+   !> Number of Teter scale prefactors tested
+   integer, intent(in) :: n_scale
+   !> Teter scale prefactors tested
+   real(dp), intent(in) :: scale_prefacs(n_scale)
+   !> RMSE of d2Exc/drho2 at matching radius for each combination of
+   !> Teter amplitude and scale prefactors
+   real(dp), intent(in) :: d2exc_rmse_grid(n_amp, n_scale)
+   !> Nelder-Mead iteration number
+   integer, intent(in) :: iter
+   !> Maximum number of Nelder-Mead iterations
+   integer, intent(in) :: max_iter
+   !> Optimal amplitude parameter
+   real(dp), intent(in) :: amp_param
+   !> Optimal scaling parameter
+   real(dp), intent(in) :: scale_param
+
+   ! Local variables
+   integer(HID_T) :: group_id
+   integer(HID_T) :: subgroup_id
+   real(dp) :: amp_params(n_amp)
+   real(dp) :: scale_params(n_scale)
+   integer :: i
+
+   do i = 1, n_amp
+      amp_params(i) = amp_prefacs(i) * rhocmatch
+   end do
+   do i = 1, n_scale
+      scale_params(i) = scale_prefacs(i) * rmatch
+   end do
+
+   call hdf_create_group(file_id, 'teter_parameter_optimization')
+   call hdf_write_attribute(file_id, 'teter_parameter_optimization', 'rhocmatch', rhocmatch)
+   call hdf_write_attribute(file_id, 'teter_parameter_optimization', 'rmatch', rmatch)
+   call hdf_open_group(file_id, 'teter_parameter_optimization', group_id)
+
+   call hdf_create_group(group_id, 'grid_search')
+   call hdf_open_group(group_id, 'grid_search', subgroup_id)
+   call hdf_write_dataset(subgroup_id, 'amplitude_parameter', amp_params)
+   call hdf_set_data_scale(subgroup_id, 'amplitude_parameter', 'amplitude_parameter')
+   call hdf_write_dataset(subgroup_id, 'amplitude_prefactor', amp_prefacs)
+   call hdf_write_dataset(subgroup_id, 'scale_parameter', scale_params)
+   call hdf_set_data_scale(subgroup_id, 'scale_parameter', 'scale_parameter')
+   call hdf_write_dataset(subgroup_id, 'scale_prefactor', scale_prefacs)
+   call hdf_write_dataset(subgroup_id, 'd2exc_rmse_grid', d2exc_rmse_grid)
+   call hdf_attach_data_scale(subgroup_id, 'amplitude_parameter', subgroup_id, 'd2exc_rmse_grid', 1)
+   call hdf_attach_data_scale(subgroup_id, 'scale_parameter', subgroup_id, 'd2exc_rmse_grid', 2)
+   call hdf_close_group(subgroup_id)
+
+   call hdf_create_group(group_id, 'nelder_mead')
+   call hdf_write_attribute(group_id, 'nelder_mead', 'iteration', iter)
+   call hdf_write_attribute(group_id, 'nelder_mead', 'max_iterations', max_iter)
+   if (iter > max_iter) then
+      call hdf_write_attribute(group_id, 'nelder_mead', 'converged', 'false')
+   else
+      call hdf_write_attribute(group_id, 'nelder_mead', 'converged', 'true')
+   end if
+   call hdf_write_attribute(group_id, 'nelder_mead', 'amplitude_parameter', amp_param)
+   call hdf_write_attribute(group_id, 'nelder_mead', 'amplitude_prefactor', amp_param / rhocmatch)
+   call hdf_write_attribute(group_id, 'nelder_mead', 'scale_parameter', scale_param)
+   call hdf_write_attribute(group_id, 'nelder_mead', 'scale_prefactor', scale_param / rmatch)
+
+   call hdf_close_group(group_id)
+end subroutine
 
 end module output_hdf5_m

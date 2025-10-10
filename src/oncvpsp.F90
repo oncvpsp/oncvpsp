@@ -37,19 +37,24 @@
  use m_psmlout, only: psmlout
  use input_text_m, only: read_input_text
  use output_text_m, only:
- use postprocess_m, only: get_pseudo_linear_mesh_parameters, &
-&                         get_wavefunctions, run_test_configurations
- use output_text_m, only: write_test_configs_text, &
+ use postprocess_m, only: get_wavefunctions, run_test_configurations
+ use output_text_m, only: get_pseudo_linear_mesh_parameters, &
+&                         write_input_text, write_reference_configuration_results_text, &
+&                         write_test_configs_text, &
 &                         write_rho_vpuns_text, write_vloc_text, &
 &                         write_rho_rhoc_rhom_text, &
 &                         write_wavefunctions_vkb_text, &
 &                         write_convergence_profile_text, &
 &                         write_phsft_text
+ use modcore3_m, only: modcore3
 #if (defined WITH_TOML)
  use input_toml_m, only: read_input_toml
 #endif
 #if (defined WITH_HDF5)
  use hdf5_utils_m, only: HID_T, hdf_open_file, hdf_close_file
+ use output_hdf5_m, only: do_hdf5, hdf5_file_id
+ use output_hdf5_m, only: write_input_hdf5
+ use output_hdf5_m, only: write_reference_configuration_results_hdf5
  use output_hdf5_m, only: write_output_hdf5
 #endif
  implicit none
@@ -170,8 +175,6 @@
 
 #if (defined WITH_HDF5)
  character(len=1024) :: hdf5_filename
- logical :: do_hdf5
- integer(HID_T) :: hdf5_file_id
 #endif
 
  input_mode = INPUT_STDIN
@@ -392,62 +395,35 @@
 
 ! output printing (echos input data, with all-electron eigenvalues added)
 
- write(6,'(a)') '# ATOM AND REFERENCE CONFIGURATION'
- write(6,'(a)') '# atsym  z   nc   nv     iexc    psfile'
- write(6,'(a,a,f6.2,2i5,i8,2a)') '  ',trim(atsym),zz,nc,nv,iexc, &
-&      '      ',psfile
- write(6,'(a/a)') '#','#   n    l    f        energy (Ha)'
- do ii=1,nc+nv
-   write(6,'(2i5,f8.2,1pe18.7)') na(ii),la(ii),fa(ii),ea(ii)
- end do
-
- write(6,'(a/a/a)') '#','# PSEUDOPOTENTIAL AND OPTIMIZATION','# lmax'
- write(6,'(i5)')  lmax
- write(6,'(a/a)') '#','#   l,   rc,      ep,       ncon, nbas, qcut'
- do l1=1,lmax+1
-   write(6,'(i5,2f10.5,2i5,f10.5)') l1-1,rc(l1),ep(l1),ncon(l1),&
-&        nbas(l1),qcut(l1)
- end do
-
- write(6,'(a/a/a,a)') '#','# LOCAL POTENTIAL','# lloc, lpopt,  rc(5),', &
-&      '   dvloc0'
- write(6,'(2i5,f10.5,a,f10.5)') lloc,lpopt,rc(5),'   ',dvloc0
-
- write(6,'(a/a/a)') '#','# VANDERBILT-KLEINMAN-BYLANDER PROJECTORs', &
-&      '# l, nproj, debl'
- do l1=1,lmax+1
-   write(6,'(2i5,f10.5)') l1-1,nproj(l1),debl(l1)
- end do
-
- write(6,'(a/a/a)') '#','# MODEL CORE CHARGE', &
-&      '# icmod, fcfact, rcfact'
- write(6,'(i5,2f10.5)') icmod,fcfact,rcfact
-
- write(6,'(a/a/a)') '#','# LOG DERIVATIVE ANALYSIS', &
-&      '# epsh1, epsh2, depsh'
- write(6,'(3f8.2)') epsh1,epsh2,depsh
-
- write(6,'(a/a/a)') '#','# OUTPUT GRID','# rlmax, drl'
- write(6,'(2f8.4)') rlmax,drl
-
- write(6,'(a/a/a)') '#','# TEST CONFIGURATIONS','# ncnf'
- write(6,'(i5)') ncnf
- write(6,'(a/a)') '# nvcnf','#   n    l    f'
- do jj=2,ncnf+1
-   write(6,'(i5)') nvcnf(jj)
-   do ii=nc+1,nc+nvcnf(jj)
-     write(6,'(2i5,f8.2)') nacnf(ii,jj),lacnf(ii,jj),facnf(ii,jj)
-   end do
-   write(6,'(a)') '#'
- end do
-
- write(6,'(//a)') 'Reference configufation results'
- write(6,'(a,i6)') '  iterations',it
- if(it .ge. 100) then
-  write(6,'(a)') 'oncvpsp: ERROR all-electron reference atom not converged'
-  stop
+ call write_input_text(stdout, &
+                       atsym, zz, nc, nv, iexc, psfile, &
+                       na, la, fa, &
+                       lmax, &
+                       rc, ep, ncon, nbas, qcut, &
+                       lloc, lpopt, dvloc0, &
+                       nproj, debl, &
+                       icmod, fcfact, rcfact, &
+                       epsh1, epsh2, depsh, &
+                       rlmax, drl, &
+                       ncnf, nvcnf, nacnf, lacnf, facnf, &
+                       ea)
+ call write_reference_configuration_results_text(stdout, it, 100, etot)
+#if (defined WITH_HDF5)
+ if (do_hdf5) then
+    call write_input_hdf5(hdf5_file_id, &
+                         atsym, zz, nc, nv, iexc, psfile, &
+                         na, la, fa, &
+                         lmax, &
+                         rc, ep, ncon, nbas, qcut, &
+                         lloc, lpopt, dvloc0, &
+                         nproj, debl, &
+                         icmod, fcfact, rcfact, &
+                         epsh1, epsh2, depsh, &
+                         rlmax, drl, &
+                         ncnf, nvcnf, nacnf, lacnf, facnf)
+    call write_reference_configuration_results_hdf5(hdf5_file_id, nc + nv, it, 100, etot, ea)
  end if
- write(6,'(a,1p,d18.8)') '  all-electron total energy (Ha)',etot
+#endif
 
 !find log mesh point nearest input rc
  rcmax=0.0d0
@@ -717,8 +693,8 @@
  call gnu_script(epa,evkb,lmax,lloc,mxprj,nproj)
 
 #if (defined WITH_HDF5)
- if (trim(hdf5_filename) /= '') then
-    call write_output_hdf5(trim(hdf5_filename), &
+ if (do_hdf5) then
+    call write_output_hdf5(hdf5_file_id, &
                            zz, nc, mxprj, lmax, lloc, npa, epa, irc, nproj, &
                            mmax, rr, &  ! log radial mesh
                            drl, nrl, &  ! linear radial mesh

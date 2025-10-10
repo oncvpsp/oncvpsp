@@ -31,7 +31,7 @@ set(src_liboncvpsp
     m_psmlout.f90
     modcore.f90
     modcore2.f90
-    modcore3.f90
+    modcore3_m.F90
     optimize.f90
     pspot.f90
     qroots.f90
@@ -51,7 +51,6 @@ set(src_liboncvpsp
     wf_rc_der.f90
     input_text_m.f90
     output_text_m.f90
-    postprocess_m.f90
 )
 if (Libxc_FOUND)
     list(APPEND src_liboncvpsp functionals.F90 exc_libxc.f90)
@@ -88,6 +87,7 @@ set(src_liboncvpsp_nr_sr
     sratom.f90
     upfout.f90
     wellstate.f90
+    postprocess_m.f90
 )
 add_library(liboncvpsp_nr_sr STATIC ${src_liboncvpsp_nr_sr})
 add_dependencies(liboncvpsp_nr_sr liboncvpsp wxml)

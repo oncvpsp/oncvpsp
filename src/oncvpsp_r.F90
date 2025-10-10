@@ -35,6 +35,7 @@
  use, intrinsic :: iso_fortran_env, only: stdin => input_unit, stdout => output_unit, stderr => error_unit
  use m_psmlout, only: psmlout_r
  use input_text_m, only: read_input_text_r
+ use modcore3_m, only: modcore3
 #if (defined WITH_TOML)
  use input_toml_m, only: read_input_toml_r
 #endif

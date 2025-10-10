@@ -20,10 +20,11 @@
 module postprocess_m
    use, intrinsic :: iso_fortran_env, only: stderr => output_unit
    use, intrinsic :: iso_fortran_env, only: dp => real64
+   use output_text_m, only: get_pseudo_linear_mesh_parameters
    implicit none
    private
    public :: get_wavefunctions, get_bound_wavefunctions, get_scattering_wavefunctions
-   public :: run_test_configurations, get_pseudo_linear_mesh_parameters
+   public :: run_test_configurations
 contains
 
 subroutine get_wavefunctions(zz, srel, mmax, rr, vfull, lloc, vp, lmax, &
@@ -354,39 +355,5 @@ subroutine run_test_configurations(ncnf,nacnf,lacnf,facnf,nc,nvcnf,rho,rhomod,rr
    end do
 
 end subroutine run_test_configurations
-
-subroutine get_pseudo_linear_mesh_parameters(mmax, rr, lmax, irc, drl, nrl, n1, n2, n3, n4)
-   implicit none
-   ! Input variables
-   !> Size of radial grid
-   integer, intent(in) :: mmax
-   !> Log radial grid
-   real(dp), intent(in) :: rr(mmax)
-   !> Maximum angular momentum
-   integer, intent(in) :: lmax
-   !> Indices of core radii on the logarithmic radial mesh
-   integer, intent(in) :: irc(6)
-   !> Spacing of linear radial mesh
-   real(dp), intent(in) :: drl
-   !> Number of points in linear radial mesh
-   integer, intent(in) :: nrl
-
-   ! Output variables
-   integer, intent(out) :: n1, n2, n3, n4
-
-   ! Local variables
-   integer :: l1
-   real(dp) :: al
-
-   al = 0.01_dp * log(rr(101) / rr(1))
-   n1 = int(log(drl / rr(1)) / al + 1.0_dp)
-   n2 = int(log(real(nrl, dp) * drl / rr(1)) / al + 1.0_dp)
-   n3 = 0
-   do l1 = 1, lmax + 1
-      n3 = max(n3, irc(l1) - 1)
-   end do
-   n4 = min(n2, int(log((rr(n3) + 1.0_dp) / rr(1)) / al))
-   n3 = int(log(1.1_dp * rr(n3) / rr(1)) / al + 1.0d0)
-end subroutine get_pseudo_linear_mesh_parameters
 
 end module postprocess_m
