@@ -15,9 +15,11 @@ a single negagtive 3-digit integer.
 
 Examples of iexc values are
 
-     iexc= -001009 (Perdew-Zunger-Ceperly-Alder)
+```
+iexc= -001009 (Perdew-Zunger-Ceperly-Alder)
 
-     iexc= -101130 (Perdew-Burke-Ernzerhof)
+iexc= -101130 (Perdew-Burke-Ernzerhof)
+```
 
 PWSCF does not appear to support libxc yet, and iexc for a subset of what they
 do support is properly translated in src/upfout.f90 begining at line 286

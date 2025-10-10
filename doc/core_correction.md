@@ -1,4 +1,3 @@
-
 ## MODEL CORE CHARGE
 
 Release 3.2.3 changed modcore2.f90 and modcore3.f90.
@@ -6,7 +5,8 @@ See the release notes for details.
 
 Releases prior to 3.2.1 had the option of including a model core charge
 to give a "non-linear core correction" in the spirit of Louie, Froyen, and
-Cohen.[1]  The functional form was actually a polynomial model allowing
+Cohen.[1]
+The functional form was actually a polynomial model allowing
 greater continuity at or near the core-valence charge "crossover" following,
 more or less, Fuchs and Scheffler.[2]
 
@@ -43,9 +43,11 @@ regarded as experimental.
 Model core options:
 
 icmod==0:
+
     No core correction as usual.
 
 icmod==1:
+
     The previous polynomial continuation of the all-electron core density
     to the origin, performed at a radius at which the core charge is
     the fcfact times the valence pseudocharge.  fcfact is typically chosen
@@ -55,6 +57,7 @@ icmod==1:
     modcore.f90.
 
 icmod==2:
+
     Amplitude and scale of the Teter function are adjusted to fit the
     value and slope of the all-electron rhoc at the radius determined
     as by fcfact as above.  This function is smoothly blended into the
@@ -68,13 +71,16 @@ icmod==2:
     below are given in the out file.  This option is executed by modcore2.f90
 
 icmod==3:
+
     The amlitude and scale parameters for the Teter function are taken
     from the input file, with the fcfact input re-interpreted and the
     rcfact argument added as follows:
 
+    ```
         # MODEL CORE CHARGE
         # icmod, fcfact, rcfact
             3    5.0  1.3
+    ```
 
     These parameters are defined consisently with option 4 below.  They
     are also given the the out  files of options 2 and 4 as " amplitude
@@ -84,6 +90,7 @@ icmod==3:
     are computed but not used.  This option is executed by modcore3.f90.
 
 icmod==4:
+
     The "blended" Teter function parameters are optimized to reduce Exc
     2nd-derivative discrepancies in rhomod3.f90.  The optimization is
     initiated by finding the radius rmatch at which rhoc=pseudo-rho, and

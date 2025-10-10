@@ -4,21 +4,21 @@ List of translations from libxc numerical iexc values to pwscf
 "dft_shortnames" as presently implemented in src/upfout.f90 and upfout_r.f90
 
 ```
-    iexc==3 .or. iexc==-001009, 'functional="PZ"'
+iexc==3 .or. iexc==-001009, 'functional="PZ"'
 
-    iexc==4 .or. iexc==-101130, 'functional="PBE"'
+iexc==4 .or. iexc==-101130, 'functional="PBE"'
 
-    iexc==-109134, 'functional="PW91"'
+iexc==-109134, 'functional="PW91"'
 
-    iexc==-116133, 'functional="PBESOL"'
+iexc==-116133, 'functional="PBESOL"'
 
-    iexc==-102130, 'functional="REVPBE"'
+iexc==-102130, 'functional="REVPBE"'
 
-    iexc==-106132, 'functional="BP"'
+iexc==-106132, 'functional="BP"'
 
-    iexc==-106131, 'functional="BLYP"'
+iexc==-106131, 'functional="BLYP"'
 
-    iexc==-118130, 'functional="WC"'
+iexc==-118130, 'functional="WC"'
 ```
 
 List of all pwscf dft_shortnames from expresso-5.0.2

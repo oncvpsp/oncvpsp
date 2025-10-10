@@ -8,6 +8,7 @@ optimized norm-conserving Vanderbilt pseudopotentials.
 ## Installation and usage
 
 ### With CMake
+
 1. make a `build` directory in the root of the repository like `/path/to/oncvpsp/build`
 2. `cd` into the `build` directory
 3. run `cmake ..` from the `build` directory
@@ -21,6 +22,7 @@ optimized norm-conserving Vanderbilt pseudopotentials.
 7. `cd tests/data && ./TEST.sh` to run the tests
 
 ### With make
+
 1. edit make.inc (or copy it from older oncvpsp-3*)
 
 2. make all >& make.log
@@ -110,6 +112,9 @@ Please see the files in doc directory for details on the code, input file format
 
 ## Documentation
 
+Documentation available at [https://oncvpsp.github.io/oncvpsp/]([https://oncvpsp.github.io/oncvpsp/)
+
+<!--
 * [User Guide](./doc/users_guide.md).
 * [Ghost States](./doc/ghosts.md)
 * [Relativistic](./doc/relativistic.md)
@@ -120,6 +125,7 @@ Please see the files in doc directory for details on the code, input file format
 * [coding_standards](./doc/coding_standards.md)
 * [Support](./SUPPORT.md).
 * [Release Notes](./doc/release_notes.md)
+-->
 
 ## How to cite oncvpsp
 
