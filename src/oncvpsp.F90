@@ -92,8 +92,6 @@ program oncvpsp
    real(dp) :: emax,epsh1,epsh1t,epsh2,epsh2t,rxpsh
    real(dp) :: et,etest,emin,sls
    real(dp) :: fcfact,rcfact,dvloc0
-   real(dp) :: fcfact_min,fcfact_max,fcfact_step
-   real(dp) :: rcfact_min,rcfact_max,rcfact_step
    real(dp) :: rr1,rcion,rciont,rcmax,rct,rlmax,rpkt
    real(dp) :: sf,zz,zion,zval,etot
    real(dp) :: xdummy
@@ -151,30 +149,38 @@ program oncvpsp
    real(dp) :: modcore3_rmatch
    !> Value of core charge at crossover in modcore3
    real(dp) :: modcore3_rhocmatch
+   !> Whether teter_amp* and teter_scale* are relative to modcore3 rmatch/rhocmatch
+   logical :: teter_relative
+   !> Teter amplitude parameter for icmod=4
+   real(dp) :: teter_amp
    !> Size of Teter amplitude search grid
    integer :: n_teter_amp
    !> Minimum amplitude prefactor for coarse grid search
-   real(dp), parameter :: teter_amp_prefac_min = 1.5_dp
+   real(dp) :: teter_amp_min
    !> Maximum amplitude prefactor for coarse grid search
-   real(dp), parameter :: teter_amp_prefac_max = 6.0_dp
+   real(dp) :: teter_amp_max
    !> Amplitude prefactor step size for coarse grid
-   real(dp), parameter :: teter_amp_prefac_step = 0.5_dp
+   real(dp) :: teter_amp_step
    !> Teter amplitude prefactor search grid
    real(dp), allocatable :: teter_amp_prefacs(:)
    !> Teter amplitude parameter search grid
    real(dp), allocatable :: teter_amp_params(:)
+   !> Teter scale parameter for icmod=3
+   real(dp) :: teter_scale
    !> Size of Teter scale search grid
    integer :: n_teter_scale
    !> Minimum scale prefactor for coarse grid search
-   real(dp), parameter :: teter_scale_prefac_min = 1.0_dp
+   real(dp) :: teter_scale_min
    !> Maximum scale prefactor for coarse grid search
-   real(dp), parameter :: teter_scale_prefac_max = 1.9_dp
+   real(dp) :: teter_scale_max
    !> Scale prefactor step size for coarse grid
-   real(dp), parameter :: teter_scale_prefac_step = 0.1_dp
+   real(dp) :: teter_scale_step
    !> Teter amplitude prefactor search grid
    real(dp), allocatable :: teter_scale_prefacs(:)
    !> Teter scale parameter search grid
    real(dp), allocatable :: teter_scale_params(:)
+   !> Objective function for Teter parameter optimization
+   character(len=1024) :: teter_opt_objective
    !> d2Exc RMSE values from Teter grid search
    real(dp), allocatable :: d2exc_rmse_grid(:,:)
    !> Optimal Teter amplitude parameter from grid search
@@ -319,43 +325,42 @@ program oncvpsp
 
    ios = 0
    select case(input_mode)
-    case(INPUT_STDIN)
+    case(INPUT_STDIN, INPUT_TEXT)
+      if (input_mode == INPUT_STDIN) then
+         unit = stdin
+      else
+         open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
+      end if
       call read_input_text(stdin, inline, &
                            atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
                            lmax, rc, ep, ncon, nbas, qcut, &
                            lloc, lpopt, dvloc0, nproj, debl, &
                            icmod, fcfact, rcfact, &
-                           fcfact_min, fcfact_max, fcfact_step, &
-                           rcfact_min, rcfact_max, rcfact_step, &
+                           teter_amp_min, teter_amp_max, teter_amp_step, & ! teter grid search
+                           teter_scale_min, teter_scale_max, teter_scale_step, & ! teter grid search
                            epsh1, epsh2, depsh, rxpsh, &
                            rlmax, drl, &
                            ncnf, nvcnf, nacnf, lacnf, facnf)
-    case(INPUT_TEXT)
-      open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
-      call read_input_text(unit, inline, &
-                           atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
-                           lmax, rc, ep, ncon, nbas, qcut, &
-                           lloc, lpopt, dvloc0, nproj, debl, &
-                           icmod, fcfact, rcfact, &
-                           fcfact_min, fcfact_max, fcfact_step, &
-                           rcfact_min, rcfact_max, rcfact_step, &
-                           epsh1, epsh2, depsh, rxpsh, &
-                           rlmax, drl, &
-                           ncnf, nvcnf, nacnf, lacnf, facnf)
-      close(unit)
+      teter_relative = .true.
+      teter_amp = fcfact
+      teter_scale = rcfact
+      teter_opt_objective = 'd2exc_rmse'
+      if (input_mode == INPUT_TEXT) close(unit)
 #if (defined WITH_TOML)
     case(INPUT_TOML)
       open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
       call read_input_toml(unit, &
-                           atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
-                           lmax, rc, ep, ncon, nbas, qcut, &
-                           lloc, lpopt, dvloc0, nproj, debl, &
-                           icmod, fcfact, rcfact, &
-                           fcfact_min, fcfact_max, fcfact_step, &
-                           rcfact_min, rcfact_max, rcfact_step, &
-                           epsh1, epsh2, depsh, rxpsh, &
-                           rlmax, drl, &
-                           ncnf, nvcnf, nacnf, lacnf, facnf)
+                           atsym, zz, nc, nv, iexc, psfile, na, la, fa, & ! atom
+                           lmax, rc, ep, ncon, nbas, qcut, & ! pseudopotential
+                           lloc, lpopt, dvloc0, nproj, debl, & ! local potential
+                           icmod, fcfact, rcfact, & ! core charge
+                           teter_relative, teter_amp, teter_scale, & ! teter core charge
+                           teter_amp_min, teter_amp_max, teter_amp_step, & ! teter grid search
+                           teter_scale_min, teter_scale_max, teter_scale_step, & ! teter grid search
+                           teter_opt_objective, & ! teter optimization objective
+                           epsh1, epsh2, depsh, rxpsh, & ! logarithmic derivative / phase shift analysis
+                           rlmax, drl, & ! linear output grid
+                           ncnf, nvcnf, nacnf, lacnf, facnf) ! test configurations
       close(unit)
 #endif
     case default
@@ -714,25 +719,43 @@ program oncvpsp
    else if(icmod==3) then
       irmod = mmax
       call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
+      if (teter_relative) then
+         teter_amp = fcfact * modcore3_rhocmatch
+         teter_scale = rcfact * modcore3_rmatch
+      else
+         teter_amp = fcfact
+         teter_scale = rcfact
+      end if
       call modcore3(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-                    fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+                    teter_amp,teter_scale,irps,mmax,rr,nc,nv,la,zion,iexc)
    else if(icmod==4) then
       irmod = mmax
       call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
-      n_teter_amp = nint((teter_amp_prefac_max - teter_amp_prefac_min) / teter_amp_prefac_step) + 1
+      n_teter_amp = nint((teter_amp_max - teter_amp_min) / teter_amp_step) + 1
       allocate(teter_amp_prefacs(n_teter_amp))
       allocate(teter_amp_params(n_teter_amp))
-      do ii = 1, n_teter_amp
-         teter_amp_prefacs(ii) = teter_amp_prefac_min + (ii - 1) * teter_amp_prefac_step
-         teter_amp_params(ii) = teter_amp_prefacs(ii) * modcore3_rhocmatch
-      end do
-      n_teter_scale = nint((teter_scale_prefac_max - teter_scale_prefac_min) / teter_scale_prefac_step) + 1
+      n_teter_scale = nint((teter_scale_max - teter_scale_min) / teter_scale_step) + 1
       allocate(teter_scale_prefacs(n_teter_scale))
       allocate(teter_scale_params(n_teter_scale))
-      do ii = 1, n_teter_scale
-         teter_scale_prefacs(ii) = teter_scale_prefac_min + (ii - 1) * teter_scale_prefac_step
-         teter_scale_params(ii) = teter_scale_prefacs(ii) * modcore3_rmatch
-      end do
+      if (teter_relative) then
+         do ii = 1, n_teter_amp
+            teter_amp_prefacs(ii) = teter_amp_min + (ii - 1) * teter_amp_step
+            teter_amp_params(ii) = teter_amp_prefacs(ii) * modcore3_rhocmatch
+         end do
+         do ii = 1, n_teter_scale
+            teter_scale_prefacs(ii) = teter_scale_min + (ii - 1) * teter_scale_step
+            teter_scale_params(ii) = teter_scale_prefacs(ii) * modcore3_rmatch
+         end do
+      else
+         do ii = 1, n_teter_amp
+            teter_amp_prefacs(ii) = teter_amp_prefacs(ii) / modcore3_rhocmatch
+            teter_amp_params(ii) = teter_amp_min + (ii - 1) * teter_amp_step
+         end do
+         do ii = 1, n_teter_scale
+            teter_scale_prefacs(ii) = teter_scale_prefacs(ii) / modcore3_rmatch
+            teter_scale_params(ii) = teter_scale_min + (ii - 1) * teter_scale_step
+         end do
+      end if
       allocate(d2exc_rmse_grid(n_teter_amp, n_teter_scale))
       call teter_grid_search(mmax, nv, nc, zion, iexc, la, rr, &
                              rhotae, rhoae, rho, rhops, rhoc, &
@@ -749,7 +772,7 @@ program oncvpsp
       fcfact = nm_opt_amp_param / modcore3_rhocmatch
       rcfact = nm_opt_scale_param / modcore3_rmatch
       call modcore3(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-                    fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+                    nm_opt_amp_param,nm_opt_scale_param,irps,mmax,rr,nc,nv,la,zion,iexc)
       ! psp8 output expects fcfact = 1.0 and rcfact = 0.0 for icmod = 4
       fcfact = 1.0_dp
       rcfact = 0.0_dp
