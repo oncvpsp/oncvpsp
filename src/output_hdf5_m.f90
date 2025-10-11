@@ -220,12 +220,21 @@ subroutine write_reference_configuration_results_hdf5(file_id, ncv, it, itmax, e
 end subroutine write_reference_configuration_results_hdf5
 
 subroutine write_output_hdf5(file_id, &
-                             zz, nc, mxprj, lmax, lloc, npa, epa, irc, nproj, &
+                             zz, nc, nv, mxprj, lmax, lloc, npa, epa, irc, nproj, &
                              mmax, rr, &  ! log radial mesh
                              drl, nrl, &  ! linear radial mesh
                              ncnf, nvt, nat, lat, fat, eat, eatp, etot, eaetst, epstot, etsttot, & ! test configurations
                              vfull, vp, vpuns, &  ! potentials
-                             rho, rhoc, rhomod, &  ! charge densities
+                             rhotae, rho, rhoc, &  ! charge densities
+                             icmod, fcfact, rcfact, rhomod, &  ! model core charge density
+                             modcore1_ircc, modcore1_iter, &
+                             modcore2_ircc, modcore2_a0, modcore2_b0, &
+                             modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch, &
+                             n_teter_amp, teter_amp_prefacs, teter_amp_params, &
+                             n_teter_scale, teter_scale_prefacs, teter_scale_params, &
+                             d2exc_rmse_grid, grid_opt_amp_param, grid_opt_scale_param, d2exc_rmse_grid_min, &
+                             nm_opt_amp_param, nm_opt_scale_param, nm_iter, &
+                             d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, d2excps_rhom, d2exc_rmse_rhom, &
                              sign_ae, uu_ae, up_ae, mch_ae, e_ae, &  ! all-electron wavefunctions
                              sign_ps, uu_ps, up_ps, mch_ps, e_ps, &  ! pseudo wavefunctions
                              is_scattering, &  ! wavefunction scattering flags
@@ -238,6 +247,8 @@ subroutine write_output_hdf5(file_id, &
    real(dp), intent(in) :: zz
    !> Number of core states
    integer, intent(in) :: nc
+   !> Number of valence states
+   integer, intent(in) :: nv
    !> Maximum number of projectors
    integer, intent(in) :: mxprj
    !> Maximum angular momentum
@@ -288,12 +299,72 @@ subroutine write_output_hdf5(file_id, &
    real(dp), intent(in) :: vp(mmax, 5)
    !> Unscreened pseudopotentials
    real(dp), intent(in) :: vpuns(mmax, 5)
+   !> All-electron total charge density
+   real(dp), intent(in) :: rhotae(mmax)
    !> Valence pseudocharge
    real(dp), intent(in) :: rho(mmax)
    !> Core charge
    real(dp), intent(in) :: rhoc(mmax)
+   !> Model core charge type
+   integer, intent(in) :: icmod
+   !> Model core charge amplitude factor
+   real(dp), intent(in) :: fcfact
+   !> Model core charge scale factor
+   real(dp), intent(in) :: rcfact
    !> Model core charge
    real(dp), intent(in) :: rhomod(mmax, 5)
+   !> icmod = 1 crossover index
+   integer, intent(in) :: modcore1_ircc
+   !> icmod = 1 number of iterations
+   integer, intent(in) :: modcore1_iter
+   !> icmod = 2 crossover index
+   integer, intent(in) :: modcore2_ircc
+   !> icmod = 2 a0 parameter
+   real(dp), intent(in) :: modcore2_a0
+   !> icmod = 2 b0 parameter
+   real(dp), intent(in) :: modcore2_b0
+   !> icmod = 3 crossover index
+   integer, intent(in) :: modcore3_ircc
+   !> icmod = 3 crossover radius
+   real(dp), intent(in) :: modcore3_rmatch
+   !> icmod = 3 core charge at matching radius
+   real(dp), intent(in) :: modcore3_rhocmatch
+   !> Number of Teter amplitudes for grid search
+   integer, intent(in) :: n_teter_amp
+   !> Teter amplitude prefactors for grid search
+   real(dp), intent(in) :: teter_amp_prefacs(n_teter_amp)
+   !> Teter amplitude parameters for grid search
+   real(dp), intent(in) :: teter_amp_params(n_teter_amp)
+   !> Number of Teter scales for grid search
+   integer, intent(in) :: n_teter_scale
+   !> Teter scale prefactors for grid search
+   real(dp), intent(in) :: teter_scale_prefacs(n_teter_scale)
+   !> Teter scale parameters for grid search
+   real(dp), intent(in) :: teter_scale_params(n_teter_scale)
+   !> d2Exc RMSE on grid of Teter parameters
+   real(dp), intent(in) :: d2exc_rmse_grid(n_teter_amp, n_teter_scale)
+   !> Optimal Teter amplitude parameter from grid search
+   real(dp), intent(in) :: grid_opt_amp_param
+   !> Optimal Teter scale parameter from grid search
+   real(dp), intent(in) :: grid_opt_scale_param
+   !> Minimum d2Exc RMSE from grid search
+   real(dp), intent(in) :: d2exc_rmse_grid_min
+   !> Optimal Teter amplitude parameter from Nelder-Mead optimization
+   real(dp), intent(in) :: nm_opt_amp_param
+   !> Optimal Teter scale parameter from Nelder-Mead optimization
+   real(dp), intent(in) :: nm_opt_scale_param
+   !> Number of Nelder-Mead iterations
+   integer, intent(in) :: nm_iter
+   !> All-electron d2Exc
+   real(dp), intent(in) :: d2excae(nv, nv)
+   !> Pseudopotential d2Exc without model core charge
+   real(dp), intent(in) :: d2excps_no_rhom(nv, nv)
+   !> d2Exc RMSE AE vs pseudopotential without model core charge
+   real(dp), intent(in) :: d2exc_rmse_no_rhom
+   !> Pseudopotential d2Exc with model core charge
+   real(dp), intent(in) :: d2excps_rhom(nv, nv)
+   !> d2Exc RMSE AE vs pseudopotential with model core charge
+   real(dp), intent(in) :: d2exc_rmse_rhom
    !> Sign of AE wavefunction at matching point
    real(dp), intent(in) :: sign_ae(mxprj, 4)
    !> AE wavefunction
@@ -371,6 +442,11 @@ subroutine write_output_hdf5(file_id, &
    call hdf_set_data_scale(file_id, 'derivative_order', 'derivative_order')
    call hdf_write_attribute(file_id, 'derivative_order', 'description', &
                             'Derivative orders for model core charge density')
+   ! All-electron charge density
+   call hdf_write_dataset(file_id, 'ae_total_charge_density', rhotae)
+   call hdf_attach_data_scale(file_id, 'logarithmic_radial_mesh', file_id, 'ae_total_charge_density')
+   call hdf_write_attribute(file_id, 'ae_total_charge_density', 'description', &
+                            'All-electron total charge density')
    ! Pseudo valence charge density
    call hdf_write_dataset(file_id, 'ps_valence_charge_density', rho)
    call hdf_attach_data_scale(file_id, 'logarithmic_radial_mesh', file_id, 'ps_valence_charge_density')
@@ -387,6 +463,28 @@ subroutine write_output_hdf5(file_id, &
    call hdf_attach_data_scale(file_id, 'derivative_order', file_id, 'model_core_charge_density', 2)
    call hdf_write_attribute(file_id, 'model_core_charge_density', 'description', &
                             'Model core charge density and its derivatives')
+   select case(icmod)
+      case(1)
+         call hdf_write_attribute(file_id, 'model_core_charge_density', 'icmod1_crossover_index', modcore1_ircc)
+      case(2)
+         call hdf_write_attribute(file_id, 'model_core_charge_density', 'icmod2_crossover_index', modcore2_ircc)
+         call hdf_write_attribute(file_id, 'model_core_charge_density', 'icmod2_a0', modcore2_a0)
+         call hdf_write_attribute(file_id, 'model_core_charge_density', 'icmod2_b0', modcore2_b0)
+      case(3)
+         call hdf_write_attribute(file_id, 'model_core_charge_density', 'icmod3_crossover_index', modcore3_ircc)
+         call hdf_write_attribute(file_id, 'model_core_charge_density', 'icmod3_rmatch', modcore3_rmatch)
+         call hdf_write_attribute(file_id, 'model_core_charge_density', 'icmod3_rhocmatch', modcore3_rhocmatch)
+      case(4)
+         call hdf_write_attribute(file_id, 'model_core_charge_density', 'icmod3_crossover_index', modcore3_ircc)
+         call hdf_write_attribute(file_id, 'model_core_charge_density', 'icmod3_rmatch', modcore3_rmatch)
+         call hdf_write_attribute(file_id, 'model_core_charge_density', 'icmod3_rhocmatch', modcore3_rhocmatch)
+         call write_teter_optimization_hdf5(file_id, &
+                                            modcore3_rhocmatch, n_teter_amp, teter_amp_prefacs, &
+                                            modcore3_rmatch, n_teter_scale, teter_scale_prefacs, &
+                                            d2exc_rmse_grid, &
+                                            nm_iter, 101, nm_opt_amp_param, nm_opt_scale_param)
+      case default
+   end select
    ! Unscreened pseudopotentials
    call hdf_create_group(file_id, 'unscreened_pseudotentials')
    call hdf_open_group(file_id, 'unscreened_pseudotentials', group_id)

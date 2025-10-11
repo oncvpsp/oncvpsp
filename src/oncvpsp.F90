@@ -51,7 +51,8 @@ program oncvpsp
       write_modcore4_text
    use modcore1_m, only: modcore1, get_modcore1_match
    use modcore2_m, only: modcore2, get_modcore2_match
-   use modcore3_m, only: modcore3, get_modcore3_match, teter_grid_search, teter_nelder_mead
+   use modcore3_m, only: modcore3, get_modcore3_match, teter_grid_search, teter_nelder_mead, &
+      d2exc_rmse_objective
 #if (defined WITH_TOML)
    use input_toml_m, only: read_input_toml
 #endif
@@ -486,6 +487,8 @@ program oncvpsp
    call write_reference_configuration_results_text(stdout, it, 100, etot)
 #if (defined WITH_HDF5)
    if (do_hdf5) then
+      ! These need to be written now because some of them are modified later
+      ! (notably fcfact and rcfact)
       call write_input_hdf5(hdf5_file_id, &
                             atsym, zz, nc, nv, iexc, psfile, &
                             na, la, fa, &
@@ -497,6 +500,7 @@ program oncvpsp
                             epsh1, epsh2, depsh, &
                             rlmax, drl, &
                             ncnf, nvcnf, nacnf, lacnf, facnf)
+      ! Ditto here; etot and ea are likely overwritten later
       call write_reference_configuration_results_hdf5(hdf5_file_id, nc + nv, it, 100, etot, ea)
    end if
 #endif
@@ -731,13 +735,16 @@ program oncvpsp
       end do
       allocate(d2exc_rmse_grid(n_teter_amp, n_teter_scale))
       call teter_grid_search(mmax, nv, nc, zion, iexc, la, rr, &
-                             rho, rhops, &
+                             rhotae, rhoae, rho, rhops, rhoc, &
+                             d2exc_rmse_objective, &
                              n_teter_amp, teter_amp_params, &
                              n_teter_scale, teter_scale_params, &
                              d2excae, d2excps_rhom, &
                              d2exc_rmse_grid, grid_opt_amp_param, grid_opt_scale_param, d2exc_rmse_grid_min, rhomod)
       call teter_nelder_mead(grid_opt_amp_param, grid_opt_scale_param, modcore3_rhocmatch, modcore3_rmatch, &
-                             mmax, nc, nv, zion, iexc, la, rr, rhoc, rho, rhops, d2excae, d2exc_rmse_no_rhom, &
+                             mmax, nc, nv, zion, iexc, la, rr, rhotae, rhoae, rho, rhops, rhoc, &
+                             d2exc_rmse_objective, &
+                             d2excae, d2exc_rmse_no_rhom, &
                              nm_opt_amp_param, nm_opt_scale_param, rhomod, nm_iter)
       fcfact = nm_opt_amp_param / modcore3_rhocmatch
       rcfact = nm_opt_scale_param / modcore3_rmatch
@@ -755,42 +762,22 @@ program oncvpsp
    if (icmod == 1) then
       call write_modcore1_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
                                modcore1_iter, d2excps_rhom, d2exc_rmse_rhom)
-#if (defined WITH_HDF5)
-      if (do_hdf5) then
-         call write_modcore1_hdf5()
-      end if
-#endif
    end if
    if (icmod == 2) then
       call write_modcore2_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
                                modcore3_rmatch, modcore3_rhocmatch, &
                                d2excps_rhom, d2exc_rmse_rhom, &
                                modcore2_a0, modcore2_b0)
-#if (defined WITH_HDF5)
-      if (do_hdf5) then
-         call write_modcore2_hdf5()
-      end if
-#endif
    end if
    if (icmod == 3) then
       call write_modcore3_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
                                modcore3_rmatch, modcore3_rhocmatch, d2excps_rhom, d2exc_rmse_rhom)
-#if (defined WITH_HDF5)
-      if (do_hdf5) then
-         call write_modcore3_hdf5()
-      end if
-#endif
    end if
    if (icmod == 4) then
       call write_modcore4_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
                                modcore3_rmatch, modcore3_rhocmatch, d2excps_rhom, d2exc_rmse_rhom, &
                                n_teter_amp, teter_amp_prefacs, n_teter_scale, teter_scale_prefacs, &
                                d2exc_rmse_grid, nm_opt_amp_param, nm_opt_scale_param, nm_iter)
-#if (defined WITH_HDF5)
-      if (do_hdf5) then
-         call write_modcore4_hdf5()
-      end if
-#endif
    end if
 
 ! screening potential for pseudocharge
@@ -867,12 +854,21 @@ program oncvpsp
 #if (defined WITH_HDF5)
    if (do_hdf5) then
       call write_output_hdf5(hdf5_file_id, &
-                             zz, nc, mxprj, lmax, lloc, npa, epa, irc, nproj, &
+                             zz, nc, nv, mxprj, lmax, lloc, npa, epa, irc, nproj, &
                              mmax, rr, &  ! log radial mesh
                              drl, nrl, &  ! linear radial mesh
                              ncnf, nvt, nat, lat, fat3, eat3, eatp, etot, eaetst, epstot, etsttot, & ! test configurations
                              vfull, vp, vpuns, &  ! potentials
-                             rho, rhoc, rhomod, &  ! charge densities
+                             rhotae, rho, rhoc, &  ! charge densities
+                             icmod, fcfact, rcfact, rhomod, &  ! model core charge density
+                             modcore1_ircc, modcore1_iter, &
+                             modcore2_ircc, modcore2_a0, modcore2_b0, &
+                             modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch, &
+                             n_teter_amp, teter_amp_prefacs, teter_amp_params, &
+                             n_teter_scale, teter_scale_prefacs, teter_scale_params, &
+                             d2exc_rmse_grid, grid_opt_amp_param, grid_opt_scale_param, d2exc_rmse_grid_min, &
+                             nm_opt_amp_param, nm_opt_scale_param, nm_iter, &
+                             d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, d2excps_rhom, d2exc_rmse_rhom, &
                              sign_ae, uu_ae, up_ae, mch_ae, e_ae, &  ! all-electron wavefunctions
                              sign_ps, uu_ps, up_ps, mch_ps, e_ps, &  ! pseudo wavefunctions
                              is_scattering, &  ! wavefunction scattering flags

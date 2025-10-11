@@ -22,7 +22,9 @@ module modcore3_m
    use, intrinsic :: iso_fortran_env, only: dp => real64
    implicit none
    private
-   public :: modcore3, get_modcore3_match, teter_grid_search, teter_nelder_mead
+   public :: modcore3, get_modcore3_match, &
+      teter_grid_search, teter_nelder_mead, &
+      d2exc_rmse_objective
 contains
 
 !> Creates monotonic polynomial model core charge matching all-electron
@@ -246,12 +248,35 @@ subroutine get_modcore3_match(mmax, rr, rhoc, rhotps, ircc, rmatch, rhocmatch)
 end subroutine get_modcore3_match
 
 subroutine teter_grid_search(mmax, nv, nc, zion, iexc, la, rr, &
-                             rhotps, rhops, &
+                             rhotae, rhoae, rhotps, rhops, rhocore, &
+                             objective, &
                              n_teter_amp, teter_amp_params, &
                              n_teter_scale, teter_scale_params, &
                              d2excae, d2excps, &
                              d2exc_rmse_grid, opt_amp_param, opt_scale_param, d2exc_rmse_min, rhomod)
    implicit none
+
+   interface
+      function objective(o_iexc, o_zion, o_mmax, o_nc, o_nv, o_la, o_rr, &
+                         o_rhoae, o_rhotae, o_rhops, o_rhotps, o_rhocore, o_rhomod) result(oo)
+         use, intrinsic :: iso_fortran_env, only: dp => real64
+         integer, intent(in) :: o_iexc
+         real(dp), intent(in) :: o_zion
+         integer, intent(in) :: o_mmax
+         integer, intent(in) :: o_nc
+         integer, intent(in) :: o_nv
+         integer, intent(in) :: o_la(o_nc + o_nv)
+         real(dp), intent(in) :: o_rr(o_mmax)
+         real(dp), intent(in) :: o_rhoae(o_mmax, o_nc + o_nv)
+         real(dp), intent(in) :: o_rhotae(o_mmax)
+         real(dp), intent(in) :: o_rhops(o_mmax, o_nv)
+         real(dp), intent(in) :: o_rhotps(o_mmax)
+         real(dp), intent(in) :: o_rhocore(o_mmax)
+         real(dp), intent(in) :: o_rhomod(o_mmax)
+         real(dp) :: oo
+      end function objective
+   end interface
+
    ! Input variables
    !> Size of log radial mesh
    integer, intent(in) :: mmax
@@ -267,10 +292,16 @@ subroutine teter_grid_search(mmax, nv, nc, zion, iexc, la, rr, &
    integer, intent(in) :: la(nv+nc)
    !> Log radial mesh
    real(dp), intent(in) :: rr(mmax)
+   !> All-electron total charge
+   real(dp), intent(in) :: rhotae(mmax)
+   !> All-electron state-by-state charge
+   real(dp), intent(in) :: rhoae(mmax,nv)
    !> Pseudo total charge
    real(dp), intent(in) :: rhotps(mmax)
    !> Pseudo state-by-state charge
    real(dp), intent(in) :: rhops(mmax,nv)
+   !> True all-electron core charge
+   real(dp), intent(in) :: rhocore(mmax)
    !> Number of Teter amplitude parameters to scan
    integer, intent(in) :: n_teter_amp
    !> Teter amplitude parameters to scan
@@ -321,10 +352,13 @@ subroutine teter_grid_search(mmax, nv, nc, zion, iexc, la, rr, &
             rhomod(ii) = amp_param * yy
          end do
 
-         call der2exc(rhotps, rhomod, rhops, rr, d2excps, d2excae, d2exc_rmse, &
-                      zion, iexc, nc, nv, la, mmax, mmax)
-
+         ! call der2exc(rhotps, rhomod, rhops, rr, d2excps, d2excae, d2exc_rmse, &
+         !              zion, iexc, nc, nv, la, mmax, mmax)
+         ! d2exc_rmse_grid(jj, kk) = d2exc_rmse
+         d2exc_rmse = objective(iexc, zion, mmax, nc, nv, la, rr, &
+                                rhoae, rhotae, rhops, rhotps, rhocore, rhomod)
          d2exc_rmse_grid(jj, kk) = d2exc_rmse
+
          if (d2exc_rmse < d2exc_rmse_min) then
             opt_amp_param = amp_param
             opt_scale_param = scale_param
@@ -336,9 +370,34 @@ subroutine teter_grid_search(mmax, nv, nc, zion, iexc, la, rr, &
 end subroutine teter_grid_search
 
 subroutine teter_nelder_mead(init_amp_param, init_scale_param, rhocmatch, rmatch, &
-                             mmax, nc, nv, zion, iexc, la, rr, rhoc, rhotps, rhops, d2excae, d2exc_rmse_no_rhom, &
+                             mmax, nc, nv, zion, iexc, la, rr, &
+                             rhotae, rhoae, rhotps, rhops, rhocore, &
+                             objective, &
+                             d2excae, d2exc_rmse_no_rhom, &
                              opt_amp_param, opt_scale_param, rhomod, iter)
    implicit none
+
+   interface
+      function objective(o_iexc, o_zion, o_mmax, o_nc, o_nv, o_la, o_rr, &
+                         o_rhoae, o_rhotae, o_rhops, o_rhotps, o_rhocore, o_rhomod) result(oo)
+         use, intrinsic :: iso_fortran_env, only: dp => real64
+         integer, intent(in) :: o_iexc
+         real(dp), intent(in) :: o_zion
+         integer, intent(in) :: o_mmax
+         integer, intent(in) :: o_nc
+         integer, intent(in) :: o_nv
+         integer, intent(in) :: o_la(o_nc + o_nv)
+         real(dp), intent(in) :: o_rr(o_mmax)
+         real(dp), intent(in) :: o_rhoae(o_mmax, o_nc + o_nv)
+         real(dp), intent(in) :: o_rhotae(o_mmax)
+         real(dp), intent(in) :: o_rhops(o_mmax, o_nv)
+         real(dp), intent(in) :: o_rhotps(o_mmax)
+         real(dp), intent(in) :: o_rhocore(o_mmax)
+         real(dp), intent(in) :: o_rhomod(o_mmax)
+         real(dp) :: oo
+      end function objective
+   end interface
+
    ! Input variables
    !> Initial guess for amplitude parameter
    real(dp), intent(in) :: init_amp_param
@@ -362,12 +421,16 @@ subroutine teter_nelder_mead(init_amp_param, init_scale_param, rhocmatch, rmatch
    integer, intent(in) :: la(30)
    !> Log radial grid
    real(dp), intent(in) :: rr(mmax)
-   !> True all-electron core charge
-   real(dp), intent(in) :: rhoc(mmax)
+   !> Total all-electron charge density
+   real(dp), intent(in) :: rhotae(mmax)
+   !> State-by-state all-electron charge density
+   real(dp), intent(in) :: rhoae(mmax, nv)
    !> Total pseudocharge density
    real(dp), intent(in) :: rhotps(mmax)
    !> State-by-state pseudocharge density
    real(dp), intent(in) :: rhops(mmax, nv)
+   !> True all-electron core charge
+   real(dp), intent(in) :: rhocore(mmax)
    !> d2Exc for all-electron atom
    real(dp), intent(in) :: d2excae(nv, nv)
    !> d2Exc RMSE without model core charge
@@ -432,7 +495,7 @@ subroutine teter_nelder_mead(init_amp_param, init_scale_param, rhocmatch, rmatch
       do ii=mmax,1,-1
          if(rr(ii)<r0) then
             call gg1cc(gg,yy)
-            if(xt(1)*gg<rhoc(ii)) then
+            if(xt(1)*gg<rhocore(ii)) then
                rcross=rr(ii)
                exit
             end if
@@ -446,8 +509,10 @@ subroutine teter_nelder_mead(init_amp_param, init_scale_param, rhocmatch, rmatch
          rhomod(ii)= xt(1)*gg
       end do
 
-      call der2exc(rhotps,rhomod,rhops,rr,d2excps,d2excae,d2exc_rmse_rhom, &
-         &                    zion,iexc,nc,nv,la,mmax,mmax)
+      ! call der2exc(rhotps,rhomod,rhops,rr,d2excps,d2excae,d2exc_rmse_rhom, &
+      !    &                    zion,iexc,nc,nv,la,mmax,mmax)
+      d2exc_rmse_rhom = objective(iexc, zion, mmax, nc, nv, la, rr, &
+                                  rhoae, rhotae, rhops, rhotps, rhocore, rhomod)
       ff(kk)=d2exc_rmse_rhom
 
       !  write(stdout,'(i4,a,2f10.4,1p,e14.4)') kk,'  xt',xt(1),xt(2),ff(kk)
@@ -497,7 +562,7 @@ subroutine teter_nelder_mead(init_amp_param, init_scale_param, rhocmatch, rmatch
       do ii=mmax,1,-1
          if(rr(ii)<r0) then
             call gg1cc(gg,yy)
-            if(xr(1)*gg<rhoc(ii)) then
+            if(xr(1)*gg<rhocore(ii)) then
                rcross=rr(ii)
                exit
             end if
@@ -511,8 +576,10 @@ subroutine teter_nelder_mead(init_amp_param, init_scale_param, rhocmatch, rmatch
          rhomod(ii)= xr(1)*gg
       end do
 
-      call der2exc(rhotps,rhomod,rhops,rr,d2excps,d2excae,d2exc_rmse_rhom, &
-         &                    zion,iexc,nc,nv,la,mmax,mmax)
+      ! call der2exc(rhotps,rhomod,rhops,rr,d2excps,d2excae,d2exc_rmse_rhom, &
+      !    &                    zion,iexc,nc,nv,la,mmax,mmax)
+      d2exc_rmse_rhom = objective(iexc, zion, mmax, nc, nv, la, rr, &
+                                  rhoae, rhotae, rhops, rhotps, rhocore, rhomod)
       fr=d2exc_rmse_rhom
       ! write(stdout,'(i4,a,2f10.4,1p,e14.4)') kk,'  xr',xr(1),xr(2),fr
 
@@ -529,7 +596,7 @@ subroutine teter_nelder_mead(init_amp_param, init_scale_param, rhocmatch, rmatch
          do ii=mmax,1,-1
             if(rr(ii)<r0) then
                call gg1cc(gg,yy)
-               if(xe(1)*gg<rhoc(ii)) then
+               if(xe(1)*gg<rhocore(ii)) then
                   rcross=rr(ii)
                   exit
                end if
@@ -565,7 +632,7 @@ subroutine teter_nelder_mead(init_amp_param, init_scale_param, rhocmatch, rmatch
       do ii=mmax,1,-1
          if(rr(ii)<r0) then
             call gg1cc(gg,yy)
-            if(xc(1)*gg<rhoc(ii)) then
+            if(xc(1)*gg<rhocore(ii)) then
                rcross=rr(ii)
                exit
             end if
@@ -579,8 +646,10 @@ subroutine teter_nelder_mead(init_amp_param, init_scale_param, rhocmatch, rmatch
          rhomod(ii)= xc(1)*gg
       end do
 
-      call der2exc(rhotps,rhomod,rhops,rr,d2excps,d2excae,d2exc_rmse_rhom, &
-         &                    zion,iexc,nc,nv,la,mmax,mmax)
+      ! call der2exc(rhotps,rhomod,rhops,rr,d2excps,d2excae,d2exc_rmse_rhom, &
+      !    &                    zion,iexc,nc,nv,la,mmax,mmax)
+      d2exc_rmse_rhom = objective(iexc, zion, mmax, nc, nv, la, rr, &
+                                  rhoae, rhotae, rhops, rhotps, rhocore, rhomod)
       fc=d2exc_rmse_rhom
       !  write(stdout,'(i4,a,2f10.4,1p,e14.4)') kk,'  xc',xc(1),xc(2),fc
       if(fc<ff(3)) then
@@ -596,7 +665,7 @@ subroutine teter_nelder_mead(init_amp_param, init_scale_param, rhocmatch, rmatch
          do ii=mmax,1,-1
             if(rr(ii)<r0) then
                call gg1cc(gg,yy)
-               if(xx(1,jj)*gg<rhoc(ii)) then
+               if(xx(1,jj)*gg<rhocore(ii)) then
                   rcross=rr(ii)
                   exit
                end if
@@ -621,6 +690,46 @@ subroutine teter_nelder_mead(init_amp_param, init_scale_param, rhocmatch, rmatch
    opt_amp_param = xx(1,1)
    opt_scale_param = xx(2,1)
 end subroutine teter_nelder_mead
+
+function d2exc_rmse_objective(iexc, zion, mmax, nc, nv, la, rr, &
+                              rhoae, rhotae, rhops, rhotps, rhocore, rhomod) result(d2exc_rmse)
+   implicit none
+   ! Input variables
+   integer, intent(in) :: iexc
+   real(dp), intent(in) :: zion
+   integer, intent(in) :: mmax
+   integer, intent(in) :: nc
+   integer, intent(in) :: nv
+   integer, intent(in) :: la(nc + nv)
+   real(dp), intent(in) :: rr(mmax)
+   real(dp), intent(in) :: rhoae(mmax, nc + nv)
+   real(dp), intent(in) :: rhotae(mmax)
+   real(dp), intent(in) :: rhops(mmax, nv)
+   real(dp), intent(in) :: rhotps(mmax)
+   real(dp), intent(in) :: rhocore(mmax)
+   real(dp), intent(in) :: rhomod(mmax)
+
+   ! Output variable
+   real(dp) :: d2exc_rmse
+
+   ! Local variables
+   real(dp) :: d2exc_ae(nv, nv)
+   real(dp) :: d2exc_ps(nv, nv)
+   real(dp) :: d2exc_dummy(nv, nv)
+   real(dp) :: d2exc_rmse_dummy
+
+   d2exc_ps(:, :) = 0.0_dp
+   d2exc_ae(:, :) = 0.0_dp
+
+   ! Compute d2Exc for all-electron atom
+   call der2exc(rhotae, rhocore, rhoae, rr, d2exc_ae, d2exc_dummy, d2exc_rmse_dummy, &
+                zion, iexc, nc, nv, la, mmax, mmax)
+   ! Compute d2Exc for pseudo atom with model core charge
+   ! and RMSE w.r.t. all-electron d2Exc
+   call der2exc(rhotps, rhomod, rhops, rr, d2exc_ps, d2exc_ae, d2exc_rmse, &
+                zion, iexc, nc, nv, la, mmax, mmax)
+   return
+end function d2exc_rmse_objective
 
 end module modcore3_m
 
