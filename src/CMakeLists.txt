@@ -29,9 +29,9 @@ set(src_liboncvpsp
     lschvkbs.f90
     m_libxc_list.F90
     m_psmlout.f90
-    modcore.f90
-    modcore2.f90
-    modcore3.f90
+    modcore1_m.f90
+    modcore2_m.f90
+    modcore3_m.F90
     optimize.f90
     pspot.f90
     qroots.f90
@@ -50,6 +50,7 @@ set(src_liboncvpsp
     vrel.f90
     wf_rc_der.f90
     input_text_m.f90
+    output_text_m.f90
 )
 if (Libxc_FOUND)
     list(APPEND src_liboncvpsp functionals.F90 exc_libxc.f90)
@@ -60,6 +61,11 @@ if (WITH_TOML)
     add_compile_definitions(WITH_TOML)
     list(APPEND src_liboncvpsp input_toml_m.f90)
 endif ()
+if (WITH_HDF5 AND HDF5_FOUND)
+    add_compile_definitions(WITH_HDF5)
+    list(APPEND src_liboncvpsp hdf5_utils_m.f90 output_hdf5_m.f90)
+    find_package(HDF5 COMPONENTS Fortran HL REQUIRED)
+endif()
 add_library(liboncvpsp STATIC ${src_liboncvpsp})
 add_dependencies(liboncvpsp wxml)
 target_link_libraries(liboncvpsp wxml ${COMMON_LIBRARIES})
@@ -77,11 +83,11 @@ set(src_liboncvpsp_nr_sr
     run_config.f90
     run_diag.f90
     run_phsft.f90
-    run_plot.f90
     run_vkb.f90
     sratom.f90
     upfout.f90
     wellstate.f90
+    postprocess_m.f90
 )
 add_library(liboncvpsp_nr_sr STATIC ${src_liboncvpsp_nr_sr})
 add_dependencies(liboncvpsp_nr_sr liboncvpsp wxml)
@@ -113,20 +119,22 @@ add_dependencies(liboncvpsp_r liboncvpsp wxml)
 target_link_libraries(liboncvpsp_r liboncvpsp wxml ${COMMON_LIBRARIES})
 
 ###########################################################
-# oncvpsp.x
+# oncvpsp.x (scalar-relativistic)
 ###########################################################
-add_executable(oncvpsp oncvpsp.F90)
-add_dependencies(oncvpsp liboncvpsp_nr_sr)
-target_link_libraries(oncvpsp liboncvpsp_nr_sr)
-set_target_properties(oncvpsp
+add_executable(oncvpspsr oncvpsp.F90)
+target_compile_definitions(oncvpspsr PUBLIC RELATIVISTIC=1)
+add_dependencies(oncvpspsr liboncvpsp_nr_sr)
+target_link_libraries(oncvpspsr liboncvpsp_nr_sr)
+set_target_properties(oncvpspsr
     PROPERTIES
         OUTPUT_NAME oncvpsp.x
 )
 
 ##########################################################
-# oncvpspnr.x
+# oncvpspnr.x (non-relativistic)
 ##########################################################
-add_executable(oncvpspnr oncvpsp_nr.F90)
+add_executable(oncvpspnr oncvpsp.F90)
+target_compile_definitions(oncvpspnr PUBLIC RELATIVISTIC=0)
 add_dependencies(oncvpspnr liboncvpsp_nr_sr)
 target_link_libraries(oncvpspnr liboncvpsp_nr_sr)
 set_target_properties(oncvpspnr
@@ -135,9 +143,10 @@ set_target_properties(oncvpspnr
 )
 
 ##########################################################
-# oncvpspr.x
+# oncvpspr.x (fully-relativistic)
 ##########################################################
 add_executable(oncvpspr oncvpsp_r.F90)
+target_compile_definitions(oncvpspr PUBLIC RELATIVISTIC=2)
 add_dependencies(oncvpspr liboncvpsp_r)
 target_link_libraries(oncvpspr liboncvpsp_r)
 set_target_properties(oncvpspr
