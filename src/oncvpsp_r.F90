@@ -35,7 +35,13 @@
  use, intrinsic :: iso_fortran_env, only: stdin => input_unit, stdout => output_unit, stderr => error_unit
  use m_psmlout, only: psmlout_r
  use input_text_m, only: read_input_text_r
- use modcore3_m, only: modcore3
+ use output_text_m, only: write_modcore1_text, &
+    write_modcore2_text, &
+    write_modcore3_text, &
+    write_modcore4_text
+ use modcore1_m, only: modcore1, get_modcore1_match
+ use modcore2_m, only: modcore2, get_modcore2_match
+ use modcore3_m, only: modcore3, get_modcore3_match, teter_grid_search, teter_nelder_mead
 #if (defined WITH_TOML)
  use input_toml_m, only: read_input_toml_r
 #endif
@@ -84,7 +90,7 @@
  real(dp), allocatable :: vwell(:,:)
  real(dp), allocatable :: vpuns(:,:)
  real(dp), allocatable :: vo(:),vxc(:)
- real(dp), allocatable :: rhomod(:,:),rhoae(:,:),rhops(:,:),rhotae(:)
+ real(dp), allocatable :: rhoae(:,:),rhops(:,:),rhotae(:)
  real(dp), allocatable :: uupsa(:,:,:) !pseudo-atomic orbitals array
  real(dp), allocatable :: epa(:,:,:),fpa(:,:,:)
  real(dp), allocatable :: uua(:,:,:),upa(:,:,:)
@@ -97,6 +103,77 @@
 
  logical :: srel,cset
 
+ ! Model core charge optimization variables
+ !> Model core charge density and its first n derivatives
+ real(dp), allocatable :: rhomod(:, :)
+ !> Radial cutoff index for d2Exc evaluation in model core optimization
+ integer :: irmod
+ !> 2nd derivate of all-electron Exc
+ real(dp), allocatable :: d2excae(:, :)
+ !> 2nd derivate of pseudo Exc without model core
+ real(dp), allocatable :: d2excps_no_rhom(:, :)
+ !> RMSE of 2nd derivate difference without model core vs AE
+ real(dp) :: d2exc_rmse_no_rhom
+ !> 2nd derivate difference with model core
+ real(dp), allocatable :: d2excps_rhom(:, :)
+ !> RMSE of 2nd derivate difference with model core vs AE
+ real(dp) :: d2exc_rmse_rhom
+ !> Number of iterations in modcore1
+ integer :: modcore1_iter
+ !> Index of core charge - valence pseudocharge crossover in modcore1
+ integer :: modcore1_ircc
+ !> Index of core charge - scaled valence pseudocharge crossover in modcore2
+ integer :: modcore2_ircc
+ !> Dimensionless factor a in modcore2
+ real(dp) :: modcore2_a0
+ !> Dimensionless factor b in modcore2
+ real(dp) :: modcore2_b0
+ !> Log radial mesh index of core charge - valence pseudocharge crossover in modcore3
+ integer :: modcore3_ircc
+ !> Radial coordinate of core charge - valence pseudocharge crossover in modcore3
+ real(dp) :: modcore3_rmatch
+ !> Value of core charge at crossover in modcore3
+ real(dp) :: modcore3_rhocmatch
+ !> Size of Teter amplitude search grid
+ integer :: n_teter_amp
+ !> Minimum amplitude prefactor for coarse grid search
+ real(dp), parameter :: teter_amp_prefac_min = 1.5_dp
+ !> Maximum amplitude prefactor for coarse grid search
+ real(dp), parameter :: teter_amp_prefac_max = 6.0_dp
+ !> Amplitude prefactor step size for coarse grid
+ real(dp), parameter :: teter_amp_prefac_step = 0.5_dp
+ !> Teter amplitude prefactor search grid
+ real(dp), allocatable :: teter_amp_prefacs(:)
+ !> Teter amplitude parameter search grid
+ real(dp), allocatable :: teter_amp_params(:)
+ !> Size of Teter scale search grid
+ integer :: n_teter_scale
+ !> Minimum scale prefactor for coarse grid search
+ real(dp), parameter :: teter_scale_prefac_min = 1.0_dp
+ !> Maximum scale prefactor for coarse grid search
+ real(dp), parameter :: teter_scale_prefac_max = 1.9_dp
+ !> Scale prefactor step size for coarse grid
+ real(dp), parameter :: teter_scale_prefac_step = 0.1_dp
+ !> Teter amplitude prefactor search grid
+ real(dp), allocatable :: teter_scale_prefacs(:)
+ !> Teter scale parameter search grid
+ real(dp), allocatable :: teter_scale_params(:)
+ !> d2Exc RMSE values from Teter grid search
+ real(dp), allocatable :: d2exc_rmse_grid(:,:)
+ !> Optimal Teter amplitude parameter from grid search
+ real(dp) :: grid_opt_amp_param
+ !> Optimal Teter scale parameter from grid search
+ real(dp) :: grid_opt_scale_param
+ !> d2Exc RMSE minimum from grid search
+ real(dp) :: d2exc_rmse_grid_min
+ !> Optimal Teter amplitude parameter from Nelder-Mead search
+ real(dp) :: nm_opt_amp_param
+ !> Optimal Teter scale parameter from Nelder-Mead search
+ real(dp) :: nm_opt_scale_param
+ !> Number of iterations from Nelder-Mead search
+ integer :: nm_iter
+
+ ! I/O variables
  integer, parameter :: INPUT_STDIN=1, INPUT_TEXT=2, INPUT_TOML=3
  integer :: input_mode
  integer :: unit
@@ -638,26 +715,122 @@
     end if
   end do
 
- allocate(rhomod(mmax,5))
-
- rhomod(:,:)=0.0d0
-
-! construct model core charge based on monotonic polynomial fit
-! or Teter function fit
-
- if(icmod==1) then
-   call modcore(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
-
- else if(icmod==2) then
-   call modcore2(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
-
- else if(icmod>=3) then
-   call modcore3(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
-
- end if
+   allocate(rhomod(mmax,5))
+   rhomod(:,:) = 0.0_dp
+   ! Determine irmod (cutoff for d2Exc calculation) and construct the model core charge
+   if(icmod==1) then
+      call get_modcore1_match(irps, fcfact, mmax, rhoc, rho, modcore1_ircc, irmod)
+   else
+      irmod = mmax
+   end if
+   if (icmod > 0) then
+      allocate(d2excae(nv, nv))
+      allocate(d2excps_no_rhom(nv, nv))
+      allocate(d2excps_rhom(nv, nv))
+      ! Compute d2Exc with core charge = true AE core charge
+      ! d2excps_no_rhom, d2exc_rmse_no_rhom are dummy variables here
+      call der2exc(rhotae, rhoc, rhoae, rr, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
+                   zion, iexc, nc, nv, la, irmod, mmax)
+      ! Compute d2Exc with core charge = 0
+      ! d2excps_no_rhom, d2exc_rmse_no_rhom are output variables here
+      call der2exc(rho, rhomod(:,1), rhops, rr, d2excps_no_rhom, d2excae, d2exc_rmse_no_rhom, &
+                   zion, iexc, nc, nv, la, irmod, mmax)
+   end if
+   if(icmod==1) then
+      call modcore1(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
+                    fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, &
+                    modcore1_iter)
+   else if(icmod==2) then
+      irmod = mmax
+      call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
+      call get_modcore2_match(mmax, rr, rhoc, rho, fcfact, modcore2_ircc, modcore2_a0, modcore2_b0)
+      call modcore2(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
+                    fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+   else if(icmod==3) then
+      irmod = mmax
+      call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
+      call modcore3(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
+                    fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+   else if(icmod==4) then
+      irmod = mmax
+      call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
+      n_teter_amp = nint((teter_amp_prefac_max - teter_amp_prefac_min) / teter_amp_prefac_step) + 1
+      allocate(teter_amp_prefacs(n_teter_amp))
+      allocate(teter_amp_params(n_teter_amp))
+      do ii = 1, n_teter_amp
+         teter_amp_prefacs(ii) = teter_amp_prefac_min + (ii - 1) * teter_amp_prefac_step
+         teter_amp_params(ii) = teter_amp_prefacs(ii) * modcore3_rhocmatch
+      end do
+      n_teter_scale = nint((teter_scale_prefac_max - teter_scale_prefac_min) / teter_scale_prefac_step) + 1
+      allocate(teter_scale_prefacs(n_teter_scale))
+      allocate(teter_scale_params(n_teter_scale))
+      do ii = 1, n_teter_scale
+         teter_scale_prefacs(ii) = teter_scale_prefac_min + (ii - 1) * teter_scale_prefac_step
+         teter_scale_params(ii) = teter_scale_prefacs(ii) * modcore3_rmatch
+      end do
+      allocate(d2exc_rmse_grid(n_teter_amp, n_teter_scale))
+      call teter_grid_search(mmax, nv, nc, zion, iexc, la, rr, &
+                             rho, rhops, &
+                             n_teter_amp, teter_amp_params, &
+                             n_teter_scale, teter_scale_params, &
+                             d2excae, d2excps_rhom, &
+                             d2exc_rmse_grid, grid_opt_amp_param, grid_opt_scale_param, d2exc_rmse_grid_min, rhomod)
+      call teter_nelder_mead(grid_opt_amp_param, grid_opt_scale_param, modcore3_rhocmatch, modcore3_rmatch, &
+                             mmax, nc, nv, zion, iexc, la, rr, rhoc, rho, rhops, d2excae, d2exc_rmse_no_rhom, &
+                             nm_opt_amp_param, nm_opt_scale_param, rhomod, nm_iter)
+      fcfact = nm_opt_amp_param / modcore3_rhocmatch
+      rcfact = nm_opt_scale_param / modcore3_rmatch
+      call modcore3(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
+                    fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+      ! psp8 output expects fcfact = 1.0 and rcfact = 0.0 for icmod = 4
+      fcfact = 1.0_dp
+      rcfact = 0.0_dp
+   end if
+   if (icmod > 0) then
+      ! Compute d2Exc with core charge = model core charge
+      call der2exc(rho, rhomod(:, 1), rhops, rr, d2excps_rhom, d2excae, d2exc_rmse_rhom, &
+                   zion, iexc, nc, nv, la, irmod, mmax)
+   end if
+   if (icmod == 1) then
+      call write_modcore1_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
+                               modcore1_iter, d2excps_rhom, d2exc_rmse_rhom)
+#if (defined WITH_HDF5)
+      if (do_hdf5) then
+         call write_modcore1_hdf5()
+      end if
+#endif
+   end if
+   if (icmod == 2) then
+      call write_modcore2_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
+                               modcore3_rmatch, modcore3_rhocmatch, &
+                               d2excps_rhom, d2exc_rmse_rhom, &
+                               modcore2_a0, modcore2_b0)
+#if (defined WITH_HDF5)
+      if (do_hdf5) then
+         call write_modcore2_hdf5()
+      end if
+#endif
+   end if
+   if (icmod == 3) then
+      call write_modcore3_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
+                               modcore3_rmatch, modcore3_rhocmatch, d2excps_rhom, d2exc_rmse_rhom)
+#if (defined WITH_HDF5)
+      if (do_hdf5) then
+         call write_modcore3_hdf5()
+      end if
+#endif
+   end if
+   if (icmod == 4) then
+      call write_modcore4_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
+                               modcore3_rmatch, modcore3_rhocmatch, d2excps_rhom, d2exc_rmse_rhom, &
+                               n_teter_amp, teter_amp_prefacs, n_teter_scale, teter_scale_prefacs, &
+                               d2exc_rmse_grid, nm_opt_amp_param, nm_opt_scale_param, nm_iter)
+#if (defined WITH_HDF5)
+      if (do_hdf5) then
+         call write_modcore4_hdf5()
+      end if
+#endif
+   end if
 
 ! screening potential for pseudocharge
 

@@ -1,5 +1,4 @@
 module output_text_m
-   use, intrinsic :: iso_fortran_env, only: stdout => output_unit, stderr => error_unit
    use, intrinsic :: iso_fortran_env, only: dp => real64
    implicit none
    private
@@ -17,8 +16,222 @@ module output_text_m
       write_convergence_profile_text, &
       write_phsft_text, &
       write_teter_grid_search_text, &
-      write_teter_nelder_mead_text
+      write_teter_nelder_mead_text, &
+      write_modcore1_text, &
+      write_modcore2_text, &
+      write_modcore3_text, &
+      write_modcore4_text
 contains
+
+subroutine write_modcore1_text(unit, nv, d2excae, d2excps_no_rhom, d2mdiff_no_rhom, &
+                               iter, d2excps_rhom, d2mdiff_rhom)
+   implicit none
+   ! Input variables
+   !> Output unit
+   integer, intent(in) :: unit
+   !> Number of valence states
+   integer, intent(in) :: nv
+   !> All-electron exchange-correlation second derivative
+   real(dp), intent(in) :: d2excae(nv, nv)
+   !> Pseudo exchange-correlation second derivative without model core
+   real(dp), intent(in) :: d2excps_no_rhom(nv, nv)
+   !> Difference of second derivatives without model core
+   real(dp), intent(in) :: d2mdiff_no_rhom
+   !> Number of iterations
+   integer, intent(in) :: iter
+   !> Pseudo exchange-correlation second derivative with model core
+   real(dp), intent(in) :: d2excps_rhom(nv, nv)
+   !> Difference of second derivatives with model core
+   real(dp), intent(in) :: d2mdiff_rhom
+
+   ! Local variables
+   integer :: jj, kk
+
+   write(unit,'(/a/a)') 'Model core correction analysis', '  based on d2Exc/dn_idn_j'
+
+   write(unit,'(/a/)') 'd2excae - all-electron derivatives'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excae(kk,jj),jj=1,nv)
+   end do
+
+   write(unit,'(/a/)') 'd2excps - pseudofunction derivatives with no core correction'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excps_no_rhom(kk,jj),jj=1,nv)
+   end do
+   write(unit,'(/a,1p,e16.6)') 'rms 2nd derivative error',d2mdiff_no_rhom
+
+   if(iter>50) write(unit,'(/a/)') 'WARNING - modcore not conveged'
+
+   write(unit,'(/a/)') 'Polynomial model core charge'
+   write(unit,'(/a/)') 'd2excps - pseudofunction derivatives with core correction'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excps_rhom(kk,jj),jj=1,nv)
+   end do
+   write(unit,'(/a,1p,e16.6)') 'rms 2nd derivative error',d2mdiff_rhom
+end subroutine write_modcore1_text
+
+subroutine write_modcore2_text(unit, nv, d2excae, d2excps_no_rhom, d2mdiff_no_rhom, &
+                               rmatch, rhocmatch, d2excps_rhom, d2mdiff_rhom, a0, b0)
+   implicit none
+   ! Input variables
+   !> Output unit
+   integer, intent(in) :: unit
+   !> Number of valence states
+   integer, intent(in) :: nv
+   !> All-electron exchange-correlation second derivative
+   real(dp), intent(in) :: d2excae(nv, nv)
+   !> Pseudo exchange-correlation second derivative without model core
+   real(dp), intent(in) :: d2excps_no_rhom(nv, nv)
+   !> Difference of second derivatives without model core
+   real(dp), intent(in) :: d2mdiff_no_rhom
+   !> Matching radius
+   real(dp), intent(in) :: rmatch
+   !> Core charge at matching radius
+   real(dp), intent(in) :: rhocmatch
+   !> Pseudo exchange-correlation second derivative with model core
+   real(dp), intent(in) :: d2excps_rhom(nv, nv)
+   !> Difference of second derivatives with model core
+   real(dp), intent(in) :: d2mdiff_rhom
+   !> Dimensionless matching point values
+   real(dp), intent(in) :: a0  ! xx / rr(ircc)
+   real(dp), intent(in) :: b0  ! fmatch(1) / yy
+
+   integer :: ii, jj, kk
+
+   write(unit,'(/a/a)') 'Model core correction analysis', '  based on d2Exc/dn_idn_j'
+
+   write(unit,'(/a/)') 'd2excae - all-electron derivatives'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excae(kk,jj),jj=1,nv)
+   end do
+
+   write(unit,'(/a/)') 'd2excps - pseudofunction derivatives with no core correction'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excps_no_rhom(kk,jj),jj=1,nv)
+   end do
+   write(unit,'(/a,1p,e16.6)') 'rms 2nd derivative error',d2mdiff_no_rhom
+
+   write(unit,'(/a)') 'amplitude prefactor, scale prefactor'
+   write(unit,'(2f10.4)') a0/rhocmatch,1.0d0/(b0*rmatch)
+
+   write(unit,'(/a/)') 'd2excps - pseudofunction derivatives with core correction'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excps_rhom(kk,jj),jj=1,nv)
+   end do
+   write(unit,'(/a,1p,e16.6)') 'rms 2nd derivative error',d2mdiff_rhom
+end subroutine write_modcore2_text
+
+subroutine write_modcore3_text(unit, nv, d2excae, d2excps_no_rhom, d2mdiff_no_rhom, &
+                               rmatch, rhocmatch, d2excps_rhom, d2mdiff_rhom)
+   implicit none
+   ! Input variables
+   !> Output unit
+   integer, intent(in) :: unit
+   !> Number of valence states
+   integer, intent(in) :: nv
+   !> All-electron exchange-correlation second derivative
+   real(dp), intent(in) :: d2excae(nv, nv)
+   !> Pseudo exchange-correlation second derivative without model core
+   real(dp), intent(in) :: d2excps_no_rhom(nv, nv)
+   !> Difference of second derivatives without model core
+   real(dp), intent(in) :: d2mdiff_no_rhom
+   !> Matching radius
+   real(dp), intent(in) :: rmatch
+   !> Core charge at matching radius
+   real(dp), intent(in) :: rhocmatch
+   !> Pseudo exchange-correlation second derivative with model core
+   real(dp), intent(in) :: d2excps_rhom(nv, nv)
+   !> Difference of second derivatives with model core
+   real(dp), intent(in) :: d2mdiff_rhom
+
+   integer :: ii, jj, kk
+
+   write(unit,'(/a/a)') 'Model core correction analysis', '  based on d2Exc/dn_idn_j'
+
+   write(unit,'(/a/)') 'd2excae - all-electron derivatives'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excae(kk,jj),jj=1,nv)
+   end do
+
+   write(unit,'(/a/)') 'd2excps - pseudofunction derivatives with no core correction'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excps_no_rhom(kk,jj),jj=1,nv)
+   end do
+   write(unit,'(/a,1p,e16.6)') 'rms 2nd derivative error',d2mdiff_no_rhom
+
+   write(unit,'(/a,2f10.4)') 'rmatch, rhocmatch',rmatch,rhocmatch
+
+   write(unit,'(/a/)') 'Teter function model core charge with specified parameters'
+   write(unit,'(/a/)') 'd2excps - pseudofunction derivatives with core correction'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excps_rhom(kk,jj),jj=1,nv)
+   end do
+   write(unit,'(/a,1p,e16.6)') 'rms 2nd derivative error',d2mdiff_rhom
+end subroutine write_modcore3_text
+
+subroutine write_modcore4_text(unit, nv, d2excae, d2excps_no_rhom, d2mdiff_no_rhom, &
+                               rmatch, rhocmatch, d2excps_rhom, d2mdiff_rhom, &
+                               n_amp_param, amp_prefacs, n_scale_param, scale_prefacs, d2exc_rmse_grid, &
+                               nm_opt_amp_param, nm_opt_scale_param, nm_iter)
+   implicit none
+   ! Input variables
+   !> Output unit
+   integer, intent(in) :: unit
+   !> Number of valence states
+   integer, intent(in) :: nv
+   !> All-electron exchange-correlation second derivative
+   real(dp), intent(in) :: d2excae(nv, nv)
+   !> Pseudo exchange-correlation second derivative without model core
+   real(dp), intent(in) :: d2excps_no_rhom(nv, nv)
+   !> Difference of second derivatives without model core
+   real(dp), intent(in) :: d2mdiff_no_rhom
+   !> Matching radius
+   real(dp), intent(in) :: rmatch
+   !> Core charge at matching radius
+   real(dp), intent(in) :: rhocmatch
+   !> Pseudo exchange-correlation second derivative with model core
+   real(dp), intent(in) :: d2excps_rhom(nv, nv)
+   !> Difference of second derivatives with model core
+   real(dp), intent(in) :: d2mdiff_rhom
+   integer, intent(in) :: n_amp_param
+   real(dp), intent(in) :: amp_prefacs(n_amp_param)
+   integer, intent(in) :: n_scale_param
+   real(dp), intent(in) :: scale_prefacs(n_scale_param)
+   real(dp), intent(in) :: d2exc_rmse_grid(n_amp_param, n_scale_param)
+   real(dp), intent(in) :: nm_opt_amp_param
+   real(dp), intent(in) :: nm_opt_scale_param
+   integer, intent(in) :: nm_iter
+
+   integer :: ii, jj, kk
+
+   write(unit,'(/a/a)') 'Model core correction analysis', '  based on d2Exc/dn_idn_j'
+
+   write(unit,'(/a/)') 'd2excae - all-electron derivatives'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excae(kk,jj),jj=1,nv)
+   end do
+
+   write(unit,'(/a/)') 'd2excps - pseudofunction derivatives with no core correction'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excps_no_rhom(kk,jj),jj=1,nv)
+   end do
+   write(unit,'(/a,1p,e16.6)') 'rms 2nd derivative error',d2mdiff_no_rhom
+
+   write(unit,'(/a,2f10.4)') 'rmatch, rhocmatch',rmatch,rhocmatch
+
+   call write_teter_grid_search_text(unit, n_amp_param, amp_prefacs, n_scale_param, scale_prefacs, d2exc_rmse_grid)
+
+   write(unit,'(/a)') 'Nelder-Mead iteration'
+   call write_teter_nelder_mead_text(unit, nm_iter, 100, rhocmatch, rmatch, nm_opt_amp_param, nm_opt_scale_param)
+
+   write(unit,'(/a)') 'Optimized Teter model core charge'
+
+   write(unit,'(/a/)') 'd2excps - pseudofunction derivatives with core correction'
+   do kk=1,nv
+      write(unit,'(1p,4d16.6)') (d2excps_rhom(kk,jj),jj=1,nv)
+   end do
+   write(unit,'(/a,1p,e16.6)') 'rms 2nd derivative error',d2mdiff_rhom
+end subroutine write_modcore4_text
 
 subroutine get_pseudo_linear_mesh_parameters(mmax, rr, lmax, irc, drl, nrl, n1, n2, n3, n4)
    implicit none
@@ -206,13 +419,13 @@ subroutine write_reference_configuration_results_text(unit, it, itmax, etot)
    !> Total energy
    real(dp), intent(in) :: etot
 
-   write (stdout, '(//a)') 'Reference configufation results'
-   write (stdout, '(a,i6)') '  iterations', it
+   write (unit, '(//a)') 'Reference configufation results'
+   write (unit, '(a,i6)') '  iterations', it
    if (it >= itmax) then
-      write (stdout, '(a)') 'oncvpsp: ERROR all-electron reference atom not converged'
+      write (unit, '(a)') 'oncvpsp: ERROR all-electron reference atom not converged'
       stop
    end if
-   write (stdout, '(a,1p,d18.8)') '  all-electron total energy (Ha)', etot
+   write (unit, '(a,1p,d18.8)') '  all-electron total energy (Ha)', etot
 end subroutine write_reference_configuration_results_text
 
 subroutine write_test_config_text(unit, nc, nvt, nat, lat, fat, eat, eatp, etot, eaetst, epstot, etsttot)
@@ -582,13 +795,13 @@ subroutine write_wavefunctions_vkb_text(unit, mmax, rr, lmax, irc, drl, nrl, &
    do l1 = 1, lmax + 1
       ll = l1 - 1
       do iproj = 1, nproj(l1)
-         call write_wavefunctions_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
+         call write_wavefunctions_text(unit, mmax, rr, lmax, irc, drl, nrl, &
                                        npa(iproj, l1), ll, iproj, &
                                        sign_ae(iproj, l1), sign_ps(iproj, l1), &
                                        uu_ae(:, iproj, l1), uu_ps(:, iproj, l1), &
                                        is_scattering(iproj, l1))
       end do
-      call write_vkb_projectors_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
+      call write_vkb_projectors_text(unit, mmax, rr, lmax, irc, drl, nrl, &
                                      mxprj, ll, nproj(l1), vkb(:, :, l1))
    end do
 
@@ -609,13 +822,13 @@ subroutine write_convergence_profile_text(unit, lmax, mxprj, cvgplt)
    ! Local variables
    integer :: ll, l1, ii, jj
 
-   write(stdout, '(/a)') 'convergence profiles, (ll=0,lmax)'
-   write(stdout, *) 'lmax', lmax
+   write(unit, '(/a)') 'convergence profiles, (ll=0,lmax)'
+   write(unit, *) 'lmax', lmax
    do l1 = 1, lmax + 1
       ll = l1 - 1
       do jj = 1, 7
          if (abs(cvgplt(1, jj, 1, l1)) > 1e-22_dp) then
-            write(stdout, '(a,i6,3(f12.6,1x))') '!C', ll, cvgplt(1, jj, 1, l1), cvgplt(2, jj, 1, l1)
+            write(unit, '(a,i6,3(f12.6,1x))') '!C', ll, cvgplt(1, jj, 1, l1), cvgplt(2, jj, 1, l1)
          end if
       end do
    end do
@@ -682,7 +895,7 @@ subroutine write_teter_grid_search_text(unit, &
    write (unit, '(a)') '  column index : amplitude prefactor to rhocmatch'
    write (unit, '(a)') '  row index : scale prefactor to rmatch'
 
-   write (stdout, headerfmt) (amp_prefacs(ii), ii = 1, n_amp_param)
+   write (unit, headerfmt) (amp_prefacs(ii), ii = 1, n_amp_param)
    do ii = 1, n_scale_param
       write (unit, rowfmt) scale_prefacs(ii), (d2exc_rmse_grid(jj, ii) * 1.0e3_dp, jj = 1, n_amp_param)
    end do
@@ -708,12 +921,12 @@ subroutine write_teter_nelder_mead_text(unit, iter, max_iter, rhocmatch, rmatch,
    real(dp), intent(in) :: scale_param
 
    if (iter > max_iter) then
-      write(stdout,'(a,i4,a)') ' WARNING: not fully converged in ', max_iter ,' steps'
+      write(unit,'(a,i4,a)') ' WARNING: not fully converged in ', max_iter ,' steps'
    else
-      write(stdout,'(a,i4,a)') ' converged in', iter,' steps'
+      write(unit,'(a,i4,a)') ' converged in', iter,' steps'
    end if
-   write(stdout,'(a)') 'amplitude prefactor, scale prefactor'
-   write(stdout,'(2f10.4)') amp_param / rhocmatch, scale_param / rmatch
+   write(unit,'(a)') 'amplitude prefactor, scale prefactor'
+   write(unit,'(2f10.4)') amp_param / rhocmatch, scale_param / rmatch
 end subroutine write_teter_nelder_mead_text
 
 end module output_text_m

@@ -29,8 +29,8 @@ set(src_liboncvpsp
     lschvkbs.f90
     m_libxc_list.F90
     m_psmlout.f90
-    modcore.f90
-    modcore2.f90
+    modcore1_m.f90
+    modcore2_m.f90
     modcore3_m.F90
     optimize.f90
     pspot.f90

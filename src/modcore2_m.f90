@@ -18,6 +18,7 @@
 
 module modcore2_m
    use, intrinsic :: iso_fortran_env, only: dp => real64
+   use modcore3_m, only: get_modcore3_match
    implicit none
    private
    public :: modcore2, get_modcore2_match
@@ -64,14 +65,22 @@ subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    real(dp) :: a0
    real(dp) :: b0
 
+   ! convergence criterion
+   real(dp), parameter :: EPS=1.0d-7
+
    ! Local variables
    real(dp) :: al,eeel,eexc
+   real(dp) :: d2mdiff,rmatch,rhocmatch
    real(dp) :: xx,yy,dy
-   real(dp) :: x0max,x0min,r0,tt
+   real(dp) :: x0max,x0min,r0,tt,ymatch,ytrial
+   real(dp) :: fmatch(5)
    real(dp) :: drint,rtst,rint(20),fint(20) !ad-hoc smoothing variables
    integer :: ii,ierr,ircc,iter,jj,kk
    integer :: iint !ad-hoc smoothing variables
 
+   ! find valence pseudocharge - core charge crossover
+   ! this is needed for compatability with icmod=3 opt i on
+   call get_modcore3_match(mmax, rr, rhoc, rhotps, ircc, rmatch, rhocmatch)
    ! find scaled valence pseudocharge - core charge crossover
    call get_modcore2_match(mmax, rr, rhoc, rhotps, fcfact, ircc, a0, b0)
 
@@ -177,27 +186,29 @@ subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    call dpnint(rint,fint,8,rr,rhomod(1,5),iint-1)
 end subroutine modcore2
 
-subroutine get_modcore2_match(mmax, rr, rhoc, rhotps, fcfact, ircc, a0, b0)
+subroutine get_modcore2_match(mmax,rr,rhoc,rhotps,fcfact,ircc,a0,b0)
    implicit none
-    ! Input variables
-    integer, intent(in) :: mmax
-    real(dp), intent(in) :: rr(mmax)
-    real(dp), intent(in) :: rhoc(mmax)
-    real(dp), intent(in) :: rhotps(mmax)
-    real(dp), intent(in) :: fcfact
+   ! Constants
+   real(dp), parameter :: EPS=1.0d-7
 
-    ! Output variables
-    integer, intent(out) :: ircc
-    real(dp), intent(out) :: a0
-    real(dp), intent(out) :: b0
+   ! Input variables
+   integer, intent(in) :: mmax
+   real(dp), intent(in) :: rr(mmax)
+   real(dp), intent(in) :: rhoc(mmax)
+   real(dp), intent(in) :: rhotps(mmax)
+   real(dp), intent(in) :: fcfact
 
-    ! Local variables
-    real(dp) :: al,xx,yy,dy
-    real(dp) :: x0max,x0min,ymatch,ytrial
-    real(dp), parameter :: EPS=1.0d-7
-    integer :: ii,jj,kk
-    real(dp) :: fmatch(5)
-    real(dp) :: rhomod(mmax, 5)
+   ! Output variables
+   integer, intent(out) :: ircc
+   real(dp), intent(out) :: a0
+   real(dp), intent(out) :: b0
+
+   ! Local variables
+   integer :: ii,jj
+   real(dp) :: rhomod(mmax,5)
+   real(dp) :: al,xx,yy,dy
+   real(dp) :: x0max,x0min,tt,ymatch,ytrial
+   real(dp) :: fmatch(5)
 
    ircc = 0
    do ii = mmax,1,-1
@@ -250,7 +261,6 @@ subroutine get_modcore2_match(mmax, rr, rhoc, rhotps, fcfact, ircc, a0, b0)
    end do
    b0=xx/rr(ircc)
    a0=fmatch(1)/yy
-
 end subroutine get_modcore2_match
 
 end module modcore2_m
