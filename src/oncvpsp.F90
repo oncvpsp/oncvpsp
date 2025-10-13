@@ -37,8 +37,8 @@ program oncvpsp
    use m_psmlout, only: psmlout
    use input_text_m, only: read_input_text
    use postprocess_m, only: get_wavefunctions, run_test_configurations
-   use output_text_m, only: get_pseudo_linear_mesh_parameters, &
-      write_input_text, write_reference_configuration_results_text, &
+   use output_text_m, only: write_input_text, &
+      write_reference_configuration_results_text, &
       write_test_configs_text, &
       write_rho_vpuns_text, write_vloc_text, &
       write_rho_rhoc_rhom_text, &
@@ -51,8 +51,9 @@ program oncvpsp
       write_modcore4_text
    use modcore1_m, only: modcore1, get_modcore1_match
    use modcore2_m, only: modcore2, get_modcore2_match
-   use modcore3_m, only: modcore3, get_modcore3_match, teter_grid_search, teter_nelder_mead, &
-      d2exc_rmse_objective
+   use modcore3_m, only: modcore3, get_modcore3_match
+   use modcore4_m, only: modcore4
+   use utils_m, only: linspace, get_pseudo_linear_mesh_parameters
 #if (defined WITH_TOML)
    use input_toml_m, only: read_input_toml
 #endif
@@ -106,7 +107,7 @@ program oncvpsp
 
    real(dp), allocatable :: evkb(:,:),cvgplt(:,:,:,:),qq(:,:)
    real(dp), allocatable :: rr(:)
-   real(dp), allocatable :: rho(:),rhoc(:),rhot(:)
+   real(dp), allocatable :: rho(:),rhoc(:),rhot(:),rhozero(:)
    real(dp), allocatable :: uu(:),up(:)
    real(dp), allocatable :: vp(:,:),vfull(:),vkb(:,:,:),pswf(:,:,:)
    real(dp), allocatable :: vwell(:)
@@ -125,6 +126,8 @@ program oncvpsp
    integer :: irmod
    !> 2nd derivate of all-electron Exc
    real(dp), allocatable :: d2excae(:, :)
+   real(dp), allocatable :: d2exc_dummy(:, :)
+   real(dp) :: d2exc_rmse_dummy
    !> 2nd derivate of pseudo Exc without model core
    real(dp), allocatable :: d2excps_no_rhom(:, :)
    !> RMSE of 2nd derivate difference without model core vs AE
@@ -180,19 +183,20 @@ program oncvpsp
    !> Teter scale parameter search grid
    real(dp), allocatable :: teter_scale_params(:)
    !> Objective function for Teter parameter optimization
-   character(len=1024) :: teter_opt_objective
+   character(len=1024) :: teter_objective_name
    !> d2Exc RMSE values from Teter grid search
-   real(dp), allocatable :: d2exc_rmse_grid(:,:)
+   real(dp), allocatable :: grid_objective(:,:)
    !> Optimal Teter amplitude parameter from grid search
    real(dp) :: grid_opt_amp_param
    !> Optimal Teter scale parameter from grid search
    real(dp) :: grid_opt_scale_param
-   !> d2Exc RMSE minimum from grid search
-   real(dp) :: d2exc_rmse_grid_min
+   real(dp) :: grid_opt_objective
+   real(dp) :: nm_atol
    !> Optimal Teter amplitude parameter from Nelder-Mead search
    real(dp) :: nm_opt_amp_param
    !> Optimal Teter scale parameter from Nelder-Mead search
    real(dp) :: nm_opt_scale_param
+   real(dp) :: nm_opt_objective
    !> Number of iterations from Nelder-Mead search
    integer :: nm_iter
 
@@ -331,7 +335,7 @@ program oncvpsp
       else
          open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
       end if
-      call read_input_text(stdin, inline, &
+      call read_input_text(unit, inline, &
                            atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
                            lmax, rc, ep, ncon, nbas, qcut, &
                            lloc, lpopt, dvloc0, nproj, debl, &
@@ -344,7 +348,7 @@ program oncvpsp
       teter_relative = .true.
       teter_amp = fcfact
       teter_scale = rcfact
-      teter_opt_objective = 'd2exc_rmse'
+      teter_objective_name = 'd2exc_rmse'
       if (input_mode == INPUT_TEXT) close(unit)
 #if (defined WITH_TOML)
     case(INPUT_TOML)
@@ -357,7 +361,7 @@ program oncvpsp
                            teter_relative, teter_amp, teter_scale, & ! teter core charge
                            teter_amp_min, teter_amp_max, teter_amp_step, & ! teter grid search
                            teter_scale_min, teter_scale_max, teter_scale_step, & ! teter grid search
-                           teter_opt_objective, & ! teter optimization objective
+                           teter_objective_name, & ! teter optimization objective
                            epsh1, epsh2, depsh, rxpsh, & ! logarithmic derivative / phase shift analysis
                            rlmax, drl, & ! linear output grid
                            ncnf, nvcnf, nacnf, lacnf, facnf) ! test configurations
@@ -396,10 +400,6 @@ program oncvpsp
          facnf(ii,jj)=fa(ii)
       end do
    end do
-
-   if(icmod==0) then
-      fcfact=0.0d0
-   end if
 
    call check_data(atsym,zz,fcfact,rcfact,epsh1,epsh2,depsh,rlmax,drl,fa,facnf, &
       &                rc,ep,qcut,debl,nc,nv,iexc,lmax,lloc,lpopt,icmod, &
@@ -685,38 +685,26 @@ program oncvpsp
       irps=max(irps,irc(l1))
    end do !kk
 
-   allocate(rhomod(mmax,5))
-   rhomod(:,:) = 0.0_dp
-   ! Determine irmod (cutoff for d2Exc calculation) and construct the model core charge
-   if(icmod==1) then
+   ! Construct model core charge
+   allocate(rhomod(mmax,5), source=0.0_dp)
+   allocate(rhozero(mmax), source=0.0_dp)
+   allocate(d2exc_dummy(nv, nv))
+   allocate(d2excae(nv, nv))
+   allocate(d2excps_no_rhom(nv, nv))
+   allocate(d2excps_rhom(nv, nv))
+   select case (icmod)
+    case (1)
       call get_modcore1_match(irps, fcfact, mmax, rhoc, rho, modcore1_ircc, irmod)
-   else
-      irmod = mmax
-   end if
-   if (icmod > 0) then
-      allocate(d2excae(nv, nv))
-      allocate(d2excps_no_rhom(nv, nv))
-      allocate(d2excps_rhom(nv, nv))
-      ! Compute d2Exc with core charge = true AE core charge
-      ! d2excps_no_rhom, d2exc_rmse_no_rhom are dummy variables here
-      call der2exc(rhotae, rhoc, rhoae, rr, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
-                   zion, iexc, nc, nv, la, irmod, mmax)
-      ! Compute d2Exc with core charge = 0
-      ! d2excps_no_rhom, d2exc_rmse_no_rhom are output variables here
-      call der2exc(rho, rhomod(:,1), rhops, rr, d2excps_no_rhom, d2excae, d2exc_rmse_no_rhom, &
-                   zion, iexc, nc, nv, la, irmod, mmax)
-   end if
-   if(icmod==1) then
       call modcore1(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
                     fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, &
                     modcore1_iter)
-   else if(icmod==2) then
+    case (2)
       irmod = mmax
-      call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
       call get_modcore2_match(mmax, rr, rhoc, rho, fcfact, modcore2_ircc, modcore2_a0, modcore2_b0)
+      call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
       call modcore2(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
                     fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
-   else if(icmod==3) then
+    case (3)
       irmod = mmax
       call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
       if (teter_relative) then
@@ -728,80 +716,66 @@ program oncvpsp
       end if
       call modcore3(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
                     teter_amp,teter_scale,irps,mmax,rr,nc,nv,la,zion,iexc)
-   else if(icmod==4) then
+    case (4)
       irmod = mmax
       call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
-      n_teter_amp = nint((teter_amp_max - teter_amp_min) / teter_amp_step) + 1
-      allocate(teter_amp_prefacs(n_teter_amp))
-      allocate(teter_amp_params(n_teter_amp))
-      n_teter_scale = nint((teter_scale_max - teter_scale_min) / teter_scale_step) + 1
-      allocate(teter_scale_prefacs(n_teter_scale))
-      allocate(teter_scale_params(n_teter_scale))
       if (teter_relative) then
-         do ii = 1, n_teter_amp
-            teter_amp_prefacs(ii) = teter_amp_min + (ii - 1) * teter_amp_step
-            teter_amp_params(ii) = teter_amp_prefacs(ii) * modcore3_rhocmatch
-         end do
-         do ii = 1, n_teter_scale
-            teter_scale_prefacs(ii) = teter_scale_min + (ii - 1) * teter_scale_step
-            teter_scale_params(ii) = teter_scale_prefacs(ii) * modcore3_rmatch
-         end do
+         call linspace(teter_amp_min, teter_amp_max, teter_amp_step, n_teter_amp, teter_amp_prefacs)
+         call linspace(teter_scale_min, teter_scale_max, teter_scale_step, n_teter_scale, teter_scale_prefacs)
+         allocate(teter_amp_params(n_teter_amp), teter_scale_params(n_teter_scale))
+         teter_amp_params(:) = teter_amp_prefacs(:) * modcore3_rhocmatch
+         teter_scale_params(:) = teter_scale_prefacs(:) * modcore3_rmatch
       else
-         do ii = 1, n_teter_amp
-            teter_amp_prefacs(ii) = teter_amp_prefacs(ii) / modcore3_rhocmatch
-            teter_amp_params(ii) = teter_amp_min + (ii - 1) * teter_amp_step
-         end do
-         do ii = 1, n_teter_scale
-            teter_scale_prefacs(ii) = teter_scale_prefacs(ii) / modcore3_rmatch
-            teter_scale_params(ii) = teter_scale_min + (ii - 1) * teter_scale_step
-         end do
+         call linspace(teter_amp_min, teter_amp_max, teter_amp_step, n_teter_amp, teter_amp_params)
+         call linspace(teter_scale_min, teter_scale_max, teter_scale_step, n_teter_scale, teter_scale_params)
+         allocate(teter_amp_prefacs(n_teter_amp), teter_scale_prefacs(n_teter_scale))
+         teter_amp_prefacs(:) = teter_amp_params(:) / modcore3_rhocmatch
+         teter_scale_prefacs(:) = teter_scale_params(:) / modcore3_rmatch
       end if
-      allocate(d2exc_rmse_grid(n_teter_amp, n_teter_scale))
-      call teter_grid_search(mmax, nv, nc, zion, iexc, la, rr, &
-                             rhotae, rhoae, rho, rhops, rhoc, &
-                             d2exc_rmse_objective, &
-                             n_teter_amp, teter_amp_params, &
-                             n_teter_scale, teter_scale_params, &
-                             d2excae, d2excps_rhom, &
-                             d2exc_rmse_grid, grid_opt_amp_param, grid_opt_scale_param, d2exc_rmse_grid_min, rhomod)
-      call teter_nelder_mead(grid_opt_amp_param, grid_opt_scale_param, modcore3_rhocmatch, modcore3_rmatch, &
-                             mmax, nc, nv, zion, iexc, la, rr, rhotae, rhoae, rho, rhops, rhoc, &
-                             d2exc_rmse_objective, &
-                             d2excae, d2exc_rmse_no_rhom, &
-                             nm_opt_amp_param, nm_opt_scale_param, rhomod, nm_iter)
-      fcfact = nm_opt_amp_param / modcore3_rhocmatch
-      rcfact = nm_opt_scale_param / modcore3_rmatch
-      call modcore3(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-                    nm_opt_amp_param,nm_opt_scale_param,irps,mmax,rr,nc,nv,la,zion,iexc)
-      ! psp8 output expects fcfact = 1.0 and rcfact = 0.0 for icmod = 4
+      allocate(grid_objective(n_teter_amp, n_teter_scale))
+      call modcore4(mmax, rr, nc, nv, la, zion, irps, iexc, &
+                    rhops, rho, rhoc, rhoae, rhotae, &
+                    teter_objective_name, &
+                    n_teter_amp, n_teter_scale, teter_amp_params, teter_scale_params, &
+                    grid_objective, grid_opt_amp_param, grid_opt_scale_param, grid_opt_objective, &
+                    nm_opt_amp_param, nm_opt_scale_param, nm_opt_objective, nm_iter, &
+                    rhomod)
+      ! Expected values for psp8 output
       fcfact = 1.0_dp
       rcfact = 0.0_dp
-   end if
-   if (icmod > 0) then
-      ! Compute d2Exc with core charge = model core charge
-      call der2exc(rho, rhomod(:, 1), rhops, rr, d2excps_rhom, d2excae, d2exc_rmse_rhom, &
-                   zion, iexc, nc, nv, la, irmod, mmax)
-   end if
-   if (icmod == 1) then
+    case default
+   end select
+
+   ! Compute d2Exc with core charge = true AE core charge
+   call der2exc(rhotae, rhoc, rhoae, rr, d2excae, d2exc_dummy, d2exc_rmse_dummy, &
+                zion, iexc, nc, nv, la, irmod, mmax)
+   ! Compute d2Exc with core charge = 0
+   call der2exc(rho, rhozero, rhops, rr, d2excps_no_rhom, d2excae, d2exc_rmse_no_rhom, &
+                zion, iexc, nc, nv, la, irmod, mmax)
+   ! Compute d2Exc with core charge = model core charge
+   call der2exc(rho, rhomod(:, 1), rhops, rr, d2excps_rhom, d2excae, d2exc_rmse_rhom, &
+                zion, iexc, nc, nv, la, irmod, mmax)
+
+   ! Write output
+   select case (icmod)
+    case (1)
       call write_modcore1_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
                                modcore1_iter, d2excps_rhom, d2exc_rmse_rhom)
-   end if
-   if (icmod == 2) then
+    case (2)
       call write_modcore2_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
                                modcore3_rmatch, modcore3_rhocmatch, &
                                d2excps_rhom, d2exc_rmse_rhom, &
                                modcore2_a0, modcore2_b0)
-   end if
-   if (icmod == 3) then
+    case (3)
       call write_modcore3_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
                                modcore3_rmatch, modcore3_rhocmatch, d2excps_rhom, d2exc_rmse_rhom)
-   end if
-   if (icmod == 4) then
+    case (4)
       call write_modcore4_text(stdout, nv, d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, &
                                modcore3_rmatch, modcore3_rhocmatch, d2excps_rhom, d2exc_rmse_rhom, &
                                n_teter_amp, teter_amp_prefacs, n_teter_scale, teter_scale_prefacs, &
-                               d2exc_rmse_grid, nm_opt_amp_param, nm_opt_scale_param, nm_iter)
-   end if
+                               grid_objective, nm_opt_amp_param, nm_opt_scale_param, nm_iter)
+    case default
+   end select
 
 ! screening potential for pseudocharge
 
@@ -889,8 +863,8 @@ program oncvpsp
                              modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch, &
                              n_teter_amp, teter_amp_prefacs, teter_amp_params, &
                              n_teter_scale, teter_scale_prefacs, teter_scale_params, &
-                             d2exc_rmse_grid, grid_opt_amp_param, grid_opt_scale_param, d2exc_rmse_grid_min, &
-                             nm_opt_amp_param, nm_opt_scale_param, nm_iter, &
+                             grid_objective, grid_opt_amp_param, grid_opt_scale_param, grid_opt_objective, &
+                             nm_opt_amp_param, nm_opt_scale_param, nm_opt_objective, nm_iter, &
                              d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, d2excps_rhom, d2exc_rmse_rhom, &
                              sign_ae, uu_ae, up_ae, mch_ae, e_ae, &  ! all-electron wavefunctions
                              sign_ps, uu_ps, up_ps, mch_ps, e_ps, &  ! pseudo wavefunctions

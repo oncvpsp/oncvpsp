@@ -20,7 +20,7 @@
 module postprocess_m
    use, intrinsic :: iso_fortran_env, only: stderr => output_unit
    use, intrinsic :: iso_fortran_env, only: dp => real64
-   use output_text_m, only: get_pseudo_linear_mesh_parameters
+   use utils_m, only: get_pseudo_linear_mesh_parameters
    implicit none
    private
    public :: get_wavefunctions, get_bound_wavefunctions, get_scattering_wavefunctions

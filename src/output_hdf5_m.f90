@@ -232,8 +232,8 @@ subroutine write_output_hdf5(file_id, &
                              modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch, &
                              n_teter_amp, teter_amp_prefacs, teter_amp_params, &
                              n_teter_scale, teter_scale_prefacs, teter_scale_params, &
-                             d2exc_rmse_grid, grid_opt_amp_param, grid_opt_scale_param, d2exc_rmse_grid_min, &
-                             nm_opt_amp_param, nm_opt_scale_param, nm_iter, &
+                             teter_objective_grid, grid_opt_amp_param, grid_opt_scale_param, grid_opt_objective, &
+                             nm_opt_amp_param, nm_opt_scale_param, nm_opt_objective, nm_iter, &
                              d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, d2excps_rhom, d2exc_rmse_rhom, &
                              sign_ae, uu_ae, up_ae, mch_ae, e_ae, &  ! all-electron wavefunctions
                              sign_ps, uu_ps, up_ps, mch_ps, e_ps, &  ! pseudo wavefunctions
@@ -332,27 +332,28 @@ subroutine write_output_hdf5(file_id, &
    !> Number of Teter amplitudes for grid search
    integer, intent(in) :: n_teter_amp
    !> Teter amplitude prefactors for grid search
-   real(dp), intent(in) :: teter_amp_prefacs(n_teter_amp)
+   real(dp), allocatable, intent(in) :: teter_amp_prefacs(:)
    !> Teter amplitude parameters for grid search
-   real(dp), intent(in) :: teter_amp_params(n_teter_amp)
+   real(dp), allocatable, intent(in) :: teter_amp_params(:)
    !> Number of Teter scales for grid search
    integer, intent(in) :: n_teter_scale
    !> Teter scale prefactors for grid search
-   real(dp), intent(in) :: teter_scale_prefacs(n_teter_scale)
+   real(dp), allocatable, intent(in) :: teter_scale_prefacs(:)
    !> Teter scale parameters for grid search
-   real(dp), intent(in) :: teter_scale_params(n_teter_scale)
+   real(dp), allocatable, intent(in) :: teter_scale_params(:)
    !> d2Exc RMSE on grid of Teter parameters
-   real(dp), intent(in) :: d2exc_rmse_grid(n_teter_amp, n_teter_scale)
+   real(dp), allocatable, intent(in) :: teter_objective_grid(:, :)
    !> Optimal Teter amplitude parameter from grid search
    real(dp), intent(in) :: grid_opt_amp_param
    !> Optimal Teter scale parameter from grid search
    real(dp), intent(in) :: grid_opt_scale_param
    !> Minimum d2Exc RMSE from grid search
-   real(dp), intent(in) :: d2exc_rmse_grid_min
+   real(dp), intent(in) :: grid_opt_objective
    !> Optimal Teter amplitude parameter from Nelder-Mead optimization
    real(dp), intent(in) :: nm_opt_amp_param
    !> Optimal Teter scale parameter from Nelder-Mead optimization
    real(dp), intent(in) :: nm_opt_scale_param
+   real(dp), intent(in) :: nm_opt_objective
    !> Number of Nelder-Mead iterations
    integer, intent(in) :: nm_iter
    !> All-electron d2Exc
@@ -481,7 +482,7 @@ subroutine write_output_hdf5(file_id, &
          call write_teter_optimization_hdf5(file_id, &
                                             modcore3_rhocmatch, n_teter_amp, teter_amp_prefacs, &
                                             modcore3_rmatch, n_teter_scale, teter_scale_prefacs, &
-                                            d2exc_rmse_grid, &
+                                            teter_objective_grid, &
                                             nm_iter, 101, nm_opt_amp_param, nm_opt_scale_param)
       case default
    end select
@@ -928,7 +929,7 @@ end subroutine write_phase_shift_hdf5
 subroutine write_teter_optimization_hdf5(file_id, &
                                          rhocmatch, n_amp, amp_prefacs, &
                                          rmatch, n_scale, scale_prefacs, &
-                                         d2exc_rmse_grid, &
+                                         teter_objective_grid, &
                                          iter, max_iter, amp_param, scale_param)
    implicit none
    ! Input variables
@@ -938,16 +939,16 @@ subroutine write_teter_optimization_hdf5(file_id, &
    !> Number of Teter amplitude prefactors tested
    integer, intent(in) :: n_amp
    !> Teter amplitude prefactors tested
-   real(dp), intent(in) :: amp_prefacs(n_amp)
+   real(dp), allocatable, intent(in) :: amp_prefacs(:)
    !> Matching radius used for testing
    real(dp), intent(in) :: rmatch
    !> Number of Teter scale prefactors tested
    integer, intent(in) :: n_scale
    !> Teter scale prefactors tested
-   real(dp), intent(in) :: scale_prefacs(n_scale)
+   real(dp), allocatable, intent(in) :: scale_prefacs(:)
    !> RMSE of d2Exc/drho2 at matching radius for each combination of
    !> Teter amplitude and scale prefactors
-   real(dp), intent(in) :: d2exc_rmse_grid(n_amp, n_scale)
+   real(dp), allocatable, intent(in) :: teter_objective_grid(:, :)
    !> Nelder-Mead iteration number
    integer, intent(in) :: iter
    !> Maximum number of Nelder-Mead iterations
@@ -963,6 +964,10 @@ subroutine write_teter_optimization_hdf5(file_id, &
    real(dp) :: amp_params(n_amp)
    real(dp) :: scale_params(n_scale)
    integer :: i
+
+   if (.not. allocated(amp_prefacs)) error stop 'write_teter_optimization_hdf5: ERROR amp_prefacs not allocated'
+   if (.not. allocated(scale_prefacs)) error stop 'write_teter_optimization_hdf5: ERROR scale_prefacs not allocated'
+   if (.not. allocated(teter_objective_grid)) error stop 'write_teter_optimization_hdf5: ERROR teter_objective_grid not allocated'
 
    do i = 1, n_amp
       amp_params(i) = amp_prefacs(i) * rhocmatch
@@ -984,9 +989,9 @@ subroutine write_teter_optimization_hdf5(file_id, &
    call hdf_write_dataset(subgroup_id, 'scale_parameter', scale_params)
    call hdf_set_data_scale(subgroup_id, 'scale_parameter', 'scale_parameter')
    call hdf_write_dataset(subgroup_id, 'scale_prefactor', scale_prefacs)
-   call hdf_write_dataset(subgroup_id, 'd2exc_rmse_grid', d2exc_rmse_grid)
-   call hdf_attach_data_scale(subgroup_id, 'amplitude_parameter', subgroup_id, 'd2exc_rmse_grid', 1)
-   call hdf_attach_data_scale(subgroup_id, 'scale_parameter', subgroup_id, 'd2exc_rmse_grid', 2)
+   call hdf_write_dataset(subgroup_id, 'teter_objective_grid', teter_objective_grid)
+   call hdf_attach_data_scale(subgroup_id, 'amplitude_parameter', subgroup_id, 'teter_objective_grid', 1)
+   call hdf_attach_data_scale(subgroup_id, 'scale_parameter', subgroup_id, 'teter_objective_grid', 2)
    call hdf_close_group(subgroup_id)
 
    call hdf_create_group(group_id, 'nelder_mead')

@@ -15,12 +15,14 @@
 !
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+!
 
-module modcore2_m
+module modcore3_m
+   use, intrinsic :: iso_fortran_env, only: stdout => output_unit
    use, intrinsic :: iso_fortran_env, only: dp => real64
    implicit none
    private
-   public :: modcore2, get_modcore2_match
+   public :: modcore3, get_modcore3_match
 contains
 
 !> Creates monotonic polynomial model core charge matching all-electron
@@ -28,8 +30,8 @@ contains
 !> Polynomial is 8th-order with no linear term.
 !> Performs analysis and based on "hardness" criterion described in
 !> Teter, Phys. Rev. B 48, 5031 (1993) , Appendix, as
-subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
-                    fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+subroutine modcore3(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
+                    teter_amp,teter_scale,irps,mmax,rr,nc,nv,la,zion,iexc)
 
    ! icmod  3 coefficient optimizaion, 4 for specivied fcfact and rfact
    ! rhops  state-by-state pseudocharge density
@@ -48,7 +50,6 @@ subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    ! la  angular-momenta
    ! zion  ion charge
    ! iexc  exchange-correlation function to be used
-
    implicit none
 
    ! Input variables
@@ -56,61 +57,78 @@ subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    integer :: la(30)
    real(dp) :: rhoae(mmax,nv),rhops(mmax,nv),rhotae(mmax)
    real(dp) :: rhotps(mmax),rhoc(mmax),rr(mmax)
-   real(dp) :: zion,fcfact,rcfact
+   real(dp) :: zion,teter_amp,teter_scale
    logical :: srel
 
    ! Output variables
    real(dp) :: rhomod(mmax,5)
-   real(dp) :: a0
-   real(dp) :: b0
-
-   ! convergence criterion
-   real(dp), parameter :: EPS=1.0d-7
 
    ! Local variables
    real(dp) :: al,eeel,eexc
-   real(dp) :: xx,yy,dy
-   real(dp) :: x0max,x0min,r0,tt,ymatch,ytrial
-   real(dp) :: fmatch(5)
+   real(dp) :: d2exc_rmse_rhom,r0,rcross
+   real(dp) :: gg,tt,yy
    real(dp) :: drint,rtst,rint(20),fint(20) !ad-hoc smoothing variables
-   integer :: ii,ierr,ircc,iter,jj,kk
+   integer :: ii,ierr,ircc,ircross,irmod,iter,jj,kk
    integer :: iint !ad-hoc smoothing variables
+   real(dp) :: xx(2,3)
 
-   ! find scaled valence pseudocharge - core charge crossover
-   call get_modcore2_match(mmax, rr, rhoc, rhotps, fcfact, ircc, a0, b0)
+   gg=0.d0
+   yy=0.d0
 
+   xx(1,1)=teter_amp
+   xx(2,1)=teter_scale
+
+   r0=1.5d0*xx(2,1)
+   do ii=mmax,1,-1
+      if(rr(ii)<r0) then
+         call gg1cc(gg,yy)
+         if( xx(1,1)*gg<rhoc(ii)) then
+            rcross=rr(ii)
+            ircross=ii
+            exit
+         end if
+      end if
+   end do
+
+   !  blend the Teter function tail into the all-electron rhoc
+   !  first two derivatives are filled in analytically before the blend starts
    rhomod(:,:)=0.0d0
    do ii=1,mmax
-      xx=b0*rr(ii)
-      if(xx<3.0d0) then
-         call gg1cc(yy,xx)
-         rhomod(ii,1)=a0*yy
-         call gp1cc(yy,xx)
-         rhomod(ii,2)=a0*yy*b0
-         call gpp1cc(yy,xx)
-         rhomod(ii,3)=a0*yy*b0**2
+      yy=rr(ii)/xx(2,1)
+      call gg1cc(gg,yy)
+      tt=(rr(ii)-r0-2.0d0*rr(ircross))/(r0-rr(ircross))
+
+      rhomod(ii,1)=xx(1,1)*gg
+      if(ii<ircross) then
+         call gp1cc(gg,yy)
+         rhomod(ii,2)=xx(1,1)*gg/xx(2,1)
+         call gpp1cc(gg,yy)
+         rhomod(ii,3)=xx(1,1)*gg/xx(2,1)**2
       end if
    end do
 
    ! 7-point numerical first derivatives applied successively
-   ! do jj=4,5
-   !  do ii=3* j j-8,mmax-3
-   !    if(rhomod(ii,1)== 0 .0d0) exit
-   !     rhomod(ii,jj)=(-rhomod(ii-3 , jj-1)+ 9.d0*rhomod(ii-2,jj-1)&
-   ! &     -45.d0*rhomod(ii-1,jj-1)+45.d0*rhomod(ii+1,jj-1)&
-   ! &     -9.d0*rhomod(ii+2,jj-1)+rhomod(ii+3,jj-1))&
-   ! &     /(60.d0*al*rr(ii))
-   !  end do
-   ! end do
+   ! skip non-blended section for 1st and 2nd derivatives
+
+   al = 0.01d0 * dlog(rr(101) / rr(1))
+
+   do jj=2,3
+      do ii=ircross-6,mmax-3
+         rhomod(ii,jj)=(-rhomod(ii-3,jj-1)+ 9.d0*rhomod(ii-2,jj-1)&
+            &     -45.d0*rhomod(ii-1,jj-1)+45.d0*rhomod(ii+1,jj-1)&
+            &     -9.d0*rhomod(ii+2,jj-1)+rhomod(ii+3,jj-1))&
+            &     /(60.d0*al*rr(ii))
+      end do
+   end do
 
    ! ad-hoc treatment of numerical noise near origin
-   ! set up a mesh on which 2nd derivative will have   a stable
+   ! set up a mesh on which 2nd derivative will have a stable
    ! polynomial representation
-   ! assumes dpnint remains 7t h  order
-   drint=0.05d0*rr(ircc)
+   ! assumes dpnint remains 7th order
+   drint=0.02d0*rr(ircross)
    rtst=0.5d0*drint
    do jj=1,4
-      do ii=1,ircc
+      do ii=1,ircross
          if(rr(ii)>rtst) then
             rint(4+jj)=rr(ii)
             rint(5-jj)=-rr(ii)
@@ -138,7 +156,7 @@ subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    rtst=0.5d0*drint
    rtst=0.5d0*drint
    do jj=1,4
-      do ii=1,ircc
+      do ii=1,ircross
          if(rr(ii)>rtst) then
             rint(4+jj)=rr(ii)
             rint(5-jj)=-rr(ii)
@@ -165,7 +183,7 @@ subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    drint=0.95d0*drint
    rtst=0.5d0*drint
    do jj=1,4
-      do ii=1,ircc
+      do ii=1,ircross
          if(rr(ii)>rtst) then
             rint(4+jj)=rr(ii)
             rint(5-jj)=-rr(ii)
@@ -179,83 +197,50 @@ subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    end do
 
    call dpnint(rint,fint,8,rr,rhomod(1,5),iint-1)
-end subroutine modcore2
 
-subroutine get_modcore2_match(mmax,rr,rhoc,rhotps,fcfact,ircc,a0,b0)
+   return
+end subroutine modcore3
+
+subroutine get_modcore3_match(mmax, rr, rhoc, rhotps, ircc, rmatch, rhocmatch)
    implicit none
-   ! Constants
-   real(dp), parameter :: EPS=1.0d-7
-
    ! Input variables
+   !> Dimension of log grid
    integer, intent(in) :: mmax
+   !> Log radial mesh
    real(dp), intent(in) :: rr(mmax)
+   !> True all-electron core charge
    real(dp), intent(in) :: rhoc(mmax)
+   !> Total pseudocharge density
    real(dp), intent(in) :: rhotps(mmax)
-   real(dp), intent(in) :: fcfact
 
    ! Output variables
+   !> Index of crossover point
    integer, intent(out) :: ircc
-   real(dp), intent(out) :: a0
-   real(dp), intent(out) :: b0
+   !> Crossover radius
+   real(dp), intent(out) :: rmatch
+   !> Core charge at crossover point
+   real(dp), intent(out) :: rhocmatch
 
    ! Local variables
-   integer :: ii,jj
-   real(dp) :: rhomod(mmax,5)
-   real(dp) :: al,xx,yy,dy
-   real(dp) :: x0max,x0min,tt,ymatch,ytrial
-   real(dp) :: fmatch(5)
+   integer :: ii
 
+   !  find valence pseudocharge - core charge crossover
    ircc = 0
    do ii = mmax,1,-1
-      if(rhoc(ii) .gt. fcfact*rhotps(ii)) then
+      if(rhoc(ii) .gt. rhotps(ii)) then
          ircc=ii
+         rmatch=rr(ircc)
+         rhocmatch=rhoc(ircc)
          exit
       end if
    end do
 
    if(ircc .eq. 0) then
-      write(6,'(/a)') 'modcore2: ERROR ircc (core-valence charge crossover) &
+      write(stdout,'(/a)') 'modcore3: ERROR ircc (core-valence charge crossover) &
          &        not found'
       stop
    end if
 
-   al = 0.01d0 * dlog(rr(101) / rr(1))
+end subroutine get_modcore3_match
 
-   ! core charge density for Louie-Froyen-Cohen correction
-   rhomod(:,1) = rhoc(:)
-   xx=rr(ircc)
-   fmatch(1)=rhoc(ircc)
-
-   ! core charge derivatives
-   ! 7-point numerical first derivative
-   jj=2
-   ii=ircc
-   rhomod(ii,jj)=(-rhomod(ii-3,jj-1)+ 9.d0*rhomod(ii-2,jj-1)&
-      &     -45.d0*rhomod(ii-1,jj-1)+45.d0*rhomod(ii+1,jj-1)&
-      &     -9.d0*rhomod(ii+2,jj-1)+rhomod(ii+3,jj-1))&
-      &     /(60.d0*al*rr(ii))
-   fmatch(jj)=rhomod(ircc,jj)
-
-   ! Fit Teter function to value and slope at ircc
-   ymatch=rr(ircc)*fmatch(2)/fmatch(1)
-
-   ! interval-halving search for dimensionless match point
-   x0max=1.48d0
-   x0min=0.0d0
-   do jj=1,50
-      xx=0.5d0*(x0max+x0min)
-      call gg1cc(yy,xx)
-      call gp1cc(dy,xx)
-      ytrial=xx*dy/yy
-      if(abs(ytrial-ymatch)<EPS) exit
-      if(ytrial<ymatch) then
-         x0max=xx
-      else
-         x0min=xx
-      end if
-   end do
-   b0=xx/rr(ircc)
-   a0=fmatch(1)/yy
-end subroutine get_modcore2_match
-
-end module modcore2_m
+end module modcore3_m

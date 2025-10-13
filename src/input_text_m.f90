@@ -182,8 +182,7 @@ subroutine read_input_text(unit, inline, &
          teter_scale_min, teter_scale_max, teter_scale_step
       ! icmod==4[implicit grid]: *_min, *_max, *_step not provided, fall back to defaults
       if (ios /= 0) then
-         read (line, *, iostat=ios) icmod
-         fcfact = 1.d0
+         read (line, *, iostat=ios) icmod, fcfact
          rcfact = 0.d0
          teter_amp_min = 1.5d0
          teter_amp_max = 6.0d0
@@ -194,6 +193,12 @@ subroutine read_input_text(unit, inline, &
       end if
    end if
    call read_error(ios, inline)
+   if (icmod == 0) then
+      fcfact = 0.0_dp
+      rcfact = 0.0_dp
+   else if (icmod == 1 .or. icmod == 2) then
+      rcfact = 0.0_dp
+   end if
 
    ! log derivative analysis
    call cmtskp(unit, inline)

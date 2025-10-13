@@ -19,7 +19,7 @@ subroutine read_input_toml(unit, &
                            teter_relative, teter_amp, teter_scale, & ! teter core charge
                            teter_amp_min, teter_amp_max, teter_amp_step, & ! teter grid search
                            teter_scale_min, teter_scale_max, teter_scale_step, & ! teter grid search
-                           teter_opt_objective, & ! teter optimization objective
+                           teter_objective_name, & ! teter optimization objective
                            epsh1, epsh2, depsh, rxpsh, & ! logarithmic derivative / phase shift analysis
                            rlmax, drl, & ! linear output grid
                            ncnf, nvcnf, nacnf, lacnf, facnf) ! test configurations
@@ -89,7 +89,7 @@ subroutine read_input_toml(unit, &
    real(dp), intent(out) :: teter_scale_min
    real(dp), intent(out) :: teter_scale_max
    real(dp), intent(out) :: teter_scale_step
-   character(len=1024), intent(out) :: teter_opt_objective
+   character(len=1024), intent(out) :: teter_objective_name
    ! [Log derivative analysis]
    !> Lower bound of energy range for log derivative analysis
    real(dp), intent(out) :: epsh1
@@ -135,6 +135,7 @@ subroutine read_input_toml(unit, &
    ep(:) = 0.0_dp
    atsym(:) = '  '
    psfile(:) = '    '
+   teter_objective_name(:) = ' '
 
    call toml_load(table, unit)
    if (.not. allocated(table)) then
@@ -307,12 +308,12 @@ subroutine read_input_toml(unit, &
       call get_value(child, "teter_scale_min", teter_scale_min, default=1.0_dp)
       call get_value(child, "teter_scale_max", teter_scale_max, default=1.9_dp)
       call get_value(child, "teter_scale_step", teter_scale_step, default=0.1_dp)
-      call get_value(child, "teter_opt_objective", tmp_str, default="d2exc_rmse")
+      call get_value(child, "teter_objective_name", tmp_str, default="d2exc_rmse")
       if (len_trim(tmp_str) < 1 .or. len_trim(tmp_str) > 1024) then
-         write (stderr, '(A)') 'Error: Invalid teter_opt_objective in [model] section.'
+         write (stderr, '(A)') 'Error: Invalid teter_objective_name in [model] section.'
          stop 1
       else
-         teter_opt_objective(1:len_trim(tmp_str)) = tmp_str(1:len_trim(tmp_str))
+         teter_objective_name(1:len_trim(tmp_str)) = tmp_str(1:len_trim(tmp_str))
       end if
       deallocate(tmp_str)
    end if

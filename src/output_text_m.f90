@@ -1,9 +1,9 @@
 module output_text_m
    use, intrinsic :: iso_fortran_env, only: dp => real64
+   use :: utils_m, only: get_pseudo_linear_mesh_parameters
    implicit none
    private
-   public :: get_pseudo_linear_mesh_parameters, &
-      write_input_text, &
+   public :: write_input_text, &
       write_reference_configuration_results_text, &
       write_test_config_text, &
       write_test_configs_text, &
@@ -22,6 +22,146 @@ module output_text_m
       write_modcore3_text, &
       write_modcore4_text
 contains
+
+subroutine write_input_text(unit, &
+                            atsym, zz, nc, nv, iexc, psfile, &
+                            na, la, fa, &
+                            lmax, &
+                            rc, ep, ncon, nbas, qcut, &
+                            lloc, lpopt, dvloc0, &
+                            nproj, debl, &
+                            icmod, fcfact, rcfact, &
+                            epsh1, epsh2, depsh, &
+                            rlmax, drl, &
+                            ncnf, nvcnf, nacnf, lacnf, facnf, &
+                            ea)
+   implicit none
+   ! Input variables
+   !> Output unit
+   integer, intent(in) :: unit
+   !> Atomic symbol
+   character(len=2), intent(in) :: atsym
+   !> Atomic number
+   real(dp), intent(in) :: zz
+   !> Number of core states
+   integer, intent(in) :: nc
+   !> Number of valence states
+   integer, intent(in) :: nv
+   !> Exchange-correlation functional ID
+   integer, intent(in) :: iexc
+   !> Pseudopotential output type
+   character(len=4), intent(in) :: psfile
+   !> Reference configuration rincipal quantum number array
+   integer, intent(in) :: na(30)
+   !> Reference configuration ngular momentum array
+   integer, intent(in) :: la(30)
+   !> Reference configuration occupation number array
+   real(dp), intent(in) :: fa(30)
+   !> Maximum angular momentum
+   integer, intent(in) :: lmax
+   !> Core radii for each l
+   real(dp), intent(in) :: rc(6)
+   !> Reference energies for each l
+   real(dp), intent(in) :: ep(6)
+   !> Number of constraints for each l
+   integer, intent(in) :: ncon(6)
+   !> Number of basis functions for each l
+   integer, intent(in) :: nbas(6)
+   !> qcut for each l
+   real(dp), intent(in) :: qcut(6)
+   !> l for local potential
+   integer, intent(in) :: lloc
+   !>
+   integer, intent(in) :: lpopt
+   !> Local potential shift at origin
+   real(dp), intent(in) :: dvloc0
+   !> Number of projectors for each l
+   integer, intent(in) :: nproj(6)
+   !> Energy shift for each l
+   real(dp), intent(in) :: debl(6)
+   !> Model core charge type
+   integer, intent(in) :: icmod
+   !> Model core charge scaling factor
+   real(dp), intent(in) :: fcfact
+   !> Model core charge radial scaling factor
+   real(dp), intent(in) :: rcfact
+   !> Log derivative analysis energy minimum
+   real(dp), intent(in) :: epsh1
+   !> Log derivative analysis energy maximum
+   real(dp), intent(in) :: epsh2
+   !> Log derivative analysis energy step
+   real(dp), intent(in) :: depsh
+   !> Maximum radius for output grid
+   real(dp), intent(in) :: rlmax
+   !> Spacing of linear radial mesh
+   real(dp), intent(in) :: drl
+   !> Number of test configurations
+   integer, intent(in) :: ncnf
+   !> Number of valence states for each test configuration
+   integer, intent(in) :: nvcnf(5)
+   !> Principal quantum number array for test configurations
+   integer, intent(in) :: nacnf(30,5)
+   !> Angular momentum array for test configurations
+   integer, intent(in) :: lacnf(30,5)
+   !> Occupation number array for test configurations
+   real(dp), intent(in) :: facnf(30,5)
+   !> Reference configuration all-electron eigenvalue array
+   real(dp), intent(in), optional :: ea(30)
+
+   ! Local variables
+   integer :: ii, jj, l1
+
+   write(unit, '(a)') '# ATOM AND REFERENCE CONFIGURATION'
+   write(unit, '(a)') '# atsym  z   nc   nv     iexc    psfile'
+   write(unit, '(a,a,f6.2,2i5,i8,2a)') '  ', trim(atsym), zz, nc, nv, iexc, '      ', psfile
+   if (present(ea)) then
+      write(unit, '(a/a)') '#','#   n    l    f        energy (Ha)'
+      do ii = 1, nc + nv
+         write(unit, '(2i5,f8.2,1pe18.7)') na(ii), la(ii), fa(ii), ea(ii)
+      end do
+   else
+      write(unit, '(a/a)') '#','#   n    l    f'
+      do ii = 1, nc + nv
+         write(unit, '(2i5,f8.2,1pe18.7)') na(ii), la(ii), fa(ii)
+      end do
+   end if
+
+   write(unit, '(a/a/a)') '#','# PSEUDOPOTENTIAL AND OPTIMIZATION','# lmax'
+   write(unit, '(i5)')  lmax
+   write(unit, '(a/a)') '#','#   l,   rc,      ep,       ncon, nbas, qcut'
+   do l1=1,lmax+1
+      write(unit, '(i5,2f10.5,2i5,f10.5)') l1-1, rc(l1), ep(l1), ncon(l1), nbas(l1), qcut(l1)
+   end do
+
+   write(unit, '(a/a/a,a)') '#','# LOCAL POTENTIAL','# lloc, lpopt,  rc(5),', '   dvloc0'
+   write(unit, '(2i5,f10.5,a,f10.5)') lloc, lpopt, rc(5), '   ', dvloc0
+
+   write(unit, '(a/a/a)') '#','# VANDERBILT-KLEINMAN-BYLANDER PROJECTORs', '# l, nproj, debl'
+   do l1 = 1, lmax + 1
+      write(unit, '(2i5,f10.5)') l1-1, nproj(l1), debl(l1)
+   end do
+
+   write(unit, '(a/a/a)') '#','# MODEL CORE CHARGE', '# icmod, fcfact, rcfact'
+   write(unit, '(i5,2f10.5)') icmod, fcfact, rcfact
+
+   write(unit, '(a/a/a)') '#','# LOG DERIVATIVE ANALYSIS', '# epsh1, epsh2, depsh'
+   write(unit, '(3f8.2)') epsh1, epsh2, depsh
+
+   write(unit, '(a/a/a)') '#','# OUTPUT GRID','# rlmax, drl'
+   write(unit, '(2f8.4)') rlmax, drl
+
+   write(unit, '(a/a/a)') '#','# TEST CONFIGURATIONS','# ncnf'
+   write(unit, '(i5)') ncnf
+   write(unit, '(a/a)') '# nvcnf','#   n    l    f'
+   do jj = 2, ncnf + 1
+      write(unit, '(i5)') nvcnf(jj)
+      do ii = nc + 1, nc + nvcnf(jj)
+         write(unit, '(2i5,f8.2)') nacnf(ii, jj), lacnf(ii, jj), facnf(ii, jj)
+      end do
+      write(unit, '(a)') '#'
+   end do
+
+end subroutine write_input_text
 
 subroutine write_modcore1_text(unit, nv, d2excae, d2excps_no_rhom, d2mdiff_no_rhom, &
                                iter, d2excps_rhom, d2mdiff_rhom)
@@ -232,180 +372,6 @@ subroutine write_modcore4_text(unit, nv, d2excae, d2excps_no_rhom, d2mdiff_no_rh
    end do
    write(unit,'(/a,1p,e16.6)') 'rms 2nd derivative error',d2mdiff_rhom
 end subroutine write_modcore4_text
-
-subroutine get_pseudo_linear_mesh_parameters(mmax, rr, lmax, irc, drl, nrl, n1, n2, n3, n4)
-   implicit none
-   ! Input variables
-   !> Size of radial grid
-   integer, intent(in) :: mmax
-   !> Log radial grid
-   real(dp), intent(in) :: rr(mmax)
-   !> Maximum angular momentum
-   integer, intent(in) :: lmax
-   !> Indices of core radii on the logarithmic radial mesh
-   integer, intent(in) :: irc(6)
-   !> Spacing of linear radial mesh
-   real(dp), intent(in) :: drl
-   !> Number of points in linear radial mesh
-   integer, intent(in) :: nrl
-
-   ! Output variables
-   integer, intent(out) :: n1, n2, n3, n4
-
-   ! Local variables
-   integer :: l1
-   real(dp) :: al
-
-   al = 0.01_dp * log(rr(101) / rr(1))
-   n1 = int(log(drl / rr(1)) / al + 1.0_dp)
-   n2 = int(log(real(nrl, dp) * drl / rr(1)) / al + 1.0_dp)
-   n3 = 0
-   do l1 = 1, lmax + 1
-      n3 = max(n3, irc(l1) - 1)
-   end do
-   n4 = min(n2, int(log((rr(n3) + 1.0_dp) / rr(1)) / al))
-   n3 = int(log(1.1_dp * rr(n3) / rr(1)) / al + 1.0d0)
-end subroutine get_pseudo_linear_mesh_parameters
-
-subroutine write_input_text(unit, &
-                            atsym, zz, nc, nv, iexc, psfile, &
-                            na, la, fa, &
-                            lmax, &
-                            rc, ep, ncon, nbas, qcut, &
-                            lloc, lpopt, dvloc0, &
-                            nproj, debl, &
-                            icmod, fcfact, rcfact, &
-                            epsh1, epsh2, depsh, &
-                            rlmax, drl, &
-                            ncnf, nvcnf, nacnf, lacnf, facnf, &
-                            ea)
-   implicit none
-   ! Input variables
-   !> Output unit
-   integer, intent(in) :: unit
-   !> Atomic symbol
-   character(len=2), intent(in) :: atsym
-   !> Atomic number
-   real(dp), intent(in) :: zz
-   !> Number of core states
-   integer, intent(in) :: nc
-   !> Number of valence states
-   integer, intent(in) :: nv
-   !> Exchange-correlation functional ID
-   integer, intent(in) :: iexc
-   !> Pseudopotential output type
-   character(len=4), intent(in) :: psfile
-   !> Reference configuration rincipal quantum number array
-   integer, intent(in) :: na(30)
-   !> Reference configuration ngular momentum array
-   integer, intent(in) :: la(30)
-   !> Reference configuration occupation number array
-   real(dp), intent(in) :: fa(30)
-   !> Maximum angular momentum
-   integer, intent(in) :: lmax
-   !> Core radii for each l
-   real(dp), intent(in) :: rc(6)
-   !> Reference energies for each l
-   real(dp), intent(in) :: ep(6)
-   !> Number of constraints for each l
-   integer, intent(in) :: ncon(6)
-   !> Number of basis functions for each l
-   integer, intent(in) :: nbas(6)
-   !> qcut for each l
-   real(dp), intent(in) :: qcut(6)
-   !> l for local potential
-   integer, intent(in) :: lloc
-   !>
-   integer, intent(in) :: lpopt
-   !> Local potential shift at origin
-   real(dp), intent(in) :: dvloc0
-   !> Number of projectors for each l
-   integer, intent(in) :: nproj(6)
-   !> Energy shift for each l
-   real(dp), intent(in) :: debl(6)
-   !> Model core charge type
-   integer, intent(in) :: icmod
-   !> Model core charge scaling factor
-   real(dp), intent(in) :: fcfact
-   !> Model core charge radial scaling factor
-   real(dp), intent(in) :: rcfact
-   !> Log derivative analysis energy minimum
-   real(dp), intent(in) :: epsh1
-   !> Log derivative analysis energy maximum
-   real(dp), intent(in) :: epsh2
-   !> Log derivative analysis energy step
-   real(dp), intent(in) :: depsh
-   !> Maximum radius for output grid
-   real(dp), intent(in) :: rlmax
-   !> Spacing of linear radial mesh
-   real(dp), intent(in) :: drl
-   !> Number of test configurations
-   integer, intent(in) :: ncnf
-   !> Number of valence states for each test configuration
-   integer, intent(in) :: nvcnf(5)
-   !> Principal quantum number array for test configurations
-   integer, intent(in) :: nacnf(30,5)
-   !> Angular momentum array for test configurations
-   integer, intent(in) :: lacnf(30,5)
-   !> Occupation number array for test configurations
-   real(dp), intent(in) :: facnf(30,5)
-   !> Reference configuration all-electron eigenvalue array
-   real(dp), intent(in), optional :: ea(30)
-
-   ! Local variables
-   integer :: ii, jj, l1
-
-   write(unit, '(a)') '# ATOM AND REFERENCE CONFIGURATION'
-   write(unit, '(a)') '# atsym  z   nc   nv     iexc    psfile'
-   write(unit, '(a,a,f6.2,2i5,i8,2a)') '  ', trim(atsym), zz, nc, nv, iexc, '      ', psfile
-   if (present(ea)) then
-      write(unit, '(a/a)') '#','#   n    l    f        energy (Ha)'
-      do ii = 1, nc + nv
-         write(unit, '(2i5,f8.2,1pe18.7)') na(ii), la(ii), fa(ii), ea(ii)
-      end do
-   else
-      write(unit, '(a/a)') '#','#   n    l    f'
-      do ii = 1, nc + nv
-         write(unit, '(2i5,f8.2,1pe18.7)') na(ii), la(ii), fa(ii)
-      end do
-   end if
-
-   write(unit, '(a/a/a)') '#','# PSEUDOPOTENTIAL AND OPTIMIZATION','# lmax'
-   write(unit, '(i5)')  lmax
-   write(unit, '(a/a)') '#','#   l,   rc,      ep,       ncon, nbas, qcut'
-   do l1=1,lmax+1
-      write(unit, '(i5,2f10.5,2i5,f10.5)') l1-1, rc(l1), ep(l1), ncon(l1), nbas(l1), qcut(l1)
-   end do
-
-   write(unit, '(a/a/a,a)') '#','# LOCAL POTENTIAL','# lloc, lpopt,  rc(5),', '   dvloc0'
-   write(unit, '(2i5,f10.5,a,f10.5)') lloc, lpopt, rc(5), '   ', dvloc0
-
-   write(unit, '(a/a/a)') '#','# VANDERBILT-KLEINMAN-BYLANDER PROJECTORs', '# l, nproj, debl'
-   do l1 = 1, lmax + 1
-      write(unit, '(2i5,f10.5)') l1-1, nproj(l1), debl(l1)
-   end do
-
-   write(unit, '(a/a/a)') '#','# MODEL CORE CHARGE', '# icmod, fcfact, rcfact'
-   write(unit, '(i5,2f10.5)') icmod, fcfact, rcfact
-
-   write(unit, '(a/a/a)') '#','# LOG DERIVATIVE ANALYSIS', '# epsh1, epsh2, depsh'
-   write(unit, '(3f8.2)') epsh1, epsh2, depsh
-
-   write(unit, '(a/a/a)') '#','# OUTPUT GRID','# rlmax, drl'
-   write(unit, '(2f8.4)') rlmax, drl
-
-   write(unit, '(a/a/a)') '#','# TEST CONFIGURATIONS','# ncnf'
-   write(unit, '(i5)') ncnf
-   write(unit, '(a/a)') '# nvcnf','#   n    l    f'
-   do jj = 2, ncnf + 1
-      write(unit, '(i5)') nvcnf(jj)
-      do ii = nc + 1, nc + nvcnf(jj)
-         write(unit, '(2i5,f8.2)') nacnf(ii, jj), lacnf(ii, jj), facnf(ii, jj)
-      end do
-      write(unit, '(a)') '#'
-   end do
-
-end subroutine write_input_text
 
 subroutine write_reference_configuration_results_text(unit, it, itmax, etot)
    implicit none

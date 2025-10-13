@@ -31,7 +31,8 @@ set(src_liboncvpsp
     m_psmlout.f90
     modcore1_m.f90
     modcore2_m.f90
-    modcore3_m.F90
+    modcore3_m.f90
+    modcore4_m.f90
     optimize.f90
     pspot.f90
     qroots.f90
@@ -51,6 +52,7 @@ set(src_liboncvpsp
     wf_rc_der.f90
     output_text_m.f90
     input_text_m.f90
+    utils_m.f90
 )
 if (Libxc_FOUND)
     list(APPEND src_liboncvpsp functionals.F90 exc_libxc.f90)
@@ -63,7 +65,7 @@ if (WITH_HDF5 AND HDF5_FOUND)
     find_package(HDF5 COMPONENTS Fortran HL REQUIRED)
 endif()
 if (WITH_TOML)
-    list(APPEND src_liboncvpsp input_toml_m.F90)
+    list(APPEND src_liboncvpsp input_toml_m.f90)
     add_compile_definitions(WITH_TOML)
 endif()
 add_library(liboncvpsp STATIC ${src_liboncvpsp})
