@@ -2,17 +2,17 @@
 ! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -38,10 +38,10 @@
  integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
+ integer :: mmax
  real(dp) :: rr(mmax),vv(mmax)
  real(dp) :: zz
  integer :: nn,ll
- integer :: mmax
  logical :: srel
 
 !Output variables
@@ -55,7 +55,7 @@
  real(dp) :: de,emax,emin
  real(dp) :: eps,fss,tfss,gamma,ro,sc
  real(dp) :: sls,sn,cn,uout,upin,upout,xkap
- real(dp) :: amesh,al,xx
+ real(dp) :: amesh,al
  integer :: ii,it,nint,node,nin
 
  real(dp), allocatable :: upp(:),cf(:),dv(:),fr(:),frp(:)
@@ -113,12 +113,12 @@
 
 ! return point for bound state convergence
  do nint=1,60
-  
+
 ! coefficient array for u in differential eq.
    do ii=1,mmax
      cf(ii)=als*sls + 2.0d0*als*(vv(ii)-ee)*rr(ii)**2
    end do
-  
+
 ! calculate dv/dr for darwin correction
    dv(:)=0.0d0
 
@@ -126,12 +126,12 @@
 &         -6.d0*vv(5))/(24.d0*al*rr(1))
    dv(2)=(-6.d0*vv(1)-20.d0*vv(2)+36.d0*vv(3)-12.d0*vv(4) &
 &         +2.d0*vv(5))/(24.d0*al*rr(2))
-  
+
    do ii=3,mmax-2
      dv(ii)=(2.d0*vv(ii-2)-16.d0*vv(ii-1)+16.d0*vv(ii+1) &
 &          -2.d0*vv(ii+2))/(24.d0*al*rr(ii))
    end do
-  
+
 !  relativistic coefficient arrays for u (fr) and up (frp).
    do ii=1,mmax
      tfss=fss
@@ -139,7 +139,7 @@
 &     (rr(ii)*(1.0d0+0.5d0*tfss*(ee-vv(ii)))))
      frp(ii)=-al*rr(ii)*0.5d0*tfss*dv(ii)/(1.0d0+0.5d0*tfss*(ee-vv(ii)))
    end do
-  
+
 ! find classical turning point for matching
    mch=0
    do ii=mmax,2,-1
@@ -153,19 +153,19 @@
     ierr=-1
     return
    end if
-  
+
 ! start wavefunction with series
-  
+
    do ii=1,4
      uu(ii)=rr(ii)**gamma
      up(ii)=al*gamma*rr(ii)**gamma
      upp(ii)=(al+frp(ii))*up(ii)+(cf(ii)+fr(ii))*uu(ii)
    end do
-  
+
 ! outward integration using predictor once, corrector
 ! twice
    node=0
-  
+
    do ii=4,mch-1
      uu(ii+1)=uu(ii)+aeo(up,ii)
      up(ii+1)=up(ii)+aeo(upp,ii)
@@ -176,28 +176,28 @@
      end do
      if(uu(ii+1)*uu(ii) .le. 0.0d0) node=node+1
    end do
-  
+
    uout=uu(mch)
    upout=up(mch)
-  
-  
+
+
    if(node-nn+ll+1==0) then
-  
+
 ! start inward integration at 10*classical turning
 ! point with simple exponential
-  
+
      nin=mch+2.3d0/al
      if(nin+4>mmax) nin=mmax-4
      xkap=dsqrt(sls/rr(nin)**2 + 2.0d0*(vv(nin)-ee))
-  
+
      do ii=nin,nin+4
        uu(ii)=exp(-xkap*(rr(ii)-rr(nin)))
        up(ii)=-rr(ii)*al*xkap*uu(ii)
        upp(ii)=(al+frp(ii))*up(ii)+(cf(ii)+fr(ii))*uu(ii)
      end do
-  
+
 ! integrate inward
-  
+
      do ii=nin,mch+1,-1
        uu(ii-1)=uu(ii)+aei(up,ii)
        up(ii-1)=up(ii)+aei(upp,ii)
@@ -207,38 +207,38 @@
          uu(ii-1)=uu(ii)+aii(up,ii)
        end do
      end do
-  
+
 ! scale outside wf for continuity
-  
+
      sc=uout/uu(mch)
-  
+
      do ii=mch,nin
        up(ii)=sc*up(ii)
        uu(ii)=sc*uu(ii)
      end do
-  
+
      upin=up(mch)
-  
+
 ! perform normalization sum
-  
+
      ro=rr(1)/dsqrt(amesh)
      sn=ro**(2.0d0*gamma+1.0d0)/(2.0d0*gamma+1.0d0)
-  
+
      do ii=1,nin-3
        sn=sn+al*rr(ii)*uu(ii)**2
      end do
-  
+
      sn=sn + al*(23.0d0*rr(nin-2)*uu(nin-2)**2 &
 &              + 28.0d0*rr(nin-1)*uu(nin-1)**2 &
 &              +  9.0d0*rr(nin  )*uu(nin  )**2)/24.0d0
-  
+
 ! normalize u
-  
+
      cn=1.0d0/dsqrt(sn)
      uout=cn*uout
      upout=cn*upout
      upin=cn*upin
-  
+
      do ii=1,nin
        up(ii)=cn*up(ii)
        uu(ii)=cn*uu(ii)
@@ -246,37 +246,37 @@
      do ii=nin+1,mmax
        uu(ii)=0.0d0
      end do
-  
+
 ! perturbation theory for energy shift
-  
+
      de=0.5d0*uout*(upout-upin)/(al*rr(mch))
-  
+
 ! convergence test and possible exit
-  
+
      if(dabs(de)<dmax1(dabs(ee),0.2d0)*eps) then
        ierr = 0
        exit
      end if
-  
-     if(de>0.0d0) then 
+
+     if(de>0.0d0) then
        emin=ee
      else
        emax=ee
      end if
      ee=ee+de
      if(ee>emax .or. ee<emin) ee=0.5d0*(emax+emin)
-  
+
    else if(node-nn+ll+1<0) then
 ! too few nodes
      emin=ee
      ee=0.5d0*(emin+emax)
-  
+
    else
 ! too many nodes
      emax=ee
      ee=0.5d0*(emin+emax)
    end if
-  
+
  end do
 
 !fix sign to be positive at rr->oo

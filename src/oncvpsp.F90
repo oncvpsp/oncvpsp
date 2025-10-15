@@ -60,9 +60,12 @@ program oncvpsp
 #if (defined WITH_HDF5)
    use hdf5_utils_m, only: HID_T, hdf_open_file, hdf_close_file
    use output_hdf5_m, only: do_hdf5, hdf5_file_id
-   use output_hdf5_m, only: write_input_hdf5
-   use output_hdf5_m, only: write_reference_configuration_results_hdf5
-   use output_hdf5_m, only: write_output_hdf5
+   use output_hdf5_m, only: write_input_hdf5, &
+      write_log_mesh_hdf5, &
+      write_sratom_hdf5, &
+      write_optimize_inputs_hdf5, &
+      write_reference_configuration_results_hdf5, &
+      write_output_hdf5
 #endif
    implicit none
 
@@ -117,7 +120,10 @@ program oncvpsp
    real(dp), allocatable :: uupsa(:,:) !pseudo-atomic orbitals array
    real(dp), allocatable :: epa(:,:),fpa(:,:)
    real(dp), allocatable :: uua(:,:),upa(:,:)
+   real(dp), allocatable :: usratom(:,:), upsratom(:,:)
    real(dp), allocatable :: vr(:,:,:)
+
+   logical :: isboundpa(mxprj)
 
    ! Model core charge optimization variables
    !> Model core charge density and its first n derivatives
@@ -290,7 +296,9 @@ program oncvpsp
             write (stdout, '(a)') 'Options:'
             write (stdout, '(a)') '  -h, --help       Show this help message and exit'
             write (stdout, '(a)') '  -v, --version    Show version information and exit'
-            write (stdout, '(a)') '  -i, --input      Specify input file (TOML). For legacy input, use stdin.'
+            write (stdout, '(a)') '  -i, --input      Specify input file (text). For legacy input, use stdin.'
+            write (stdout, '(a)') '  -t, --toml-input Specify input file (toml)'
+
             stop 0
           case('-v', '--version')
             write (stdout, '(a)') 'ONCVPSP (scalar-realtivistic) version 4.0.1'
@@ -407,17 +415,17 @@ program oncvpsp
 
    nrl=int((rlmax/drl)-0.5d0)+1
 
-!PWSCF wants an even number of mesh pointe
-!if(trim(psfile)=='upf') then
+   ! PWSCF wants an even number of mesh points
+   ! if(trim(psfile)=='upf') then
    if(mod(nrl,2)/=0) nrl=nrl+1
-!end if
+   ! end if
 
    al=dlog(amesh)
    rr1=0.0005d0/zz
    rr1=dmin1(rr1,0.0005d0/10)
    mmax=dlog(45.0d0 /rr1)/al
 
-!calculate zion for output
+   ! calculate zion for output
    zion=zz
    do ii=1,nc
       zion=zion-fa(ii)
@@ -438,6 +446,7 @@ program oncvpsp
    allocate(uua(mmax,mxprj),upa(mmax,mxprj))
    allocate(vr(mmax,mxprj,6))
    allocate(uu_ae(mmax,mxprj,4), up_ae(mmax,mxprj,4), uu_ps(mmax,mxprj,4), up_ps(mmax,mxprj,4))
+   allocate(usratom(mmax,nc+nv), upsratom(mmax,nc+nv))
 
    vr(:,:,:)=0.0d0
    vp(:,:)=0.0d0
@@ -447,16 +456,22 @@ program oncvpsp
    do ii=1,mmax
       rr(ii)=rr1*exp(al*(ii-1))
    end do
-
-!
-! full potential atom solution
-!
+   call write_log_mesh_hdf5(hdf5_file_id, mmax, rr)
+   !
+   ! full potential atom solution
+   !
    call sratom(na,la,ea,fa,rpk,nc,nc+nv,it,rhoc,rho, &
-      &              rr,vfull,zz,mmax,iexc,etot,ierr,srel)
-!
-!
+      &           rr,vfull,vxc,zz,mmax,iexc,etot,ierr,srel,usratom,upsratom)
+   call write_sratom_hdf5(hdf5_file_id, &
+                          nc, nv, &
+                          na, la, fa, &
+                          mmax, rr, &
+                          vfull, vxc, &
+                          rhoc, rho, &
+                          usratom, upsratom, &
+                          rpk, ea, etot)
 
-! Drop digits beyond 5 decimals for input rcs before making any use of them
+   ! Drop digits beyond 5 decimals for input rcs before making any use of them
    do l1=1,max(lmax+1,lloc+1)
       jj=int(rc(l1)*10.0d5)
       rc(l1)=jj/10.0d5
@@ -475,8 +490,7 @@ program oncvpsp
    nproj(lloc+1)=0
    rc0(:)=rc(:)
 
-! output printing (echos input data, with all-electron eigenvalues added)
-
+   ! output printing (echos input data, with all-electron eigenvalues added)
    call write_input_text(stdout, &
                          atsym, zz, nc, nv, iexc, psfile, &
                          na, la, fa, &
@@ -510,7 +524,7 @@ program oncvpsp
    end if
 #endif
 
-!find log mesh point nearest input rc
+   ! find log mesh point nearest input rc
    rcmax=0.0d0
    irc(:)=0
    do l1=1,max(lmax+1,lloc+1)
@@ -526,29 +540,29 @@ program oncvpsp
       rcmax=dmax1(rcmax,rc(l1))
    end do
 
-!
    cvgplt(:,:,:,:)=0.0d0
-!
-! loop to construct pseudopotentials for all angular momenta
-!
+   uua(:, :)=0.0d0
+   upa(:, :)=0.0d0
+   !
+   ! loop to construct pseudopotentials for all angular momenta
+   !
    write(6,'(/a/a)') 'Begin loop to  construct optimized pseudo wave functions',&
       &      'and semi-local pseudopoentials for all angular momenta'
-
-!temporarily set this to 1 so that the pseudo wave function needed for the
-!local potential will be generated.  Reset after run_vkb.
+   ! temporarily set this to 1 so that the pseudo wave function needed for the
+   ! local potential will be generated.  Reset after run_vkb.
    nproj(lloc+1)=1
    do l1=1,lmax+1
       ll=l1-1
-      uu(:)=0.0d0; qq(:,:)=0.0d0
+      uu(:)=0.0d0; up(:)=0.d0; qq(:,:)=0.0d0; isboundpa(:)=.false.
       iprj=0
 
-!get principal quantum number for the highest core state for this l
+      ! get principal quantum number for the highest core state for this l
       npa(1,l1)=l1
       do kk=1,nc
          if(la(kk)==l1-1) npa(1,l1)=na(kk)+1
       end do !kk
 
-!get all-electron bound states for projectors
+      ! get all-electron bound states for projectors
       if(nv/=0) then
          do kk=nc+1,nc+nv
             if(la(kk)==l1-1) then
@@ -557,7 +571,7 @@ program oncvpsp
                call lschfb(na(kk),la(kk),ierr,et, &
                   &                      rr,vfull,uu,up,zz,mmax,mch,srel)
                if(ierr /= 0) then
-                  write(6,'(/a,3i4)') 'oncvpsp-387: lschfb convergence ERROR n,l,iter=', &
+                  write(6,'(/a,3i4)') 'oncvpsp: lschfb convergence ERROR n,l,iter=', &
                      &           na(ii),la(ii),it
                   stop
                end if
@@ -565,14 +579,15 @@ program oncvpsp
                npa(iprj,l1)=na(kk)
                uua(:,iprj)=uu(:)
                upa(:,iprj)=up(:)
+               isboundpa(iprj)=.true.
             end if !la(kk)==l1-1
             if(iprj==nproj(l1)) exit
          end do !kk
       end if !nv/=0
 
-!get all-electron well states for projectors
-!if there were no valence states, use ep from input data for 1st well state
-!otherwise shift up by input debl
+      ! get all-electron well states for projectors
+      ! if there were no valence states, use ep from input data for 1st well state
+      ! otherwise shift up by input debl
       if(iprj==0) epa(1,l1)=ep(l1)
       if(iprj<nproj(l1))then
          do kk=1,nproj(l1)-iprj
@@ -592,18 +607,27 @@ program oncvpsp
                &                     vfull,uu,up,zz,mmax,mch,srel)
             uua(:,iprj)=uu(:)
             upa(:,iprj)=up(:)
+            isboundpa(iprj)=.false.
          end do !kk
       end if !iprj<nproj(l1)
 
+      call write_optimize_inputs_hdf5(hdf5_file_id, &
+                                      mxprj, ll, nproj(l1), &
+                                      npa(:, l1), epa(:, l1), &
+                                      mmax, &
+                                      uua, upa, &
+                                      vr(:, :, l1), &
+                                      isboundpa)
+
       do iprj=1,nproj(l1)
 
-!calculate relativistic correction to potential to force projectors to 0 at rc
+         ! calculate relativistic correction to potential to force projectors to 0 at rc
          call vrel(ll,epa(iprj,l1),rr,vfull,vr(1,iprj,l1),uua(1,iprj),upa(1,iprj), &
-            &              zz,mmax,irc(l1),srel)
+                   zz,mmax,irc(l1),srel)
 
       end do
 
-!get all-electron overlap matrix
+      ! get all-electron overlap matrix
       do jj=1,nproj(l1)
          do ii=1,jj
             call fpovlp(uua(1,ii),uua(1,jj),irc(l1),ll,zz,qq(ii,jj),rr,srel)
@@ -612,30 +636,28 @@ program oncvpsp
       end do
 
       call run_optimize(epa(1,l1),ll,mmax,mxprj,rr,uua,qq, &
-         &                    irc(l1),qcut(l1),qmsbf(l1),ncon(l1),nbas(l1),nproj(l1), &
-         &                    pswf(1,1,l1),vp(1,l1),vkb(1,1,l1),vfull,cvgplt(1,1,1,l1))
+                        irc(l1),qcut(l1),qmsbf(l1),ncon(l1),nbas(l1),nproj(l1), &
+                        pswf(1,1,l1),vp(1,l1),vkb(1,1,l1),vfull,cvgplt(1,1,1,l1))
 
    end do !l1
 
-! construct Vanderbilt / Kleinman-Bylander projectors
-
+   ! construct Vanderbilt / Kleinman-Bylander projectors
    write(6,'(/a,a)') 'Construct Vanderbilt / Kleinmman-Bylander projectors'
-
    call run_vkb(lmax,lloc,lpopt,dvloc0,irc,nproj,rr,mmax,mxprj,pswf,vfull,vp, &
-      &             evkb,vkb,nlim,vr)
+                evkb,vkb,nlim,vr)
 
-!restore this to its proper value
+   ! restore this to its proper value
    nproj(lloc+1)=0
 
    deallocate(uua,upa)
 
-! accumulate charge and eigenvalues
-! pseudo wave functions are calculated with VKB projectors for
-! maximum consistency of unscreening
-! get all-electron and pseudopotential valence-state by valence-state
-! charge densities
+   ! accumulate charge and eigenvalues
+   ! pseudo wave functions are calculated with VKB projectors for
+   ! maximum consistency of unscreening
+   ! get all-electron and pseudopotential valence-state by valence-state
+   ! charge densities
 
-! null charge and eigenvalue accumulators
+   ! null charge and eigenvalue accumulators
    uupsa(:,:)=0.0d0
    eeig=0.0d0
    zval=0.0d0
@@ -645,41 +667,42 @@ program oncvpsp
    irps=0
    do kk=1,nv
 
+      ! Get all-electron valence state
       et=ea(nc+kk)
       ll=la(nc+kk)
       l1=ll+1
       call lschfb(na(nc+kk),ll,ierr,et, &
-         &                rr,vfull,uu,up,zz,mmax,mch,srel)
+                  rr,vfull,uu,up,zz,mmax,mch,srel)
       if(ierr /= 0) then
-         write(6,'(/a,3i4)') 'oncvpsp-461: lschfb convergence ERROR n,l,iter=', &
+         write(6,'(/a,3i4)') 'oncvpsp: lschfb convergence ERROR n,l,iter=', &
             &     na(ii),la(ii),it
          stop
       end if
 
+      ! Accumulate all-electron charge density
       rhoae(:,kk)=(uu(:)/rr(:))**2
-
       rhotae(:)=rhotae(:) + fa(nc+kk)*rhoae(:,kk)
 
+      ! Get pseudo valence state
       emax=0.75d0*et
       emin=1.25d0*et
-
       call lschvkbb(ll+nodes(l1)+1,ll,nproj(l1),ierr,et,emin,emax, &
-         &                rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
-         &                uu,up,mmax,mch)
-
+                    rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
+                    uu,up,mmax,mch)
       if(ierr/=0) then
          write(6,'(a,3i4)') 'oncvpsp: lschvkbb ERROR',ll+nodes(l1)+1,ll,ierr
          flush(6)
          stop
       end if
 
-! save valence pseudo wave functions for upfout
+      ! save valence pseudo wave functions for upfout
       uupsa(:,kk)=uu(:)
 
+      ! Accumulate pseudo charge density
       rhops(:,kk)=(uu(:)/rr(:))**2
       rho(:)=rho(:)+fa(nc+kk)*rhops(:,kk)
-      eeig=eeig+fa(nc+kk)*et
 
+      eeig=eeig+fa(nc+kk)*et
       zval=zval+fa(nc+kk)
       nodes(l1)=nodes(l1)+1
       irps=max(irps,irc(l1))
@@ -746,15 +769,17 @@ program oncvpsp
     case default
    end select
 
-   ! Compute d2Exc with core charge = true AE core charge
-   call der2exc(rhotae, rhoc, rhoae, rr, d2excae, d2exc_dummy, d2exc_rmse_dummy, &
-                zion, iexc, nc, nv, la, irmod, mmax)
-   ! Compute d2Exc with core charge = 0
-   call der2exc(rho, rhozero, rhops, rr, d2excps_no_rhom, d2excae, d2exc_rmse_no_rhom, &
-                zion, iexc, nc, nv, la, irmod, mmax)
-   ! Compute d2Exc with core charge = model core charge
-   call der2exc(rho, rhomod(:, 1), rhops, rr, d2excps_rhom, d2excae, d2exc_rmse_rhom, &
-                zion, iexc, nc, nv, la, irmod, mmax)
+   if (icmod > 0) then
+      ! Compute d2Exc with core charge = true AE core charge
+      call der2exc(rhotae, rhoc, rhoae, rr, d2excae, d2exc_dummy, d2exc_rmse_dummy, &
+                   zion, iexc, nc, nv, la, irmod, mmax)
+      ! Compute d2Exc with core charge = 0
+      call der2exc(rho, rhozero, rhops, rr, d2excps_no_rhom, d2excae, d2exc_rmse_no_rhom, &
+                   zion, iexc, nc, nv, la, irmod, mmax)
+      ! Compute d2Exc with core charge = model core charge
+      call der2exc(rho, rhomod(:, 1), rhops, rr, d2excps_rhom, d2excae, d2exc_rmse_rhom, &
+                   zion, iexc, nc, nv, la, irmod, mmax)
+   end if
 
    ! Write output
    select case (icmod)
@@ -872,6 +897,7 @@ program oncvpsp
                              vkb, evkb, &  ! KB projectors
                              rpsh, npsh, epsh1, epsh2, depsh, epsh, pshf, pshp, & ! phase shift / log derivative
                              cvgplt)  ! convergence profiles
+      call hdf_close_file(hdf5_file_id)
    end if
 #endif
 

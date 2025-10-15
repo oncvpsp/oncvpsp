@@ -96,7 +96,6 @@ subroutine modcore3(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
    do ii=1,mmax
       yy=rr(ii)/xx(2,1)
       call gg1cc(gg,yy)
-      tt=(rr(ii)-r0-2.0d0*rr(ircross))/(r0-rr(ircross))
 
       rhomod(ii,1)=xx(1,1)*gg
       if(ii<ircross) then

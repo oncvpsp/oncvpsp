@@ -121,11 +121,11 @@ subroutine run_config(jj,nacnf,lacnf,facnf,nc,nvcnf,rhov,rhomod,rr,zz, &
    real(dp) :: et
    real(dp) :: rpk(30),fatp(30,3)
 
-   real(dp),allocatable :: rho(:),rhoc(:),rhocps(:),vi(:),vfull(:)
-   real(dp),allocatable :: uu(:),up(:)
+   real(dp),allocatable :: rho(:),rhoc(:),rhocps(:),vi(:),vfull(:),vxc(:)
+   real(dp),allocatable :: uu(:),up(:),uae(:,:),upae(:,:)
 
-   allocate(rho(mmax),rhoc(mmax),vi(mmax),vfull(mmax),rhocps(mmax))
-   allocate(uu(mmax),up(mmax))
+   allocate(rho(mmax),rhoc(mmax),vi(mmax),vfull(mmax),vxc(mmax),rhocps(mmax))
+   allocate(uu(mmax),up(mmax),uae(mmax,30),upae(mmax,30))
 
    ! set up pseudo atom arrays
    ! arrange data arrays for adiabatic configufation switching of pseudo atom
@@ -187,7 +187,7 @@ subroutine run_config(jj,nacnf,lacnf,facnf,nc,nvcnf,rhov,rhomod,rr,zz, &
    ! all-electron atom solution for maximally-ionized state
 
    call sratom(nat,lat,eat(1,2),fat(1,2),rpk,nc,nc+nvt,it,rhoc,rho, &
-      &            rr,vfull,zz,mmax,iexc,eaetst,ierr,srel)
+      &        rr,vfull,vxc,zz,mmax,iexc,eaetst,ierr,srel,uae,upae)
    if(ierr/=0) then
       write(stdout,'(a/a,i2)') 'run_config: WARNING  for AE atom,', &
          &       ' WARNING no output for configuration',jj
@@ -226,7 +226,7 @@ subroutine run_config(jj,nacnf,lacnf,facnf,nc,nvcnf,rhov,rhomod,rr,zz, &
    ! all-electron atom solution for excited state
 
    call sratom(nat,lat,eat(1,3),fat(1,3),rpk,nc,nc+nvt,it,rhoc,rho, &
-      &            rr,vfull,zz,mmax,iexc,eaetst,ierr,srel)
+      &        rr,vfull,vxc,zz,mmax,iexc,eaetst,ierr,srel,uae,upae)
    if(ierr/=0) then
       write(stdout,'(a/a,i2)') 'run_config: WARNING  for AE atom,', &
          &       ' WARNING no output for configuration',jj
@@ -314,7 +314,7 @@ subroutine run_config(jj,nacnf,lacnf,facnf,nc,nvcnf,rhov,rhomod,rr,zz, &
    ! write(stdout,'(a,1p,d10.2)') '      PSP excitation error=', &
    !    & eaetst-etot-etsttot+epstot
 
-   deallocate(rho,rhoc,rhocps,vi,vfull)
-   deallocate(uu,up)
+   deallocate(rho,rhoc,rhocps,vi,vfull,vxc)
+   deallocate(uu,up,uae,upae)
    return
 end subroutine run_config

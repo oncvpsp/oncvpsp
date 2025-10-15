@@ -28,7 +28,7 @@ module hdf5_utils_m
    use hdf5, only: h5screate_f, h5screate_simple_f, h5sget_simple_extent_dims_f, h5sget_simple_extent_ndims_f, &
       h5sget_simple_extent_npoints_f, h5sselect_hyperslab_f, h5sclose_f
    ! HDF5 dimension scales
-   use h5ds, only: h5dsset_scale_f, h5dsattach_scale_f, h5dsset_label_f
+   use h5ds, only: h5dsis_scale_f, h5dsset_scale_f, h5dsattach_scale_f, h5dsset_label_f
    implicit none
 
    private
@@ -36,7 +36,7 @@ module hdf5_utils_m
    public :: hdf_open_file, hdf_close_file
    public :: hdf_create_group, hdf_open_group, hdf_close_group
    public :: hdf_exists, hdf_get_rank, hdf_get_dims
-   public :: hdf_set_data_scale, hdf_attach_data_scale, hdf_label_dim
+   public :: hdf_set_dimension_scale, hdf_attach_dimension_scale, hdf_label_dim
    public :: hdf_write_dataset, hdf_read_dataset
    public :: hdf_write_attribute, hdf_read_attribute
    public :: hdf_create_dataset
@@ -457,7 +457,7 @@ subroutine hdf_label_dim(loc_id, dset_name, dim_idx, dim_label)
    call h5dclose_f(dset_id, hdferror)
 end subroutine hdf_label_dim
 
-subroutine hdf_set_data_scale(loc_id, dset_name, dscale_name)
+subroutine hdf_set_dimension_scale(loc_id, dset_name, dscale_name)
    !>   Convert a dataset to a dimension scale, with optional name `dscale_name`
    integer(HID_T), intent(in) :: loc_id        !> local id in file
    character(len=*), intent(in) :: dset_name   !> name of dataset
@@ -472,55 +472,84 @@ subroutine hdf_set_data_scale(loc_id, dset_name, dscale_name)
 
    ! open dataset
    call h5dopen_f(loc_id, dset_name, dset_id, hdferror)
+   if (hdferror /= 0) then
+      write(*, '(A)') "hdf_set_data_scale: unable to open dataset " // trim(dset_name)
+   end if
 
    ! set as dimension scale
    if (present(dscale_name)) then
       call h5dsset_scale_f(dset_id, hdferror, dscale_name)
+      if (hdferror /= 0) then
+         write(*, '(A)') "hdf_set_data_scale: unable to set dataset " // trim(dset_name) // &
+            " as dimension scale with name " // trim(dscale_name)
+      end if
    else
       call h5dsset_scale_f(dset_id, hdferror, '')
+      if (hdferror /= 0) then
+         write(*, '(A)') "hdf_set_data_scale: unable to set dataset " // trim(dset_name) // " as dimension scale"
+      end if
    end if
 
    ! close id's
    call h5dclose_f(dset_id, hdferror)
 
-end subroutine hdf_set_data_scale
+end subroutine hdf_set_dimension_scale
 
-subroutine hdf_attach_data_scale(dscale_loc_id, dscale_name, dset_loc_id, dset_name, dim_idx)
-   !>   Attach a dimension scale to a dataset
-   integer(HID_T), intent(in) :: dscale_loc_id        !> local id in file
+!>   Attach a dimension scale to a dataset
+subroutine hdf_attach_dimension_scale(dscale_loc_id, dscale_name, dset_loc_id, dset_name, dim_idx)
+   integer(HID_T), intent(in) :: dscale_loc_id  !> location id in file
    character(len=*), intent(in) :: dscale_name  !> name of dimension scale
-   integer(HID_T), intent(in) :: dset_loc_id        !> local id in file
-   character(len=*), intent(in) :: dset_name   !> name of dataset
-   integer, intent(in), optional :: dim_idx  !> index of dimension to attach scale to (default: 1)
+   integer(HID_T), intent(in) :: dset_loc_id  !> location id in file
+   character(len=*), intent(in) :: dset_name  !> name of dataset
+   integer, intent(in), optional :: dim_idx  !> index of dimension to attach scale to (0-based, default=1 (columns))
 
    integer(HID_T) :: dset_id, dscale_id
+   logical :: is_scale
    integer :: idx
    integer :: hdferror
 
    if (.not. present(dim_idx)) then
-      idx = 0
+      idx = 1
    else
       idx = dim_idx
    end if
 
    if (hdf_print_messages) then
-      write(*,'(A)') "--->hdf5_attach_data_scale: " // trim(dset_name) // " to " // trim(dscale_name)
+      write(*,'(A)') "--->hdf5_attach_data_scale: " // trim(dscale_name) // " to " // trim(dset_name)
    end if
 
    ! open dataset
    call h5dopen_f(dset_loc_id, dset_name, dset_id, hdferror)
+   if (hdferror /= 0) then
+      write(*, '(A)') "hdf_attach_data_scale: unable to open dataset " // trim(dset_name)
+   end if
 
    ! open dimension scale
    call h5dopen_f(dscale_loc_id, dscale_name, dscale_id, hdferror)
+   if (hdferror /= 0) then
+      write(*, '(A)') "hdf_attach_data_scale: unable to open datascale " // trim(dscale_name)
+   end if
+
+   call h5dsis_scale_f(dscale_id, is_scale, hdferror)
+   if (hdferror /= 0) then
+      write(*, '(A)') "hdf_attach_data_scale: unable to check if dataset " // trim(dscale_name) // " is a scale"
+   end if
+   if (.not. is_scale) then
+      write(*, '(A)') "hdf_attach_data_scale: dataset " // trim(dscale_name) // " is not a scale"
+   end if
 
    ! attach scale to dataset
    call h5dsattach_scale_f(dset_id, dscale_id, idx, hdferror)
+   if (hdferror /= 0) then
+      write(*, '(A)') "hdf_attach_data_scale: unable to attach datascale " // trim(dscale_name) // &
+      " to dataset " // trim(dset_name)
+   end if
 
    ! close id's
    call h5dclose_f(dscale_id, hdferror)
    call h5dclose_f(dset_id, hdferror)
 
-end subroutine hdf_attach_data_scale
+end subroutine hdf_attach_dimension_scale
 
 
 
