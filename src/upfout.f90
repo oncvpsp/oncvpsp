@@ -295,7 +295,7 @@
 
    else if(iexc==-001012) then
      write(6,'(t8,a)') &
-&        'functional="SLA+PW"'
+&        'functional="SLA  PW   NOGX NOGC"'
 
    else if(iexc==-109134) then
      write(6,'(t8,a)') &

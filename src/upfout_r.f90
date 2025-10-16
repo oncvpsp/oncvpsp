@@ -2,17 +2,17 @@
 ! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -33,7 +33,7 @@
 !evkb  coefficients of VKB projectors
 !nproj  number of vkb projectors for each l
 !rr  log radial grid
-!vpuns  unscreened semi-local pseudopotentials (vp(:,5) is local potential 
+!vpuns  unscreened semi-local pseudopotentials (vp(:,5) is local potential
 !  if linear combination is used)
 !rho  valence pseudocharge
 !rhomod  model core charge
@@ -92,7 +92,7 @@
  character*2 :: pspd(3)
 
  lnames = "SPDFG"
- 
+
  ! adjust nrl to properly accomodate atomic orbitals
  al = dlog(rr(2)/rr(1))
  uurcut = 0.d0
@@ -111,7 +111,7 @@
          exit  ! Cutoff radius such that uu norm accurate to 10^-6
        end if
      end do
-     if (rr(jj) > uurcut) uurcut = rr(jj)  
+     if (rr(jj) > uurcut) uurcut = rr(jj)
    end do
  end do
  if (uurcut > drl*dble(nrl-1)) then
@@ -123,7 +123,7 @@
  allocate(rhol(nrl),rl(nrl),vkbl(nrl,mxprj,4,2),vpl(nrl,5),rhomodl(nrl,5),uual(nrl,2,nv))
 
 ! interpolation of everything onto linear output mesh
- 
+
  do  ii=1,nrl
    rl(ii)=drl*dble(ii-1)
  end do
@@ -314,6 +314,10 @@ write(6,'(a/a/a)') '#','# MODEL CORE CHARGE', &
    else if(iexc==4 .or. iexc==-101130) then
      write(6,'(t8,a)') &
 &        'functional="PBE"'
+
+   else if(iexc==-001012) then
+     write(6,'(t8,a)') &
+&        'functional="SLA  PW   NOGX NOGC"'
 
    else if(iexc==-109134) then
      write(6,'(t8,a)') &
@@ -553,9 +557,9 @@ write(6,'(a/a/a)') '#','# MODEL CORE CHARGE', &
 &         'label="',na(nc+ii),lnames(l1+1:l1+1),'"'
     write(6,'(t8,a,i1,a)') &
 &            'l="',l1,'" >'
-    
+
     write(6,'(1p,4e20.10)') (uual(jj,ikap,ii),jj=1,nrl)
-    
+
     if(nwfc <= 9) then
       write(6,'(t4,a,i1,a)') &
 &           '</PP_CHI.',nwfc,'>'
@@ -655,7 +659,7 @@ write(6,'(a/a/a)') '#','# MODEL CORE CHARGE', &
 
 ! write termination signal
  write(6,'(/a)') 'END_PSP'
-  
+
  deallocate(rhol,rl,vkbl,vpl,rhomodl,dmat)
 
  return
