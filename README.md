@@ -112,20 +112,7 @@ Please see the files in doc directory for details on the code, input file format
 
 ## Documentation
 
-Documentation available at [https://oncvpsp.github.io/oncvpsp/]([https://oncvpsp.github.io/oncvpsp/)
-
-<!--
-* [User Guide](./doc/users_guide.md).
-* [Ghost States](./doc/ghosts.md)
-* [Relativistic](./doc/relativistic.md)
-* [Core Correction](./doc/core_correction.md)
-* [How to use libxc](./doc/libxc_use.md)
-* [How to translate iexc to pwscf names](./doc/pwscf_exc.md)
-* [Program Overview](./doc/program_overview.md)
-* [coding_standards](./doc/coding_standards.md)
-* [Support](./SUPPORT.md).
-* [Release Notes](./doc/release_notes.md)
--->
+Documentation available at [https://oncvpsp.github.io/oncvpsp/](https://oncvpsp.github.io/oncvpsp/)
 
 ## How to cite oncvpsp
 
