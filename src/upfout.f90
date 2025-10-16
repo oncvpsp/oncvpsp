@@ -293,6 +293,10 @@
      write(6,'(t8,a)') &
 &        'functional="PBE"'
 
+   else if(iexc==-001012) then
+     write(6,'(t8,a)') &
+&        'functional="SLA+PW"'
+
    else if(iexc==-109134) then
      write(6,'(t8,a)') &
 &        'functional="PW91"'
