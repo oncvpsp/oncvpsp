@@ -23,61 +23,54 @@ nav:
 
 theme:
     name: material
-    #custom_dir: abinit_theme
-    #logo: images/logo-abinit-2015.png
+    #logo: images/logo-oncvpsp.png
     #favicon: images/favicon.ico
     #palette:
     #    primary: deep orange
     #    accent: deep orange
-    #features:
-    #  - navigation.tabs
-    #  #- navigation.tabs.sticky  # Nice but for insiders only
-    #  #- toc.integrate
-    #  - header.autohide
+    features:
+      - navigation.tabs
+      #- toc.integrate
+      - header.autohide
 
 # The section below activates markdown/theme extensions and other parameters related to
 # the HTML/JS website. Play with it only if you know what you're doing!
 
-#markdown_extensions:
+markdown_extensions:
 #  - markdown.extensions.meta
-#  - markdown.extensions.toc:
-#        permalink: true  # For ¶
-#  - markdown.extensions.admonition
-#  - markdown.extensions.fenced_code
-#  - markdown.extensions.codehilite
-#  - markdown.extensions.smarty
-#  - markdown.extensions.tables
-#  - markdown.extensions.def_list
-#  - markdown.extensions.sane_lists
-#  - markdown.extensions.attr_list
-#  - pymdownx.arithmatex:
-#        generic: true
-#        #inline_syntax: ['dollar']
-#        #block_syntax:  ['dollar', 'begin']
-#  - pymdownx.betterem:
-#      smart_enable: all
-#  - pymdownx.caret
-#  #- pymdownx.critic
-#  - pymdownx.details
-#  - pymdownx.inlinehilite
-#  - pymdownx.mark
-#  #- pymdownx.highlight:
-#  #    anchor_linenums: true
-#  #    line_spans: __span
-#  #    pygments_lang_class: true
-#  #- pymdownx.snippets
-#  - pymdownx.smartsymbols:
-#        registered: false
-#        copyright: false
-#        care_of: false
-#  - pymdownx.superfences
-#  - pymdownx.tilde
-#  # Abinit extensions (important!)
-#  - abimkdocs.wikilinks
-#  - abimkdocs.preprocessor
-#  - abimkdocs.mdx_figcaption
-#  #- abimkdocs.treepreprocessor
+  - markdown.extensions.toc:
+        permalink: true  # For ¶
+  - markdown.extensions.admonition
+  - markdown.extensions.fenced_code
+  - markdown.extensions.codehilite
+  - markdown.extensions.smarty
+  - markdown.extensions.tables
+  - markdown.extensions.def_list
+  - markdown.extensions.sane_lists
+  - markdown.extensions.attr_list
+  - pymdownx.arithmatex:
+        generic: true
+        #inline_syntax: ['dollar']
+        #block_syntax:  ['dollar', 'begin']
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  #- pymdownx.critic
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.mark
+  #- pymdownx.highlight:
+  #    anchor_linenums: true
+  #    line_spans: __span
+  #    pygments_lang_class: true
+  #- pymdownx.snippets
+  - pymdownx.smartsymbols:
+        registered: false
+        copyright: false
+        care_of: false
+  - pymdownx.superfences
+  - pymdownx.tilde
 
 #strict: true
 
-copyright: Copyright &copy; 2020-2024 The oncvpsp Group
+copyright: Copyright &copy; 2020-2025 The oncvpsp Group
