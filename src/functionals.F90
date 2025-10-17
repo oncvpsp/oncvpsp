@@ -174,10 +174,6 @@ contains
     real(8)   :: parameters(2)
     logical :: ok, lb94_modified
 
-#if XC_MAJOR_VERSION<5
-    call messages_input_error('LibXC version', 'at least v5 is now required')
-#endif
-
     ! initialize structure
     call xc_functl_init(functl, nspin, deriv_method)
 
