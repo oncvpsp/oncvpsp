@@ -4,17 +4,17 @@
 ! Copyright (c) 2015 by Alberto Garcia, ICMAB-CSIC for xmlf90-wxml calls
 ! in support of the PSML format
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -30,7 +30,7 @@ module m_psmlout
 
   CONTAINS
 
- subroutine psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
+ subroutine psmlout(lmax,lloc,rc,vkb,evkb,mxprj,nproj,rr,vpuns,rho,rhomod, &
 &                  irct, srel, &
 &                  zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
 &                  na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
@@ -44,7 +44,7 @@ module m_psmlout
 !evkb  coefficients of VKB projectors
 !nproj  number of vkb projectors for each l
 !rr  log radial grid
-!vpuns  unscreened semi-local pseudopotentials (vp(:,5) is local potential 
+!vpuns  unscreened semi-local pseudopotentials (vp(:,5) is local potential
 !  if linear combination is used)
 !rho  valence pseudocharge
 !rhomod  model core charge
@@ -73,10 +73,11 @@ module m_psmlout
  integer :: nproj(6)
  integer :: irct ! index of point at which rho_core is matched
  logical :: srel ! whether it is scalar-relativistic or not
+ integer :: mxprj !> maximum number of projectors for any l
  real(dp) :: drl,fcfact,zz,zion,epstot
- real(dp), target :: rr(mmax),vpuns(mmax,5),rho(mmax),vkb(mmax,2,4)
+ real(dp), target :: rr(mmax),vpuns(mmax,5),rho(mmax),vkb(mmax,mxprj,4)
  real(dp), target :: rhomod(mmax,5)
- real(dp):: rc(6),evkb(2,4)
+ real(dp):: rc(6),evkb(mxprj,4)
  character*2 :: atsym
 
 !additional input for upf output to echo input file, all as defined
@@ -277,23 +278,23 @@ module m_psmlout
 
   select case(iexc)
 
-  case(1) 
+  case(1)
      xcfuntype    = 'LDA'
      xcfunparam   = 'Wigner'
      libxc_id = (/ XC_LDA_X, XC_LDA_C_WIGNER /)
-  case(2) 
+  case(2)
      xcfuntype    = 'LDA'
      xcfunparam   = 'Hedin-Lundqvist'
      libxc_id = (/ XC_LDA_X, XC_LDA_C_HL /)
-  case(3) 
+  case(3)
      xcfuntype    = 'LDA'
      xcfunparam   = 'Ceperley-Alder PZ'
      libxc_id = (/ XC_LDA_X, XC_LDA_C_PZ /)
 
-  case(4) 
+  case(4)
      xcfuntype    = 'GGA'
      xcfunparam   = 'Perdew-Burke-Ernzerhof'
-     libxc_id = (/ XC_GGA_X_PBE, XC_GGA_C_PBE /) 
+     libxc_id = (/ XC_GGA_X_PBE, XC_GGA_C_PBE /)
 
   case  default
 
@@ -386,7 +387,7 @@ module m_psmlout
   else
      call my_add_attribute(xf,"set","non_relativistic")
   endif
-  !  
+  !
   allocate(f0(nr))
   vpsd: do i = 1, npots
      vps => vpuns(:,i)
@@ -510,7 +511,7 @@ end subroutine psmlout
 !=================================================
 ! Fully relativistic version
 !
- subroutine psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
+ subroutine psmlout_r(lmax,lloc,rc,vkb,evkb,mxprj,nproj,rr,vpuns,rho,rhomod, &
 &                  irct, &
 &                  vsr,esr,vso,eso, &
 &                  zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
@@ -525,7 +526,7 @@ end subroutine psmlout
 !evkb  coefficients of VKB projectors
 !nproj  number of vkb projectors for each l
 !rr  log radial grid
-!vpuns  unscreened semi-local pseudopotentials (vp(:,5) is local potential 
+!vpuns  unscreened semi-local pseudopotentials (vp(:,5) is local potential
 !  if linear combination is used)
 !rho  valence pseudocharge
 !rhomod  model core charge
@@ -553,10 +554,11 @@ end subroutine psmlout
  integer :: lmax,lloc,iexc,mmax,nrl,icmod
  integer :: nproj(6)
  integer :: irct ! index of point at which rho_core is matched
+ integer :: mxprj !> maximum number of projectors for any l
  real(dp) :: drl,fcfact,zz,zion,epstot
- real(dp), target :: rr(mmax),vpuns(mmax,5,2),rho(mmax),vkb(mmax,2,4,2)
+ real(dp), target :: rr(mmax),vpuns(mmax,5,2),rho(mmax),vkb(mmax,mxprj,4,2)
  real(dp), target :: rhomod(mmax,5)
- real(dp):: rc(6),evkb(2,4,2)
+ real(dp):: rc(6),evkb(mxprj,4,2)
  real(dp), target :: vsr(mmax,4,4),vso(mmax,4,4)
  real(dp) :: esr(4,4),eso(4,4)
  character*2 :: atsym
@@ -759,23 +761,23 @@ end subroutine psmlout
 
   select case(iexc)
 
-  case(1) 
+  case(1)
      xcfuntype    = 'LDA'
      xcfunparam   = 'Wigner'
      libxc_id = (/ XC_LDA_X, XC_LDA_C_WIGNER /)
-  case(2) 
+  case(2)
      xcfuntype    = 'LDA'
      xcfunparam   = 'Hedin-Lundqvist'
      libxc_id = (/ XC_LDA_X, XC_LDA_C_HL /)
-  case(3) 
+  case(3)
      xcfuntype    = 'LDA'
      xcfunparam   = 'Ceperley-Alder PZ'
      libxc_id = (/ XC_LDA_X, XC_LDA_C_PZ /)
 
-  case(4) 
+  case(4)
      xcfuntype    = 'GGA'
      xcfunparam   = 'Perdew-Burke-Ernzerhof'
-     libxc_id = (/ XC_GGA_X_PBE, XC_GGA_C_PBE /) 
+     libxc_id = (/ XC_GGA_X_PBE, XC_GGA_C_PBE /)
 
   case  default
 
@@ -859,7 +861,7 @@ end subroutine psmlout
 
   call xml_EndElement(xf,"grid")
 
-  !  
+  !
   ! Semilocal potentials
   !
   allocate(f0(nr))
@@ -996,7 +998,7 @@ end subroutine psmlout
   if (trim(psfile)=="psp8") then
 
 ! set up projector number for sr_so calculations based on non-zero coefficients
-  npr_sr(:)=0 
+  npr_sr(:)=0
   npr_so(:)=0
   do l1=1,lmax+1
    do ii=1,4
@@ -1007,7 +1009,7 @@ end subroutine psmlout
 
       call xml_NewElement(xf,"projectors")
       call my_add_attribute(xf,"set","scalar_relativistic")
- 
+
       do l1=1,lmax+1
          if(l1==lloc+1) cycle
          do jj=1,npr_sr(l1)
@@ -1042,7 +1044,7 @@ end subroutine psmlout
 
       call xml_NewElement(xf,"projectors")
       call my_add_attribute(xf,"set","lj")
- 
+
       do l1=1,lmax+1
          if(l1==lloc+1) cycle
 
@@ -1126,7 +1128,7 @@ end subroutine psmlout_r
 
       double precision, intent(in)  :: f(:), r(:)
       double precision, intent(out) :: f0(:)
-      
+
       integer i, npts
       double precision :: r2
 
@@ -1186,7 +1188,7 @@ end subroutine psmlout_r
 
        character(len=*), intent(in), optional  :: set
        real(dp), intent(in), optional  :: f(:)
-       
+
        call xml_NewElement(xf,trim(class))
          if (present(set))  call my_add_attribute(xf,"set",set)
 
