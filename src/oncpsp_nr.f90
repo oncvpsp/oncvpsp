@@ -2,17 +2,17 @@
 ! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -257,7 +257,7 @@
 ! full potential atom solution
 !
    call sratom(na,la,ea,fa,rpk,nc,nc+nv,it,rhoc,rho, &
-&              rr,vfull,zz,mmax,iexc,etot,ierr,srel)
+   &           rr,vfull,vxc,zz,mmax,iexc,etot,ierr,srel)
 !
 !
 
@@ -338,7 +338,7 @@
   stop
  end if
  write(6,'(a,1p,d18.8)') '  all-electron total energy (Ha)',etot
-  
+
 !find log mesh point nearest input rc
  rcmax=0.0d0
  irc(:)=0
@@ -496,7 +496,7 @@
 &                rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
 &                uu,up,mmax,mch)
 
-   if(ierr/=0) then 
+   if(ierr/=0) then
      write(6,'(a,3i4)') 'oncvpsp: lschvkbb ERROR',ll+nodes(l1)+1,ll,ierr
      flush(6)
      stop
@@ -558,7 +558,7 @@
 
 !fix unscreening error due to greater range of all-electron charge
  do ii=mmax,1,-1
-   if(rho(ii)==0.0d0) then 
+   if(rho(ii)==0.0d0) then
      do l1=1,max(lmax+1,lloc+1)
        vpuns(ii,l1)=-zion/rr(ii)
      end do
@@ -595,7 +595,7 @@
 
  call run_phsft(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,vkb,evkb, &
 &               rr,vfull,vp,zz,mmax,mxprj,irc,srel)
- 
+
  call gnu_script(epa,evkb,lmax,lloc,mxprj,nproj)
 
  if(trim(psfile)=='psp8' .or. trim(psfile)=='both') then

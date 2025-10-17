@@ -2,27 +2,27 @@
 ! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-   subroutine run_optimize(eig,ll,mmax,mxprj,rr,uua,qq,&
-&                        irc,qcut,qmsbf,ncon_in,nbas_in,npr, &
-&                        psopt,vpsp,vkb,vae,cvgplt)
 
-! calls routines to generate optimized pseudo wave function and semi-local
-! pseudopotential and prints diagnostic information on process and 
-! convergence performance
+!> calls routines to generate optimized pseudo wave function and semi-local
+!> pseudopotential and prints diagnostic information on process and
+!> convergence performance
+subroutine run_optimize(eig,ll,mmax,mxprj,rr,uua,qq,&
+                        irc,qcut,qmsbf,ncon_in,nbas_in,npr, &
+                        psopt,vpsp,vkb,vae,cvgplt)
 
 !eig  energy at which pseudo wave function is computed
 !ll  angular momentum
@@ -49,14 +49,24 @@
  real(dp), parameter :: Ha_eV=27.21138386d0 ! 1 Hartree, in eV
 
 !Input variables
- integer :: ll,mmax,mxprj,irc,ncon_in,nbas_in,npr
- real(dp) :: rr(mmax)
- real(dp) :: uua(mmax,mxprj),vae(mmax),qq(mxprj,mxprj)
- real(dp) :: eig(mxprj),qcut
+ integer, intent(in) :: ll
+ integer, intent(in) :: mmax
+ integer, intent(in) :: mxprj
+ integer, intent(in) :: irc
+ integer, intent(in) :: ncon_in
+ integer, intent(in) :: nbas_in
+ integer, intent(in) :: npr
+ real(dp), intent(in) :: rr(mmax)
+ real(dp), intent(in) :: uua(mmax,mxprj)
+ real(dp), intent(in) :: vae(mmax)
+ real(dp), intent(in) :: qq(mxprj,mxprj)
+ real(dp), intent(in) :: eig(mxprj),qcut
 
 !Output variables
- real(dp) :: qmsbf
- real(dp) :: psopt(mmax,mxprj),vpsp(mmax),vkb(mmax,mxprj)
+ real(dp), intent(out) :: qmsbf
+ real(dp), intent(out) :: psopt(mmax,mxprj)
+ real(dp), intent(out) :: vpsp(mmax)
+ real(dp), intent(out) :: vkb(mmax,mxprj)
 
 !Local variables
  real(dp) :: uord(6)
@@ -149,7 +159,7 @@
    call wf_rc_der(rr,uua(1,iprj),al,rc,irc,mmax,uord)
 
 !q considered infinity for E_resid calculation
-   qmax=dq*int(2.0d0*qroot(nbas)/dq) 
+   qmax=dq*int(2.0d0*qroot(nbas)/dq)
    qmax=max(qmax,20.0d0)
 
 

@@ -88,6 +88,7 @@
  real(dp), allocatable :: uupsa(:,:) !pseudo-atomic orbitals array
  real(dp), allocatable :: epa(:,:),fpa(:,:)
  real(dp), allocatable :: uua(:,:),upa(:,:)
+ real(dp), allocatable :: usratom(:,:), upsratom(:,:)
  real(dp), allocatable :: vr(:,:,:)
 
  character*2 :: atsym
@@ -266,6 +267,7 @@
  allocate(npa(mxprj,6))
  allocate(epa(mxprj,6),fpa(mxprj,6))
  allocate(uua(mmax,mxprj),upa(mmax,mxprj))
+ allocate(usratom(mmax,nc+nv), upsratom(mmax,nc+nv))
  allocate(vr(mmax,mxprj,6))
 
  vr(:,:,:)=0.0d0
@@ -281,7 +283,7 @@
 ! full potential atom solution
 !
    call sratom(na,la,ea,fa,rpk,nc,nc+nv,it,rhoc,rho, &
-&              rr,vfull,zz,mmax,iexc,etot,ierr,srel)
+   &           rr,vfull,vxc,zz,mmax,iexc,etot,ierr,srel,usratom,upsratom)
 !
 !
 
