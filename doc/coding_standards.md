@@ -1,8 +1,7 @@
 ## ONCVPSP CODING STANDARDS
 
-The coding standards I've tried to follow and will want for any contributed
-additions are pretty basic.  They should also be obvious from examining
-a few of the source routines.
+The coding standards I've tried to follow and will want for any contributed additions are pretty basic.
+They should also be obvious from examininga few of the source routines.
 
 1) Fortran 95 free-format.
 
@@ -25,9 +24,8 @@ before or after the subroutine statement.
 9) All subroutine arguments should be defined in comments following the
 subroutine statement.
 
-10) There should be comments throughout to indicate what is going on.  Any
-new math should be described in a text or pdf contribution to the doc
-directory.
+10) There should be comments throughout to indicate what is going on.  
+Any new math should be described in a text or pdf contribution to the doc directory.
 
 11) I'd like to stick to one input file read on standard input and one
 output file to standard output, with shell scripts to extract any new
@@ -37,5 +35,4 @@ sections.
 be done in such a way that older files still run.  This could also be
 accomplished by building a separate executable for the new feature.
 
-There are probably other conventions I've been following but you get the
-idea.
+There are probably other conventions I've been following but you get the idea.

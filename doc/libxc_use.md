@@ -1,6 +1,6 @@
 ## USING LIBXC
 
-To use the vast array of possible libxc functions, the input variable iexc
+To use the vast array of possible libxc functionals, the input variable `iexc`
 on the first line of input data must be set to a negative number formed
 (usually) from a pair of THREE DIGIT integers,
 
@@ -15,9 +15,11 @@ a single negagtive 3-digit integer.
 
 Examples of iexc values are
 
-     iexc= -001009 (Perdew-Zunger-Ceperly-Alder)
+```
+iexc= -001009 (Perdew-Zunger-Ceperly-Alder)
 
-     iexc= -101130 (Perdew-Burke-Ernzerhof)
+iexc= -101130 (Perdew-Burke-Ernzerhof)
+```
 
 PWSCF does not appear to support libxc yet, and iexc for a subset of what they
 do support is properly translated in src/upfout.f90 begining at line 286
@@ -31,12 +33,12 @@ generate and that using libxc look essentially identical to the compare.sh
 test.
 
 Meta-ggas and hybrid exc functions are not implemented in oncvpsp.  Metas
-may come is a subsequent release.  HF and hybrid functionals are incompatible 
+may come is a subsequent release.  HF and hybrid functionals are incompatible
 with norm and generalized-norm conservation.
 
 ### BIG LIST FROM LIBXC-4.2.3
 
-```
+```fortran
   XC_LDA_X                       =   1  ! Exchange
   XC_LDA_C_WIGNER                =   2  ! Wigner parametrization
   XC_LDA_C_RPA                   =   3  ! Random Phase Approximation

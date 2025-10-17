@@ -2,7 +2,7 @@
 
 ### Introduction
 
-There is no detailed users' manual, and this is primarily an introductory 
+There is no detailed users' manual, and this is primarily an introductory
 tutorial for new users.  With the included Phys. Rev. paper, the
 program overview, the simple structure of the input data, the examples
 provided, and the automated graphics, it should be relatively easy to get
@@ -11,7 +11,7 @@ problems disussed in the last few paragraphs are highly improbable.
 
 You should start by reading the paper, and some of the references if
 necessary.  The input and output files in tests/data and tests/refs include
-all the "OV" pseudopotentials used in the Sec.IV tests in the paper. Next, 
+all the "OV" pseudopotentials used in the Sec.IV tests in the paper. Next,
 I recommend reading ../INSTALL, and [program_overview](program_overview.md).
 
 The gnuplot graphics are very important, and a good place to go next.
@@ -21,9 +21,9 @@ viewing the pdf, go to directory ../tests.refs and type
 
     ../replot.sh 73_Ta
 
-If this doesn't produce the same sequence of plots, stop here and try to fix 
-your gnuplot installation and accessibility.  Once this works,  it will pay to 
-run replot for all the examples in this directory.  This should illustrate what 
+If this doesn't produce the same sequence of plots, stop here and try to fix
+your gnuplot installation and accessibility.  Once this works,  it will pay to
+run replot for all the examples in this directory.  This should illustrate what
 your own output plots should look like.  If your own data give results that
 look odd by these standards, they probably are and should not be used until
 adjustments of your input data can produce "nice" plots as exemplified by
@@ -78,12 +78,12 @@ not you (plotting data, template for a custom gnuplot input script, and
 the psp file).
 
 After you've gotten through the above and have compiled the code
-following INSTALL, copy one of the `<prefix>.dat` files in tests/data to a 
+following INSTALL, copy one of the `<prefix>.dat` files in tests/data to a
 directory of your own, run it using
 
     ../tests/run.sh <prefix>
 
-The sample `<prefix>.dat` files in tests/data should provide a starting 
+The sample `<prefix>.dat` files in tests/data should provide a starting
 point to produce good psps for new elements. Reading the `<prefix>.out` files,
 you should be sure that the various consistency tests look good compared to
 the examples. Then, pay attention to the plots.
@@ -96,13 +96,13 @@ the examples. Then, pay attention to the plots.
    The second kind should give more explanation.
 
 2) The code will stop for a number of other error conditions you shouldn't
-   encounter if it is built properly and your parameters are reasonable.  
-   All stops should give some information.  One stop you probably will 
-   encounter is 
+   encounter if it is built properly and your parameters are reasonable.
+   All stops should give some information.  One stop you probably will
+   encounter is
 
         "pspot:  first pseudo wave function has node."
 
-   While in principle the Vanderbilt method can deal with this, it isn't a 
+   While in principle the Vanderbilt method can deal with this, it isn't a
    good idea and it's better to have a semi-local potential to look at to make
    sure it looks reasonable.  The fix in this case is usually to increase qcut
    a bit, although changes in nbas, rc or ep for a scattering state may also
@@ -114,10 +114,10 @@ the examples. Then, pay attention to the plots.
 
    which will probably only occur if you have an unphysically small rc,
    indicated by a very small value for "Fraction of norm inside rc."  The
-   code now gives "First projector wave function outermost peak radius," 
+   code now gives "First projector wave function outermost peak radius,"
    and rc should be > that value (usually >1.5 * r_peak, see examples).
 
-   Another is 
+   Another is
 
        "wellstate: well potential iteration failed"
 
@@ -142,7 +142,7 @@ the examples. Then, pay attention to the plots.
 5) The ncon continuity-constraints may be less important than I initially
    thought, and don't have that much influence on the results (see
    Fig. 3).  I prefer to use ncon = 4 or 5.  When looking at pseudo
-   wave functions, a higher the degree of continuity does allows a larger 
+   wave functions, a higher the degree of continuity does allows a larger
    rc for comparable agreement with the all-electron wave function.
 
 6) Choosing qcut is a compromise.  While a smaller qcut will typically give
@@ -161,6 +161,6 @@ the examples. Then, pay attention to the plots.
    this is to only start counting nodes for r>0.5 a_B (in the routine vkboutwf).
 
 8) The shell scripts run.sh run_nr.sh etc. assume everything has been left
-   in in place the directroy tree in which is was unpacked and built.  
+   in in place the directroy tree in which is was unpacked and built.
    If you move the executables and scripts elsewhere, you can probbly
    use set_path to fix things.

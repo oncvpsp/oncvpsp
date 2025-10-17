@@ -6,9 +6,9 @@ additional final index, and most loops over angular momenta include inner
 loops over this "ikap=1,2" index referring to the additional quantum number of
 the radial Dirac equations kappa (kap) =l, -(l+1) for j=l -/+ 1/2.
 
-The routines ldiracfb and ldiracfs are introduced for bound and scattering 
-solutions of the radial Dirac equations. The following routines are 
-straightforward modifications of the old versions, mostly just incorporating 
+The routines ldiracfb and ldiracfs are introduced for bound and scattering
+solutions of the radial Dirac equations. The following routines are
+straightforward modifications of the old versions, mostly just incorporating
 the ikap loops and Dirac equations for full-potential calculations:
 
 * fphsft_r
@@ -78,6 +78,6 @@ a line giving the numbers of spin-orbit projectors per angular momentum
 channel.  It will then read the scalar projectors and local potential,
 and finally the spin-orbit projectors.  ABINIT will run with 8 projectors
 (4 for scalar and 4 for spin-orbit) per angular momentum.  It's been
-tested with band structure and phonon calculations.  The patched ABINIT 
+tested with band structure and phonon calculations.  The patched ABINIT
 code is fully compatible with older psp8 files.  Abinit versions 7.6.3
 and beyond have incorporated these changes and don't need patching.
