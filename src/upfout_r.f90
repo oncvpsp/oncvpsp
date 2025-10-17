@@ -547,8 +547,13 @@ write(6,'(a/a/a)') '#','# MODEL CORE CHARGE', &
 &         'size="',nrl,'"'
     write(6,'(t8,a)') &
 &         'columns="4"'
-    write(6,'(t8,a,i1,a)') &
-&         'index="',nwfc,'"'
+    if (nwfc <= 9) then
+      write(6,'(t8,a,i1,a)') &
+&           'index="',nwfc,'"'
+    else
+      write(6,'(t8,a,i2,a)') &
+&           'index="',nwfc,'"'
+    end if
     write(6,'(t8,a,f6.3,a)') &
 &         'occupation="',fj,'"'
     write(6,'(t8,a,e20.10,a)') &
@@ -564,7 +569,7 @@ write(6,'(a/a/a)') '#','# MODEL CORE CHARGE', &
       write(6,'(t4,a,i1,a)') &
 &           '</PP_CHI.',nwfc,'>'
     else
-      write(6,'(t4,a,i1,a)') &
+      write(6,'(t4,a,i2,a)') &
 &           '</PP_CHI.',nwfc,'>'
     end if
   end do

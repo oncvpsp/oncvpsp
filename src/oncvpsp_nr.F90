@@ -645,7 +645,7 @@
 ! Write info for PSML format
 !
    print *, 'calling psmlout'
-   call psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
+   call psmlout(lmax,lloc,rc,vkb,evkb,mxprj,nproj,rr,vpuns,rho,rhomod, &
 &             irct, srel, &
 &             zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
 &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
