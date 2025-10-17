@@ -470,16 +470,26 @@
 &      '<PP_PSWFC>'
  do ii=1,nv
   l1 = la(nc+ii)
-  write(6,'(t4,a,i1)') &
-&       '<PP_CHI.',ii
+  if(ii <= 9) then
+    write(6,'(t4,a,i1)') &
+&         '<PP_CHI.',ii
+  else
+    write(6,'(t4,a,i2)') &
+&         '<PP_CHI.',ii
+  end if
   write(6,'(t8,a)') &
 &       'type="real"'
   write(6,'(t8,a,i4,a)') &
 &       'size="',nrl,'"'
   write(6,'(t8,a)') &
 &       'columns="4"'
-  write(6,'(t8,a,i1,a)') &
-&       'index="',ii,'"'
+  if (ii <= 9) then
+     write(6,'(t8,a,i1,a)') &
+&          'index="',ii,'"'
+  else
+    write(6,'(t8,a,i2,a)') &
+&         'index="',ii,'"'
+  end if
   write(6,'(t8,a,f6.3,a)') &
 &       'occupation="',fa(nc+ii),'"'
   write(6,'(t8,a,e20.10,a)') &
@@ -491,8 +501,13 @@
 
   write(6,'(1p,4e20.10)') (uual(jj,ii),jj=1,nrl)
 
-  write(6,'(t4,a,i1,a)') &
-&       '</PP_CHI.',ii,'>'
+  if(ii <= 9) then
+    write(6,'(t4,a,i1)') &
+&         '</PP_CHI.',ii
+  else
+    write(6,'(t4,a,i2)') &
+&         '</PP_CHI.',ii
+  end if
 
  end do
  write(6,'(t2,a)') &

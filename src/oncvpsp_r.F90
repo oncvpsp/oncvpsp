@@ -770,7 +770,7 @@
 
  if(trim(psfile)=='psml' .or. trim(psfile)=='both') then
    print *, 'calling psmlout'
-   call psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpsml,rho,rhomod, &
+   call psmlout_r(lmax,lloc,rc,vkb,evkb,mxprj,nproj,rr,vpsml,rho,rhomod, &
 &             irct, &
 &             vsr,esr,vso,eso, &
 &             zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
