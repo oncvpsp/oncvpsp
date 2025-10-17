@@ -22,10 +22,10 @@
 !> results for 1 and 2 projectors, or the semi-local pseudpotential
 !> when that is the local potential for some l
 !> the computed quantity is reminiscent of a scattering phase shift, but isn't
- subroutine run_phsft(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,npsh,vkb,evkb, &
+ subroutine run_phsft(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,rxpsh,npsh,vkb,evkb, &
 &                     rr,vfull,vp,zz,mmax,mxprj,irc,srel, &
 &                     irpsh,rpsh,epsh,pshf,pshp)
- use, intrinsic :: iso_fortran_env, only: dp => real64
+ use, intrinsic :: iso_fortran_env, only: dp => real64, stderr => error_unit
  implicit none
 
 !Input variables
@@ -46,6 +46,8 @@
  real(dp), intent(in) :: epsh2
  !> energy increment
  real(dp), intent(in) :: depsh
+ !> radius for phase shift calculation
+ real(dp), intent(in) :: rxpsh
  !> Size of phase shift energies
  integer, intent(in) :: npsh
  !> atomic number
@@ -96,6 +98,15 @@
      irpsh(l1) = irc(lloc + 1)
    end if
    rpsh(l1) = rr(irpsh(l1))
+
+   if (rxpsh > 0.0_dp) then
+     if (rxpsh < rpsh(l1)) then
+        write(stderr, '(a,f12.5,a,i1,a,f12.5)') &
+          'ERROR: run_phsft: rxpsh=', rxpsh, ' < rc(', l1 - 1, ')=', rpsh(l1)
+        stop
+     end if
+     rpsh(l1) = rxpsh
+   end if
 
    call fphsft(ll,epsh2,depsh,pshf(:,l1),rr,vfull,zz,mmax,irpsh(l1),npsh,srel)
    if(ll .eq. lloc) then

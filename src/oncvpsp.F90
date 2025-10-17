@@ -866,7 +866,7 @@ program oncvpsp
 
    npsh = int(((epsh2 - epsh1) / depsh) - 0.5_dp) + 1
    allocate(epsh(npsh), pshf(npsh, 4), pshp(npsh, 4))
-   call run_phsft(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,npsh,vkb,evkb, &
+   call run_phsft(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,rxpsh,npsh,vkb,evkb, &
       &               rr,vfull,vp,zz,mmax,mxprj,irc,srel, &
       &               irpsh,rpsh,epsh,pshf,pshp)
    call write_phsft_text(stdout,rpsh,npsh,epsh,pshf,pshp)
