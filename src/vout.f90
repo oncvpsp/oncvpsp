@@ -2,17 +2,17 @@
 ! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -40,13 +40,19 @@
  real(dp), parameter :: pi4=4.0_dp*pi
 
 !Input vaiables
- integer :: iexc,mmax,mode
- real(dp) :: rho(mmax),rhoc(mmax),rr(mmax)
- real(dp) :: zion
+ integer, intent(in) :: iexc
+ integer, intent(in) :: mmax
+ integer, intent(in) :: mode
+ real(dp), intent(in) :: rho(mmax)
+ real(dp), intent(in) :: rhoc(mmax)
+ real(dp), intent(in) :: rr(mmax)
+ real(dp), intent(in) :: zion
 
 !Output variables
- real(dp) :: vo(mmax),vxc(mmax)
- real(dp) :: eeel,eexc
+ real(dp), intent(out) :: vo(mmax)
+ real(dp), intent(out) :: vxc(mmax)
+ real(dp), intent(out) :: eeel
+ real(dp), intent(out) :: eexc
 
 !Local variables
  integer ii

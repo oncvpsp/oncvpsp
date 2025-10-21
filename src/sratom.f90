@@ -126,8 +126,7 @@ subroutine sratom(na,la,ea,fa,rpk,nc,ncv,it,rhoc,rho, &
          end if
          et=ea(ii)
          ierr = 0
-         call lschfb(na(ii),la(ii),ierr,et, &
-            &                rr,vi,u(:,ncv),up(:,ncv),zz,mmax,mch,srel)
+         call lschfb(na(ii),la(ii),ierr,et,rr,vi,u(:,ncv),up(:,ncv),zz,mmax,mch,srel)
          if(ierr .ne. 0) then
             write(6,'(/a,3i4)') 'sratom123: lschfb convergence ERROR n,l,iter=', &
                &       na(ii),la(ii),it

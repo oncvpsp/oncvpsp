@@ -60,7 +60,8 @@ subroutine run_optimize(eig,ll,mmax,mxprj,rr,uua,qq,&
  real(dp), intent(in) :: uua(mmax,mxprj)
  real(dp), intent(in) :: vae(mmax)
  real(dp), intent(in) :: qq(mxprj,mxprj)
- real(dp), intent(in) :: eig(mxprj),qcut
+ real(dp), intent(in) :: eig(mxprj)
+ real(dp), intent(in) :: qcut
 
 !Output variables
  real(dp), intent(out) :: qmsbf
@@ -70,17 +71,15 @@ subroutine run_optimize(eig,ll,mmax,mxprj,rr,uua,qq,&
 
 !Local variables
  real(dp) :: uord(6)
- real(dp) :: al,rc,ulgd,tt
- real(dp) :: sn,ps0norm,amesh,ro
- real(dp) :: err,lerr,qerr,ehaerr,eeverr
- real(dp) :: sbf(mmax)
+ real(dp) :: al,rc,ulgd
+ real(dp) :: ps0norm
+ real(dp) :: err,lerr,qerr
  real(dp) :: cons(6),cvgplt(2,7,mxprj)
  real(dp), allocatable :: orbasis(:,:)
  real(dp), allocatable :: orbasis_der(:,:),pswf0_sb(:),pswfnull_sb(:,:)
  real(dp), allocatable :: pswf0_or(:),pswfnull_or(:,:)
  real(dp), allocatable :: work(:)
- integer :: ii,iprj,jj,l1,lmax,nbas,ncon,nconmx
- logical :: found_root
+ integer :: ii,iprj,jj,l1,nbas,ncon,nconmx
 
  integer :: nnull,nqout
 

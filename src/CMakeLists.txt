@@ -53,6 +53,7 @@ set(src_liboncvpsp
     output_text_m.f90
     input_text_m.f90
     utils_m.f90
+    constants_m.f90
 )
 if (Libxc_FOUND)
     list(APPEND src_liboncvpsp functionals.F90 exc_libxc.f90)
@@ -92,7 +93,6 @@ set(src_liboncvpsp_nr_sr
     postprocess_m.f90
 )
 add_library(liboncvpsp_nr_sr STATIC ${src_liboncvpsp_nr_sr})
-target_compile_definitions(liboncvpsp_nr_sr PUBLIC RELATIVISTIC=1)
 add_dependencies(liboncvpsp_nr_sr liboncvpsp wxml)
 target_link_libraries(liboncvpsp_nr_sr liboncvpsp wxml ${COMMON_LIBRARIES})
 

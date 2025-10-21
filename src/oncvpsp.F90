@@ -34,6 +34,8 @@ program oncvpsp
 !
    use, intrinsic :: iso_fortran_env, only: stdin => input_unit, stdout => output_unit, stderr => error_unit
    use, intrinsic :: iso_fortran_env, only: dp => real64
+   use constants_m, only: MAX_NUM_PROJ, MAX_NUM_STATE, MAX_NUM_TEST, &
+      MAX_NUM_ELL, LLOC_POLY_EXTRAP
    use m_psmlout, only: psmlout
    use input_text_m, only: read_input_text
    use postprocess_m, only: get_wavefunctions, run_test_configurations
@@ -69,61 +71,190 @@ program oncvpsp
 #endif
    implicit none
 
-   integer, parameter :: mxprj = 5
    real(dp), parameter :: amesh = 1.006_dp
 #if RELATIVISTIC == 1
    logical, parameter :: srel = .true.
 #elif RELATIVISTIC == 0
    logical, parameter :: srel = .false.
 #endif
-!
-   integer :: ii,ierr,iexc,iexct,ios,iprint,irps,it,icmod,lpopt
-   integer :: jj,kk,ll,l1,lloc,lmax,lt,inline
-   integer :: mch,mchf,mmax,n1,n2,n3,n4,nc,nlim,nlloc,nlmax,nrl
-   integer :: nv,irct,ncnf
+   !
+   integer :: ii
+   integer :: ierr
+   integer :: iexc
+   integer :: iexct
+   integer :: ios
+   integer :: iprint
+   integer :: irps
+   integer :: it
+   integer :: icmod
+   integer :: lpopt
+   integer :: jj
+   integer :: kk
+   integer :: ll
+   integer :: l1
+   integer :: lloc
+   integer :: lmax
+   integer :: lt
+   integer :: inline
+   integer :: mch
+   integer :: mchf
+   integer :: mmax
+   integer :: n1
+   integer :: n2
+   integer :: n3
+   integer :: n4
+   integer :: nc
+   integer :: nlim
+   integer :: nlloc
+   integer :: nlmax
+   integer :: nrl
+   integer :: nv
+   integer :: irct
+   integer :: ncnf
    integer :: iprj
-   integer,allocatable :: npa(:,:)
-!
-   integer :: dtime(8),na(30),la(30),np(6)
-   integer :: nacnf(30,5),lacnf(30,5),nvcnf(5)
-   integer :: indxr(30),indxe(30)
-   integer :: irc(6),nodes(4)
-   integer :: nproj(6),npx(6),lpx(6)
-   integer :: ncon(6),nbas(6)
+   integer, allocatable :: ae_bound_well_n_qn(:, :)
+   !
+   integer :: na(MAX_NUM_STATE)
+   !! Reference configuration principal quantum numbers
+   integer :: la(MAX_NUM_STATE)
+   !! Reference configuration angular momentum quantum numbers
+   integer :: nacnf(MAX_NUM_STATE, MAX_NUM_TEST)
+   !! Test configuration principal quantum numbers
+   integer :: lacnf(MAX_NUM_STATE, MAX_NUM_TEST)
+   !! Test configuration angular momentum quantum numbers
+   integer :: nvcnf(MAX_NUM_TEST)
+   !! Number of valence states in each test configuration
+   integer :: irc(MAX_NUM_ELL)
+   !! Indices of the core radii on the logarithmic mesh
+   integer :: nodes(MAX_NUM_ELL)
+   !! ???
+   integer :: nproj(MAX_NUM_ELL)
+   !! Number of projectors per angular momentum
+   integer :: ncon(MAX_NUM_ELL)
+   !! Number of constraints for matching pseudo wavefunctions
+   !! to all-electron wavefunctions at the core radius
+   integer :: nbas(MAX_NUM_ELL)
+   !! Number of basis functions for representing the pseudo
+   !! wavefunctions
 
-   real(dp) :: al,csc,csc1,deblt,depsh,depsht,drl,eeel
-   real(dp) :: eeig,eexc
-   real(dp) :: emax,epsh1,epsh1t,epsh2,epsh2t,rxpsh
-   real(dp) :: et,etest,emin,sls
-   real(dp) :: fcfact,rcfact,dvloc0
-   real(dp) :: rr1,rcion,rciont,rcmax,rct,rlmax,rpkt
-   real(dp) :: sf,zz,zion,zval,etot
-   real(dp) :: xdummy
-!
-   real(dp) :: cl(6),debl(6),ea(30),ep(6),fa(30),facnf(30,5)
-   real(dp) :: fnp(6),fp(6)
-   real(dp) :: qcut(6),qmsbf(6),rc(6),rc0(6)
-   real(dp) :: rpk(30)
-   real(dp) :: epx(6),fpx(6)
+   !> Logarithmic radial mesh `a` parameter
+   real(dp) :: al
+   real(dp) :: depsh
+   real(dp) :: drl
+   real(dp) :: eeel
+   real(dp) :: eeig
+   real(dp) :: eexc
+   real(dp) :: emax
+   real(dp) :: epsh1
+   real(dp) :: epsh2
+   real(dp) :: rxpsh
+   real(dp) :: et
+   real(dp) :: emin
+   real(dp) :: fcfact
+   real(dp) :: rcfact
+   real(dp) :: dvloc0
+   real(dp) :: rr1
+   real(dp) :: rcmax
+   real(dp) :: rct
+   real(dp) :: rlmax
+   real(dp) :: sf
+   real(dp) :: zz
+   real(dp) :: zion
+   real(dp) :: zval
+   real(dp) :: etot
+   !
+   real(dp) :: debl(MAX_NUM_ELL)
+   !> Reference configuration all-electron bound state eigenvalues
+   real(dp) :: ea(MAX_NUM_STATE)
+   real(dp) :: ep(MAX_NUM_ELL)
+   real(dp) :: fa(MAX_NUM_STATE)
+   real(dp) :: facnf(MAX_NUM_STATE,MAX_NUM_TEST)
+   real(dp) :: qcut(MAX_NUM_ELL)
+   real(dp) :: qmsbf(MAX_NUM_ELL)
+   real(dp) :: rc(MAX_NUM_ELL)
+   real(dp) :: rc0(MAX_NUM_ELL)
+   real(dp) :: rpk(MAX_NUM_STATE)
    real(dp) :: epstot
    real(dp), parameter :: eps=1.0d-8
 
-   real(dp), allocatable :: evkb(:,:),cvgplt(:,:,:,:),qq(:,:)
+   !> Coefficients of the Vanderbilt-Kleinman-Bylander projectors
+   real(dp), allocatable :: vkb_coef(:,:)
+   !> Convergence profile data
+   !> (2, 7, max_num_proj, max_num_ell)
+   real(dp), allocatable :: cvgplt(:, :, :, :)
+   !> All-electron overlap matrix for projector functions
+   !> (max_num_proj, max_num_proj)
+   real(dp), allocatable :: ae_bound_well_overlap(:, :, :)
+   !> Logarithmic radial mesh
+   !> (mmax)
    real(dp), allocatable :: rr(:)
-   real(dp), allocatable :: rho(:),rhoc(:),rhot(:),rhozero(:)
-   real(dp), allocatable :: uu(:),up(:)
-   real(dp), allocatable :: vp(:,:),vfull(:),vkb(:,:,:),pswf(:,:,:)
+   !> All-electron valence charge density
+   !> (mmax)
+   real(dp), allocatable :: ps_rho_val(:)
+   !> All-electron core charge density
+   !> (mmax)
+   real(dp), allocatable :: rhoc(:)
+   !> Temporary charge density array
+   !> (mmax)
+   real(dp), allocatable :: rhot(:)
+   !> Zero-valued charge density array
+   !> (mmax)
+   real(dp), allocatable :: rhozero(:)
+   !> Radial wavefunction r*psi(r) temporary array
+   !> (mmax)
+   real(dp), allocatable :: uu(:)
+   !> Radial wavefunction derivative r*dpsi(r)/dr temporary array
+   !> (mmax)
+   real(dp), allocatable :: up(:)
+   !> Semi-local pseudopotentials
+   !> (mmax, max_num_ell)
+   real(dp), allocatable :: v_ps_sl(:, :)
+   !> All-electron total potential
+   !> (mmax)
+   real(dp), allocatable :: vfull(:)
+   !> Vanderbilt-Kleinman-Bylander projectors
+   !> (mmax, max_num_proj, max_num_ell)
+   real(dp), allocatable :: vkb_proj(:, :, :)
+   !> Pseudo radial wavefunctions r*phi(r)
+   !> (mmax, max_num_proj, max_num_ell)
+   real(dp), allocatable :: ps_rpsi(:, :, :)
+   !> Well potential for binding scattering states
+   !> (mmax)
    real(dp), allocatable :: vwell(:)
-   real(dp), allocatable :: vpuns(:,:)
-   real(dp), allocatable :: vo(:),vxc(:)
-   real(dp), allocatable :: rhoae(:,:),rhops(:,:),rhotae(:)
-   real(dp), allocatable :: uupsa(:,:) !pseudo-atomic orbitals array
-   real(dp), allocatable :: epa(:,:),fpa(:,:)
-   real(dp), allocatable :: uua(:,:),upa(:,:)
-   real(dp), allocatable :: usratom(:,:), upsratom(:,:)
-   real(dp), allocatable :: vr(:,:,:)
+   !> Unscreened semi-local pseudopotentials
+   !> (mmax, max_num_ell)
+   real(dp), allocatable :: vpuns(:, :)
 
-   logical :: isboundpa(mxprj)
+   !>
+   real(dp), allocatable :: vo(:)
+   !> All-electron exchange-correlation potential
+   real(dp), allocatable :: vxc(:)
+   !> All-electron valence charge densities for each state
+   real(dp), allocatable :: ae_psi2_val(:, :)
+   !> Pseudo valence charge densities for each state
+   real(dp), allocatable :: ps_psi2_val(:, :)
+   !> All-electron total valence charge density
+   real(dp), allocatable :: ae_rho_val(:)
+   !> ???
+   real(dp), allocatable :: uupsa(:, :)
+   !> ???
+   real(dp), allocatable :: ae_bound_well_eig(:, :)
+   !> ???
+   real(dp), allocatable :: fpa(:, :)
+   !> ???
+   real(dp), allocatable :: ae_bound_well_rpsi(:, :, :)
+   !> ???
+   real(dp), allocatable :: ae_bound_well_drpsi_dr(:, :, :)
+   !> All-electron radial wavefunctions r*psi(r) from the full-potential solver `sratom`
+   real(dp), allocatable :: ae_bound_rpsi(:, :)
+   !> All-electron radial wavefunction derivatives r*dpsi(r)/dr from the full-potential solver `sratom`
+   real(dp), allocatable :: ae_bound_drpsi_dr(:, :)
+   !> Relativistic correction potentials
+   real(dp), allocatable :: vr(:, :, :)
+
+   !> ???
+   logical :: ae_bound_well_is_bound(MAX_NUM_PROJ, MAX_NUM_ELL)
+
 
    ! Model core charge optimization variables
    !> Model core charge density and its first n derivatives
@@ -191,7 +322,7 @@ program oncvpsp
    !> Objective function for Teter parameter optimization
    character(len=1024) :: teter_objective_name
    !> d2Exc RMSE values from Teter grid search
-   real(dp), allocatable :: grid_objective(:,:)
+   real(dp), allocatable :: grid_objective(:, :)
    !> Optimal Teter amplitude parameter from grid search
    real(dp) :: grid_opt_amp_param
    !> Optimal Teter scale parameter from grid search
@@ -208,29 +339,34 @@ program oncvpsp
 
    ! Wavefunction variables for postprocessing
    !> All-electron wavefunctions
-   real(dp), allocatable :: uu_ae(:,:,:)
-   !> Pseudo wavefunctions
-   real(dp), allocatable :: uu_ps(:,:,:)
+   !> (mmax, max_num_proj, max_num_ell)
+   real(dp), allocatable :: ae_bound_scattering_rpsi(:, :, :)
    !> All-electron wavefunction radial derivatives
-   real(dp), allocatable :: up_ae(:,:,:)
-   !> Pseudo wavefunction radial derivatives
-   real(dp), allocatable :: up_ps(:,:,:)
+   !> (mmax, max_num_proj, max_num_ell)
+   real(dp), allocatable :: ae_bound_scattering_drpsi_dr(:, :, :)
    !> Matching points for all-electron wavefunctions
-   integer :: mch_ae(mxprj,4)
-   !> Matching points for pseudo wavefunctions
-   integer :: mch_ps(mxprj,4)
+   integer :: ae_bound_scattering_ir_match(MAX_NUM_PROJ, MAX_NUM_ELL)
    !> All-electron state energies
-   real(dp) :: e_ae(mxprj,4)
-   !> Pseudo state energies
-   real(dp) :: e_ps(mxprj,4)
+   real(dp) :: ae_bound_scattering_eig(MAX_NUM_PROJ, MAX_NUM_ELL)
    !> Signs of all-electron wavefunctions at matching points
-   real(dp) :: sign_ae(mxprj,4)
-   !> Signs of pseudo wavefunctions at matching points
-   real(dp) :: sign_ps(mxprj,4)
-   !> .true. for scattering states, .false. for bound states
-   logical :: is_scattering(mxprj,4)
+   real(dp) :: ae_bound_scattering_sign(MAX_NUM_PROJ, MAX_NUM_ELL)
 
-   !> Phase shift variables for log derivative postprocessing
+   !> Pseudo wavefunctions
+   !> (mmax, max_num_proj, max_num_ell)
+   real(dp), allocatable :: ps_bound_scattering_rpsi(:, :, :)
+   !> Pseudo wavefunction radial derivatives
+   !> (mmax, max_num_proj, max_num_ell)
+   real(dp), allocatable :: ps_bound_scattering_drpsi_dr(:, :, :)
+   !> Matching points for pseudo wavefunctions
+   integer :: ps_bound_scattering_ir_match(MAX_NUM_PROJ, MAX_NUM_ELL)
+   !> Pseudo state energies
+   real(dp) :: ps_bound_scattering_eig(MAX_NUM_PROJ, MAX_NUM_ELL)
+   !> Signs of pseudo wavefunctions at matching points
+   real(dp) :: ps_bound_scattering_sign(MAX_NUM_PROJ, MAX_NUM_ELL)
+   !> .true. for scattering states, .false. for bound states
+   logical :: bound_scattering_is_scattering(MAX_NUM_PROJ, MAX_NUM_ELL)
+
+   ! Phase shift variables for log derivative postprocessing
    !> Log radial grid mesh index at which log derivative is calculated
    integer :: irpsh(4)
    !> Radius at which log derivative is calculated
@@ -240,21 +376,22 @@ program oncvpsp
    !> Phase shift (log derivative) energies
    real(dp), allocatable :: epsh(:)
    !> All-electron phase shifts (log derivatives)
-   real(dp), allocatable :: pshf(:,:)
+   real(dp), allocatable :: pshf(:, :)
    !> Pseudo phase shifts (log derivatives)
-   real(dp), allocatable :: pshp(:,:)
+   real(dp), allocatable :: pshp(:, :)
 
    ! Test configuration variables
    !> Number of valence states per test
-   integer :: nvt(5)
-   integer :: nat(30,5)
-   integer :: lat(30,5)
-   real(dp) :: fat(30,3,5)
-   real(dp) :: fat3(30,5)
-   real(dp) :: eat(30,3,5)
-   real(dp) :: eat3(30,5)
-   real(dp) :: eatp(30,5)
-   real(dp) :: eaetst(5), etsttot(5)
+   integer :: nvt(MAX_NUM_TEST)
+   integer :: nat(MAX_NUM_STATE, MAX_NUM_TEST)
+   integer :: lat(MAX_NUM_STATE, MAX_NUM_TEST)
+   real(dp) :: fat(MAX_NUM_STATE, 3, MAX_NUM_TEST)
+   real(dp) :: fat3(MAX_NUM_STATE, MAX_NUM_TEST)
+   real(dp) :: eat(MAX_NUM_STATE, 3, MAX_NUM_TEST)
+   real(dp) :: eat3(MAX_NUM_STATE, MAX_NUM_TEST)
+   real(dp) :: eatp(MAX_NUM_STATE, MAX_NUM_TEST)
+   real(dp) :: eaetst(MAX_NUM_TEST)
+   real(dp) :: etsttot(MAX_NUM_TEST)
 
    character*2 :: atsym
    character*4 :: psfile
@@ -394,6 +531,7 @@ program oncvpsp
       stop
    end if
 
+   ! First test configuration is the reference configuration
    nvcnf(1)=nv
    do ii=1,nc+nv
       nacnf(ii,1)=na(ii)
@@ -401,6 +539,7 @@ program oncvpsp
       facnf(ii,1)=fa(ii)
    end do
 
+   ! Fill in the core states of the test configurations
    do jj=2,ncnf+1
       do ii=1,nc
          nacnf(ii,jj)=na(ii)
@@ -410,20 +549,21 @@ program oncvpsp
    end do
 
    call check_data(atsym,zz,fcfact,rcfact,epsh1,epsh2,depsh,rlmax,drl,fa,facnf, &
-      &                rc,ep,qcut,debl,nc,nv,iexc,lmax,lloc,lpopt,icmod, &
-      &                ncnf,na,la,nvcnf,nacnf,lacnf,ncon,nbas,nproj,psfile)
+                   rc,ep,qcut,debl,nc,nv,iexc,lmax,lloc,lpopt,icmod, &
+                   ncnf,na,la,nvcnf,nacnf,lacnf,ncon,nbas,nproj,psfile)
 
-   nrl=int((rlmax/drl)-0.5d0)+1
+   nrl=int((rlmax/drl)-0.5_dp)+1
 
    ! PWSCF wants an even number of mesh points
    ! if(trim(psfile)=='upf') then
    if(mod(nrl,2)/=0) nrl=nrl+1
    ! end if
 
+   ! Set up the logarithmic mesh
    al=dlog(amesh)
-   rr1=0.0005d0/zz
-   rr1=dmin1(rr1,0.0005d0/10)
-   mmax=dlog(45.0d0 /rr1)/al
+   rr1=0.0005_dp/zz
+   rr1=dmin1(rr1,0.0005_dp/10)
+   mmax=dlog(45.0_dp /rr1)/al
 
    ! calculate zion for output
    zion=zz
@@ -431,58 +571,76 @@ program oncvpsp
       zion=zion-fa(ii)
    end do
 
-
-   allocate(rr(mmax))
-   allocate(rho(mmax),rhoc(mmax),rhot(mmax))
-   allocate(uu(mmax),up(mmax),uupsa(mmax,30))
-   allocate(evkb(mxprj,4), cvgplt(2,7,mxprj,4),qq(mxprj,mxprj))
-   allocate(vp(mmax,5),vfull(mmax),vkb(mmax,mxprj,4),pswf(mmax,mxprj,4))
-   allocate(vwell(mmax))
-   allocate(vpuns(mmax,5))
-   allocate(vo(mmax),vxc(mmax))
-   allocate(rhoae(mmax,nv),rhops(mmax,nv),rhotae(mmax))
-   allocate(npa(mxprj,6))
-   allocate(epa(mxprj,6),fpa(mxprj,6))
-   allocate(uua(mmax,mxprj),upa(mmax,mxprj))
-   allocate(vr(mmax,mxprj,6))
-   allocate(uu_ae(mmax,mxprj,4), up_ae(mmax,mxprj,4), uu_ps(mmax,mxprj,4), up_ps(mmax,mxprj,4))
-   allocate(usratom(mmax,nc+nv), upsratom(mmax,nc+nv))
-
-   vr(:,:,:)=0.0d0
-   vp(:,:)=0.0d0
-   vkb(:,:,:)=0.0d0
-   epa(:,:)=0.0d0
+   allocate(rr(mmax), source=0.0_dp)
+   allocate(ps_rho_val(mmax), source=0.0_dp)
+   allocate(rhoc(mmax), source=0.0_dp)
+   allocate(rhot(mmax), source=0.0_dp)
+   allocate(uu(mmax), source=0.0_dp)
+   allocate(up(mmax), source=0.0_dp)
+   allocate(uupsa(mmax, MAX_NUM_STATE), source=0.0_dp)
+   allocate(vkb_coef(MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(cvgplt(2, 7, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(ae_bound_well_overlap(MAX_NUM_PROJ, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(v_ps_sl(mmax, MAX_NUM_ELL), source=0.0_dp)
+   allocate(vfull(mmax), source=0.0_dp)
+   allocate(vkb_proj(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(ps_rpsi(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(vwell(mmax), source=0.0_dp)
+   allocate(vpuns(mmax, MAX_NUM_ELL), source=0.0_dp)
+   allocate(vo(mmax), source=0.0_dp)
+   allocate(vxc(mmax), source=0.0_dp)
+   allocate(ae_psi2_val(mmax, nv), source=0.0_dp)
+   allocate(ps_psi2_val(mmax, nv), source=0.0_dp)
+   allocate(ae_rho_val(mmax), source=0.0_dp)
+   allocate(ae_bound_well_n_qn(MAX_NUM_PROJ, MAX_NUM_ELL), source=0)
+   allocate(ae_bound_well_eig(MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(fpa(MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(ae_bound_well_rpsi(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(ae_bound_well_drpsi_dr(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(vr(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(ae_bound_scattering_rpsi(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(ae_bound_scattering_drpsi_dr(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(ps_bound_scattering_rpsi(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(ps_bound_scattering_drpsi_dr(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
+   allocate(ae_bound_rpsi(mmax, nc+nv), source=0.0_dp)
+   allocate(ae_bound_drpsi_dr(mmax, nc+nv), source=0.0_dp)
 
    do ii=1,mmax
       rr(ii)=rr1*exp(al*(ii-1))
    end do
-   call write_log_mesh_hdf5(hdf5_file_id, mmax, rr)
+#if (defined WITH_HDF5)
+   if (do_hdf5) call write_log_mesh_hdf5(hdf5_file_id, mmax, rr)
+#endif
    !
    ! full potential atom solution
    !
-   call sratom(na,la,ea,fa,rpk,nc,nc+nv,it,rhoc,rho, &
-      &           rr,vfull,vxc,zz,mmax,iexc,etot,ierr,srel,usratom,upsratom)
-   call write_sratom_hdf5(hdf5_file_id, &
-                          nc, nv, &
-                          na, la, fa, &
-                          mmax, rr, &
-                          vfull, vxc, &
-                          rhoc, rho, &
-                          usratom, upsratom, &
-                          rpk, ea, etot)
-
+   call sratom(na,la,ea,fa,rpk,nc,nc+nv,it,rhoc,ps_rho_val, &
+               rr,vfull,vxc,zz,mmax,iexc,etot,ierr,srel, &
+               ae_bound_rpsi,ae_bound_drpsi_dr)
+#if (defined WITH_HDF5)
+   if (do_hdf5) then
+      call write_sratom_hdf5(hdf5_file_id, &
+                             nc, nv, &
+                             na, la, fa, &
+                             mmax, rr, &
+                             vfull, vxc, &
+                             rhoc, ps_rho_val, &
+                             ae_bound_rpsi, ae_bound_drpsi_dr, &
+                             rpk, ea, etot)
+   end if
+#endif
    ! Drop digits beyond 5 decimals for input rcs before making any use of them
    do l1=1,max(lmax+1,lloc+1)
       jj=int(rc(l1)*10.0d5)
       rc(l1)=jj/10.0d5
    end do
 
-   rcmax=0.0d0
+   rcmax=0.0_dp
    do l1=1,lmax+1
       rcmax=dmax1(rcmax,rc(l1))
    end do
    do l1=1,lmax+1
-      if(rc(l1)==0.0d0) then
+      if(rc(l1)==0.0_dp) then
          rc(l1)=rcmax
       end if
    end do
@@ -525,24 +683,24 @@ program oncvpsp
 #endif
 
    ! find log mesh point nearest input rc
-   rcmax=0.0d0
-   irc(:)=0
-   do l1=1,max(lmax+1,lloc+1)
-      rct=rc(l1)
-      irc(l1)=0
-      do ii=2,mmax
-         if(rr(ii)>rct) then
-            irc(l1)=ii
-            rc(l1)=rr(ii)
+   rcmax = 0.0_dp
+   irc(:) = 0
+   do l1 = 1, max(lmax + 1, lloc + 1)
+      rct = rc(l1)
+      irc(l1) = 0
+      do ii = 2,mmax
+         if (rr(ii) > rct) then
+            irc(l1) = ii
+            rc(l1) = rr(ii)
             exit
          end if
       end do
-      rcmax=dmax1(rcmax,rc(l1))
+      rcmax = max(rcmax, rc(l1))
    end do
 
-   cvgplt(:,:,:,:)=0.0d0
-   uua(:, :)=0.0d0
-   upa(:, :)=0.0d0
+   cvgplt(:, :, :, :) = 0.0_dp
+   ae_bound_well_rpsi(:, :, :) = 0.0_dp
+   ae_bound_well_drpsi_dr(:, :, :) = 0.0_dp
    !
    ! loop to construct pseudopotentials for all angular momenta
    !
@@ -550,79 +708,89 @@ program oncvpsp
       &      'and semi-local pseudopoentials for all angular momenta'
    ! temporarily set this to 1 so that the pseudo wave function needed for the
    ! local potential will be generated.  Reset after run_vkb.
-   nproj(lloc+1)=1
-   do l1=1,lmax+1
-      ll=l1-1
-      uu(:)=0.0d0; up(:)=0.d0; qq(:,:)=0.0d0; isboundpa(:)=.false.
-      iprj=0
+   nproj(lloc+1) = 1
+   do l1 = 1, lmax + 1
+      ll = l1 - 1
+      uu(:) = 0.0_dp
+      up(:) = 0.0_dp
+      ae_bound_well_overlap(:, :, l1) = 0.0_dp
+      ae_bound_well_is_bound(:, l1) = .false.
+      iprj = 0
 
       ! get principal quantum number for the highest core state for this l
-      npa(1,l1)=l1
-      do kk=1,nc
-         if(la(kk)==l1-1) npa(1,l1)=na(kk)+1
+      ae_bound_well_n_qn(1, l1) = l1
+      do kk = 1, nc
+         if (la(kk) == l1 - 1) ae_bound_well_n_qn(1, l1) = na(kk) + 1
       end do !kk
 
       ! get all-electron bound states for projectors
-      if(nv/=0) then
-         do kk=nc+1,nc+nv
-            if(la(kk)==l1-1) then
-               iprj=iprj+1
-               et=ea(kk)
-               call lschfb(na(kk),la(kk),ierr,et, &
-                  &                      rr,vfull,uu,up,zz,mmax,mch,srel)
+      if (nv /= 0) then
+         do kk = nc + 1, nc + nv
+            if (la(kk) == l1 - 1) then
+               iprj = iprj + 1
+               et = ea(kk)
+               call lschfb(na(kk),la(kk),ierr,et,rr,vfull,uu,up,zz,mmax,mch,srel)
                if(ierr /= 0) then
                   write(6,'(/a,3i4)') 'oncvpsp: lschfb convergence ERROR n,l,iter=', &
                      &           na(ii),la(ii),it
                   stop
                end if
-               epa(iprj,l1)=ea(kk)
-               npa(iprj,l1)=na(kk)
-               uua(:,iprj)=uu(:)
-               upa(:,iprj)=up(:)
-               isboundpa(iprj)=.true.
+               ae_bound_well_rpsi(:, iprj, l1) = uu(:)
+               ae_bound_well_drpsi_dr(:, iprj, l1) = up(:)
+               ae_bound_well_eig(iprj, l1) = ea(kk)
+               ae_bound_well_n_qn(iprj, l1) = na(kk)
+               ae_bound_well_is_bound(iprj, l1)=.true.
             end if !la(kk)==l1-1
-            if(iprj==nproj(l1)) exit
+            if (iprj == nproj(l1)) exit
          end do !kk
       end if !nv/=0
 
       ! get all-electron well states for projectors
       ! if there were no valence states, use ep from input data for 1st well state
       ! otherwise shift up by input debl
-      if(iprj==0) epa(1,l1)=ep(l1)
-      if(iprj<nproj(l1))then
-         do kk=1,nproj(l1)-iprj
-            iprj=iprj+1
-            if(iprj>1 .and. debl(l1)<=0.0d0) then
+      if (iprj == 0) ae_bound_well_eig(1, l1) = ep(l1)
+      if (iprj < nproj(l1)) then
+         do kk = 1, nproj(l1) - iprj
+            iprj = iprj + 1
+            ! Check that debl is positive if it needs to be used to find a well state
+            if (iprj > 1 .and. debl(l1) <= 0.0_dp) then
                write(6,'(a,f8.3,a/a)') 'oncvpsp: ERROR debl =',debl, 'for l=', &
-                  &              ' ERROR not allowed with 2 or more scattering states', &
-                  &              'program will stop'
+                  ' ERROR not allowed with 2 or more scattering states', &
+                  'program will stop'
                stop
             end if
-            if(iprj>1) then
-               epa(iprj,l1)=epa(iprj-1,l1)+debl(l1)
-               npa(iprj,l1)=npa(iprj-1,l1)+1
+            ! If there was at least one valence state, use its energy plus debl
+            if (iprj > 1) then
+               ae_bound_well_eig(iprj, l1) = ae_bound_well_eig(iprj - 1, l1) + debl(l1)
+               ae_bound_well_n_qn(iprj, l1) = ae_bound_well_n_qn(iprj - 1, l1) + 1
             end if
-
-            call wellstate(npa(iprj,l1),ll,irc(l1),epa(iprj,l1),rr, &
-               &                     vfull,uu,up,zz,mmax,mch,srel)
-            uua(:,iprj)=uu(:)
-            upa(:,iprj)=up(:)
-            isboundpa(iprj)=.false.
+            ! Solve for a well-confined state
+            call wellstate(ae_bound_well_n_qn(iprj, l1), ll, irc(l1), ae_bound_well_eig(iprj, l1), rr, &
+                           vfull, uu, up, zz, mmax, mch, srel)
+            ! Store the resulting wavefunction
+            ae_bound_well_rpsi(:, iprj, l1) = uu(:)
+            ae_bound_well_drpsi_dr(:, iprj, l1) = up(:)
+            ae_bound_well_is_bound(iprj, l1) = .false.
          end do !kk
       end if !iprj<nproj(l1)
 
-      call write_optimize_inputs_hdf5(hdf5_file_id, &
-                                      mxprj, ll, nproj(l1), &
-                                      npa(:, l1), epa(:, l1), &
-                                      mmax, &
-                                      uua, upa, &
-                                      vr(:, :, l1), &
-                                      isboundpa)
+#if (defined WITH_HDF5)
+      if (do_hdf5) then
+         call write_optimize_inputs_hdf5(hdf5_file_id, &
+                                         MAX_NUM_PROJ, ll, nproj(l1), &
+                                         ae_bound_well_n_qn(:, l1), ae_bound_well_eig(:, l1), &
+                                         mmax, &
+                                         ae_bound_well_rpsi, ae_bound_well_drpsi_dr, &
+                                         vr(:, :, l1), &
+                                         ae_bound_well_is_bound)
+      end if
+#endif
 
       do iprj=1,nproj(l1)
 
          ! calculate relativistic correction to potential to force projectors to 0 at rc
-         call vrel(ll,epa(iprj,l1),rr,vfull,vr(1,iprj,l1),uua(1,iprj),upa(1,iprj), &
+         call vrel(ll,ae_bound_well_eig(iprj,l1),rr,vfull,vr(:,iprj,l1), &
+                   ae_bound_well_rpsi(:,iprj,l1),ae_bound_well_drpsi_dr(:,iprj,l1), &
                    zz,mmax,irc(l1),srel)
 
       end do
@@ -630,26 +798,28 @@ program oncvpsp
       ! get all-electron overlap matrix
       do jj=1,nproj(l1)
          do ii=1,jj
-            call fpovlp(uua(1,ii),uua(1,jj),irc(l1),ll,zz,qq(ii,jj),rr,srel)
-            qq(jj,ii)=qq(ii,jj)
+            call fpovlp(ae_bound_well_rpsi(:,ii,l1),ae_bound_well_rpsi(:,jj,l1), &
+                        irc(l1),ll,zz,ae_bound_well_overlap(ii,jj,l1),rr,srel)
+            ae_bound_well_overlap(jj,ii,l1) = ae_bound_well_overlap(ii,jj,l1)
          end do
       end do
 
-      call run_optimize(epa(1,l1),ll,mmax,mxprj,rr,uua,qq, &
+      call run_optimize(ae_bound_well_eig(:,l1),ll,mmax,MAX_NUM_PROJ,rr, &
+                        ae_bound_well_rpsi(:,:,l1),ae_bound_well_overlap(:,:,l1), &
                         irc(l1),qcut(l1),qmsbf(l1),ncon(l1),nbas(l1),nproj(l1), &
-                        pswf(1,1,l1),vp(1,l1),vkb(1,1,l1),vfull,cvgplt(1,1,1,l1))
+                        ps_rpsi(:,:,l1),v_ps_sl(:,l1),vkb_proj(:,:,l1),vfull,cvgplt(:,:,:,l1))
 
    end do !l1
 
    ! construct Vanderbilt / Kleinman-Bylander projectors
    write(6,'(/a,a)') 'Construct Vanderbilt / Kleinmman-Bylander projectors'
-   call run_vkb(lmax,lloc,lpopt,dvloc0,irc,nproj,rr,mmax,mxprj,pswf,vfull,vp, &
-                evkb,vkb,nlim,vr)
+   call run_vkb(lmax,lloc,lpopt,dvloc0,irc,nproj,rr,mmax,MAX_NUM_PROJ,ps_rpsi,vfull,v_ps_sl, &
+                vkb_coef,vkb_proj,nlim,vr)
 
    ! restore this to its proper value
    nproj(lloc+1)=0
 
-   deallocate(uua,upa)
+   deallocate(ae_bound_well_rpsi,ae_bound_well_drpsi_dr)
 
    ! accumulate charge and eigenvalues
    ! pseudo wave functions are calculated with VKB projectors for
@@ -658,12 +828,12 @@ program oncvpsp
    ! charge densities
 
    ! null charge and eigenvalue accumulators
-   uupsa(:,:)=0.0d0
-   eeig=0.0d0
-   zval=0.0d0
-   rho(:)=0.0d0
+   uupsa(:,:)=0.0_dp
+   eeig=0.0_dp
+   zval=0.0_dp
+   ps_rho_val(:)=0.0_dp
    nodes(:)=0
-   rhotae(:)=0.0d0
+   ae_rho_val(:)=0.0_dp
    irps=0
    do kk=1,nv
 
@@ -671,8 +841,7 @@ program oncvpsp
       et=ea(nc+kk)
       ll=la(nc+kk)
       l1=ll+1
-      call lschfb(na(nc+kk),ll,ierr,et, &
-                  rr,vfull,uu,up,zz,mmax,mch,srel)
+      call lschfb(na(nc+kk),ll,ierr,et,rr,vfull,uu,up,zz,mmax,mch,srel)
       if(ierr /= 0) then
          write(6,'(/a,3i4)') 'oncvpsp: lschfb convergence ERROR n,l,iter=', &
             &     na(ii),la(ii),it
@@ -680,14 +849,14 @@ program oncvpsp
       end if
 
       ! Accumulate all-electron charge density
-      rhoae(:,kk)=(uu(:)/rr(:))**2
-      rhotae(:)=rhotae(:) + fa(nc+kk)*rhoae(:,kk)
+      ae_psi2_val(:, kk)=(uu(:) / rr(:))**2
+      ae_rho_val(:) = ae_rho_val(:) + fa(nc + kk) * ae_psi2_val(:, kk)
 
       ! Get pseudo valence state
-      emax=0.75d0*et
-      emin=1.25d0*et
+      emax = 0.75_dp * et
+      emin = 1.25_dp * et
       call lschvkbb(ll+nodes(l1)+1,ll,nproj(l1),ierr,et,emin,emax, &
-                    rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
+                    rr,v_ps_sl(1,lloc+1),vkb_proj(1,1,l1),vkb_coef(1,l1), &
                     uu,up,mmax,mch)
       if(ierr/=0) then
          write(6,'(a,3i4)') 'oncvpsp: lschvkbb ERROR',ll+nodes(l1)+1,ll,ierr
@@ -699,8 +868,8 @@ program oncvpsp
       uupsa(:,kk)=uu(:)
 
       ! Accumulate pseudo charge density
-      rhops(:,kk)=(uu(:)/rr(:))**2
-      rho(:)=rho(:)+fa(nc+kk)*rhops(:,kk)
+      ps_psi2_val(:,kk)=(uu(:)/rr(:))**2
+      ps_rho_val(:)=ps_rho_val(:)+fa(nc+kk)*ps_psi2_val(:,kk)
 
       eeig=eeig+fa(nc+kk)*et
       zval=zval+fa(nc+kk)
@@ -717,19 +886,19 @@ program oncvpsp
    allocate(d2excps_rhom(nv, nv))
    select case (icmod)
     case (1)
-      call get_modcore1_match(irps, fcfact, mmax, rhoc, rho, modcore1_ircc, irmod)
-      call modcore1(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
+      call get_modcore1_match(irps, fcfact, mmax, rhoc, ps_rho_val, modcore1_ircc, irmod)
+      call modcore1(icmod,ps_psi2_val,ps_rho_val,rhoc,ae_psi2_val,ae_rho_val,rhomod, &
                     fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, &
                     modcore1_iter)
     case (2)
       irmod = mmax
-      call get_modcore2_match(mmax, rr, rhoc, rho, fcfact, modcore2_ircc, modcore2_a0, modcore2_b0)
-      call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
-      call modcore2(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
+      call get_modcore2_match(mmax, rr, rhoc, ps_rho_val, fcfact, modcore2_ircc, modcore2_a0, modcore2_b0)
+      call get_modcore3_match(mmax, rr, rhoc, ps_rho_val, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
+      call modcore2(icmod,ps_psi2_val,ps_rho_val,rhoc,ae_psi2_val,ae_rho_val,rhomod, &
                     fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
     case (3)
       irmod = mmax
-      call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
+      call get_modcore3_match(mmax, rr, rhoc, ps_rho_val, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
       if (teter_relative) then
          teter_amp = fcfact * modcore3_rhocmatch
          teter_scale = rcfact * modcore3_rmatch
@@ -737,11 +906,11 @@ program oncvpsp
          teter_amp = fcfact
          teter_scale = rcfact
       end if
-      call modcore3(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
+      call modcore3(icmod,ps_psi2_val,ps_rho_val,rhoc,ae_psi2_val,ae_rho_val,rhomod, &
                     teter_amp,teter_scale,irps,mmax,rr,nc,nv,la,zion,iexc)
     case (4)
       irmod = mmax
-      call get_modcore3_match(mmax, rr, rhoc, rho, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
+      call get_modcore3_match(mmax, rr, rhoc, ps_rho_val, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
       if (teter_relative) then
          call linspace(teter_amp_min, teter_amp_max, teter_amp_step, n_teter_amp, teter_amp_prefacs)
          call linspace(teter_scale_min, teter_scale_max, teter_scale_step, n_teter_scale, teter_scale_prefacs)
@@ -757,7 +926,7 @@ program oncvpsp
       end if
       allocate(grid_objective(n_teter_amp, n_teter_scale))
       call modcore4(mmax, rr, nc, nv, la, zion, irps, iexc, &
-                    rhops, rho, rhoc, rhoae, rhotae, &
+                    ps_psi2_val, ps_rho_val, rhoc, ae_psi2_val, ae_rho_val, &
                     teter_objective_name, &
                     n_teter_amp, n_teter_scale, teter_amp_params, teter_scale_params, &
                     grid_objective, grid_opt_amp_param, grid_opt_scale_param, grid_opt_objective, &
@@ -771,13 +940,13 @@ program oncvpsp
 
    if (icmod > 0) then
       ! Compute d2Exc with core charge = true AE core charge
-      call der2exc(rhotae, rhoc, rhoae, rr, d2excae, d2exc_dummy, d2exc_rmse_dummy, &
+      call der2exc(ae_rho_val, rhoc, ae_psi2_val, rr, d2excae, d2exc_dummy, d2exc_rmse_dummy, &
                    zion, iexc, nc, nv, la, irmod, mmax)
       ! Compute d2Exc with core charge = 0
-      call der2exc(rho, rhozero, rhops, rr, d2excps_no_rhom, d2excae, d2exc_rmse_no_rhom, &
+      call der2exc(ps_rho_val, rhozero, ps_psi2_val, rr, d2excps_no_rhom, d2excae, d2exc_rmse_no_rhom, &
                    zion, iexc, nc, nv, la, irmod, mmax)
       ! Compute d2Exc with core charge = model core charge
-      call der2exc(rho, rhomod(:, 1), rhops, rr, d2excps_rhom, d2excae, d2exc_rmse_rhom, &
+      call der2exc(ps_rho_val, rhomod(:, 1), ps_psi2_val, rr, d2excps_rhom, d2excae, d2exc_rmse_rhom, &
                    zion, iexc, nc, nv, la, irmod, mmax)
    end if
 
@@ -802,30 +971,28 @@ program oncvpsp
     case default
    end select
 
-! screening potential for pseudocharge
+   ! screening potential for pseudocharge
+   call vout(1,ps_rho_val,rhomod(1,1),vo,vxc,zval,eeel,eexc,rr,mmax,iexc)
 
-   call vout(1,rho,rhomod(1,1),vo,vxc,zval,eeel,eexc,rr,mmax,iexc)
-
-! total energy output
-
-   epstot= eeig + eexc - 0.5d0*eeel
+   ! total energy output
+   epstot= eeig + eexc - 0.5_dp*eeel
    write(6,'(/a,f12.6/)') 'Pseudoatom total energy', epstot
 
-   call run_diag(lmax,npa,epa,lloc,irc, &
-      &                    vkb,evkb,nproj,rr,vfull,vp,zz,mmax,mxprj,srel)
+   call run_diag(lmax,ae_bound_well_n_qn,ae_bound_well_eig,lloc,irc, &
+      &                    vkb_proj,vkb_coef,nproj,rr,vfull,v_ps_sl,zz,mmax,MAX_NUM_PROJ,srel)
 
    call run_ghosts(lmax,la,ea,nc,nv,lloc,irc,qmsbf, &
-      &                    vkb,evkb,nproj,rr,vp,mmax,mxprj)
+      &                    vkb_proj,vkb_coef,nproj,rr,v_ps_sl,mmax,MAX_NUM_PROJ)
 
-! unscreen semi-local potentials
+   ! unscreen semi-local potentials
 
    do l1=1,max(lmax+1,lloc+1)
-      vpuns(:,l1)=vp(:,l1)-vo(:)
+      vpuns(:,l1)=v_ps_sl(:,l1)-vo(:)
    end do
 
-!fix unscreening error due to greater range of all-electron charge
+   ! fix unscreening error due to greater range of all-electron charge
    do ii=mmax,1,-1
-      if(rho(ii)==0.0d0) then
+      if(ps_rho_val(ii)==0.0_dp) then
          do l1=1,max(lmax+1,lloc+1)
             vpuns(ii,l1)=-zion/rr(ii)
          end do
@@ -835,53 +1002,57 @@ program oncvpsp
    end do
 
    ! loop over reference plus test atom configurations
-   call run_test_configurations(ncnf,nacnf,lacnf,facnf,nc,nvcnf,rho,rhomod,rr,zz, &
-                                rcmax,mmax,mxprj,iexc,ea,etot,epstot,nproj,vpuns, &
-                                lloc,vkb,evkb,srel, &
+   call run_test_configurations(ncnf,nacnf,lacnf,facnf,nc,nvcnf,ps_rho_val,rhomod,rr,zz, &
+                                rcmax,mmax,MAX_NUM_PROJ,iexc,ea,etot,epstot,nproj,vpuns, &
+                                lloc,vkb_proj,vkb_coef,srel, &
                                 nvt,nat,lat,fat,eat,eatp,eaetst,etsttot)
    fat3(:,:)=fat(:,3,:)
    eat3(:,:)=eat(:,3,:)
    call write_test_configs_text(stdout,ncnf,nc,nvt,nat,lat,fat3,eat3,eatp,etot,eaetst,epstot,etsttot)
 
    call get_pseudo_linear_mesh_parameters(mmax, rr, lmax, irc, drl, nrl, &
-      &                                       n1, n2, n3, n4)
+                                          n1, n2, n3, n4)
    write(stdout, '(/a)') 'DATA FOR PLOTTING'
    call write_rho_vpuns_text(stdout, mmax, lmax, drl, nrl, rr, irc, &
-      &                          rho, vpuns)
+                             ps_rho_val, vpuns)
    if (lloc == 4) then
       call write_vloc_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
-         &                        vpuns(:, lloc + 1))
+                           vpuns(:, lloc + 1))
    end if
    call write_rho_rhoc_rhom_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
-      &                              rho, rhoc, rhomod(:, 1))
-   call get_wavefunctions(zz, srel, mmax, rr, vfull, lloc, vp, lmax, &
-      &                       irc, nproj, drl, nrl, mxprj, epa, npa, vkb, evkb, &
-      &                       uu_ae, up_ae, uu_ps, up_ps, mch_ae, mch_ps, e_ae, e_ps, &
-      &                       sign_ae, sign_ps, is_scattering)
+                                 ps_rho_val, rhoc, rhomod(:, 1))
+   call get_wavefunctions(zz, srel, mmax, rr, vfull, lloc, v_ps_sl, lmax, &
+                          irc, nproj, drl, nrl, MAX_NUM_PROJ, ae_bound_well_eig, ae_bound_well_n_qn, vkb_proj, vkb_coef, &
+                          ae_bound_scattering_rpsi, ae_bound_scattering_drpsi_dr, ps_bound_scattering_rpsi, &
+                          ps_bound_scattering_drpsi_dr, ae_bound_scattering_ir_match, ps_bound_scattering_ir_match, &
+                          ae_bound_scattering_eig, ps_bound_scattering_eig, &
+                          ae_bound_scattering_sign, ps_bound_scattering_sign, bound_scattering_is_scattering)
    call write_wavefunctions_vkb_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
-      &                                  lloc, mxprj, npa, nproj, sign_ae, sign_ps, uu_ae, uu_ps, is_scattering, &
-      &                                  vkb)
-   call write_convergence_profile_text(stdout, lmax, mxprj, &
-      &                                    cvgplt)
+                                     lloc, MAX_NUM_PROJ, ae_bound_well_n_qn, nproj, &
+                                     ae_bound_scattering_sign, ps_bound_scattering_sign, ae_bound_scattering_rpsi, &
+                                     ps_bound_scattering_rpsi, bound_scattering_is_scattering, &
+                                     vkb_proj)
+   call write_convergence_profile_text(stdout, lmax, MAX_NUM_PROJ, &
+                                       cvgplt)
 
    npsh = int(((epsh2 - epsh1) / depsh) - 0.5_dp) + 1
    allocate(epsh(npsh), pshf(npsh, 4), pshp(npsh, 4))
-   call run_phsft(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,rxpsh,npsh,vkb,evkb, &
-      &               rr,vfull,vp,zz,mmax,mxprj,irc,srel, &
-      &               irpsh,rpsh,epsh,pshf,pshp)
+   call run_phsft(lmax,lloc,nproj,ae_bound_well_eig,epsh1,epsh2,depsh,rxpsh,npsh,vkb_proj,vkb_coef, &
+                  rr,vfull,v_ps_sl,zz,mmax,MAX_NUM_PROJ,irc,srel, &
+                  irpsh,rpsh,epsh,pshf,pshp)
    call write_phsft_text(stdout,rpsh,npsh,epsh,pshf,pshp)
 
-   call gnu_script(epa,evkb,lmax,lloc,mxprj,nproj)
+   call gnu_script(ae_bound_well_eig,vkb_coef,lmax,lloc,MAX_NUM_PROJ,nproj)
 
 #if (defined WITH_HDF5)
    if (do_hdf5) then
       call write_output_hdf5(hdf5_file_id, &
-                             zz, nc, nv, mxprj, lmax, lloc, npa, epa, irc, nproj, &
+                             zz, nc, nv, MAX_NUM_PROJ, lmax, lloc, ae_bound_well_n_qn, ae_bound_well_eig, irc, nproj, &
                              mmax, rr, &  ! log radial mesh
                              drl, nrl, &  ! linear radial mesh
                              ncnf, nvt, nat, lat, fat3, eat3, eatp, etot, eaetst, epstot, etsttot, & ! test configurations
-                             vfull, vp, vpuns, &  ! potentials
-                             rhotae, rho, rhoc, &  ! charge densities
+                             vfull, v_ps_sl, vpuns, &  ! potentials
+                             ae_rho_val, ps_rho_val, rhoc, &  ! charge densities
                              icmod, fcfact, rcfact, rhomod, &  ! model core charge density
                              modcore1_ircc, modcore1_iter, &
                              modcore2_ircc, modcore2_a0, modcore2_b0, &
@@ -891,10 +1062,12 @@ program oncvpsp
                              grid_objective, grid_opt_amp_param, grid_opt_scale_param, grid_opt_objective, &
                              nm_opt_amp_param, nm_opt_scale_param, nm_opt_objective, nm_iter, &
                              d2excae, d2excps_no_rhom, d2exc_rmse_no_rhom, d2excps_rhom, d2exc_rmse_rhom, &
-                             sign_ae, uu_ae, up_ae, mch_ae, e_ae, &  ! all-electron wavefunctions
-                             sign_ps, uu_ps, up_ps, mch_ps, e_ps, &  ! pseudo wavefunctions
-                             is_scattering, &  ! wavefunction scattering flags
-                             vkb, evkb, &  ! KB projectors
+                             ae_bound_scattering_sign, ae_bound_scattering_rpsi, ae_bound_scattering_drpsi_dr, &
+                             ae_bound_scattering_ir_match, ae_bound_scattering_eig, &  ! all-electron wavefunctions
+                             ps_bound_scattering_sign, ps_bound_scattering_rpsi, ps_bound_scattering_drpsi_dr, &
+                             ps_bound_scattering_ir_match, ps_bound_scattering_eig, &  ! pseudo wavefunctions
+                             bound_scattering_is_scattering, &  ! wavefunction scattering flags
+                             vkb_proj, vkb_coef, &  ! KB projectors
                              rpsh, npsh, epsh1, epsh2, depsh, epsh, pshf, pshp, & ! phase shift / log derivative
                              cvgplt)  ! convergence profiles
       call hdf_close_file(hdf5_file_id)
@@ -902,29 +1075,29 @@ program oncvpsp
 #endif
 
    if(trim(psfile)=='psp8' .or. trim(psfile)=='both') then
-      call linout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
-         &             rhotae,rhoc,zz,zion,mmax,mxprj,iexc,icmod,nrl,drl,atsym, &
-         &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
-         &             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
-         &             epsh1,epsh2,depsh,rlmax,psfile)
+      call linout(lmax,lloc,rc,vkb_proj,vkb_coef,nproj,rr,vpuns,ps_rho_val,rhomod, &
+                  ae_rho_val,rhoc,zz,zion,mmax,MAX_NUM_PROJ,iexc,icmod,nrl,drl,atsym, &
+                  na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
+                  fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
+                  epsh1,epsh2,depsh,rlmax,psfile)
    end if
 
    if(trim(psfile)=='upf' .or. trim(psfile)=='both') then
-      call upfout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
-         &             zz,zion,mmax,mxprj,iexc,icmod,nrl,drl,atsym,epstot, &
-         &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
-         &             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
-         &             epsh1,epsh2,depsh,rlmax,psfile,uupsa,ea)
+      call upfout(lmax,lloc,rc,vkb_proj,vkb_coef,nproj,rr,vpuns,ps_rho_val,rhomod, &
+                  zz,zion,mmax,MAX_NUM_PROJ,iexc,icmod,nrl,drl,atsym,epstot, &
+                  na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
+                  fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
+                  epsh1,epsh2,depsh,rlmax,psfile,uupsa,ea)
    end if
 
    if(trim(psfile)=='psml' .or. trim(psfile)=='both') then
       write(stdout, '(a)') ' calling psmlout'
-      call psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
-         &             irct, srel, &
-         &             zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
-         &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
-         &             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
-         &             epsh1,epsh2,depsh,rlmax,psfile)
+      call psmlout(lmax,lloc,rc,vkb_proj,vkb_coef,nproj,rr,vpuns,ps_rho_val,rhomod, &
+                   irct, srel, &
+                   zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
+                   na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
+                   fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
+                   epsh1,epsh2,depsh,rlmax,psfile)
    end if
 
    stop
