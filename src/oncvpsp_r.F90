@@ -913,28 +913,23 @@ program oncvpsp_r
    call gnu_script_r(epa,evkb,lmax,lloc,mxprj,nproj)
 
    if(trim(psfile)=='psp8' .or. trim(psfile)=='both') then
-
       soscale=1.0d0
       call linout_r(lmax,lloc,rc,vsr,esr,vso,eso,nproj,rr,vpuns,rho,rhomod, &
          &             rhotae,rhoc,zz,zion,mmax,mxprj,iexc,icmod,nrl,drl,atsym,soscale, &
          &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
          &             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
          &             epsh1,epsh2,depsh,rlmax,psfile)
-
    end if
 
    if(trim(psfile)=='upf' .or. trim(psfile)=='both') then
-
       call upfout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
          &              zz,zion,mmax,mxprj,iexc,icmod,nrl,drl,atsym,epstot, &
          &              na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
          &              fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
          &              epsh1,epsh2,depsh,rlmax,psfile,uupsa,ea)
-
    end if
 
    if(trim(psfile)=='psml' .or. trim(psfile)=='both') then
-      print *, 'calling psmlout'
       call psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpsml,rho,rhomod, &
          &             irct, &
          &             vsr,esr,vso,eso, &

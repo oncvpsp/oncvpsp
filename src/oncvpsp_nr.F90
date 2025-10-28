@@ -625,8 +625,6 @@
  call gnu_script(ae_bound_well_eig,vkb_coef,lmax,lloc,mxprj,nproj)
 
  if(trim(psfile)=='psp8' .or. trim(psfile)=='both') then
-
-
   call linout(lmax,lloc,rc,vkb_proj,vkb_coef,nproj,rr,vpuns,ps_rho_val,rhomod, &
 &             ae_rho_val,rhoc,zz,zion,mmax,mxprj,iexc,icmod,nrl,drl,atsym, &
 &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
@@ -643,10 +641,6 @@
  end if
 
  if(trim(psfile)=='psml' .or. trim(psfile)=='both') then
-!
-! Write info for PSML format
-!
-   print *, 'calling psmlout'
    call psmlout(lmax,lloc,rc,vkb_proj,vkb_coef,nproj,rr,vpuns,ps_rho_val,rhomod, &
 &             irct, srel, &
 &             zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &

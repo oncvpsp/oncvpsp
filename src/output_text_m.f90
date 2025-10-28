@@ -31,7 +31,7 @@ subroutine write_input_text(unit, &
                             lloc, lpopt, dvloc0, &
                             nproj, debl, &
                             icmod, fcfact, rcfact, &
-                            epsh1, epsh2, depsh, &
+                            epsh1, epsh2, depsh, rxpsh, &
                             rlmax, drl, &
                             ncnf, nvcnf, nacnf, lacnf, facnf, &
                             ea)
@@ -91,6 +91,8 @@ subroutine write_input_text(unit, &
    real(dp), intent(in) :: epsh2
    !> Log derivative analysis energy step
    real(dp), intent(in) :: depsh
+   !> Log derivative analysis radius
+   real(dp), intent(in) :: rxpsh
    !> Maximum radius for output grid
    real(dp), intent(in) :: rlmax
    !> Spacing of linear radial mesh
@@ -144,8 +146,13 @@ subroutine write_input_text(unit, &
    write(unit, '(a/a/a)') '#','# MODEL CORE CHARGE', '# icmod, fcfact, rcfact'
    write(unit, '(i5,2f10.5)') icmod, fcfact, rcfact
 
-   write(unit, '(a/a/a)') '#','# LOG DERIVATIVE ANALYSIS', '# epsh1, epsh2, depsh'
-   write(unit, '(3f8.2)') epsh1, epsh2, depsh
+   if (rxpsh > 0.0_dp) then
+      write(unit, '(a/a/a)') '#','# LOG DERIVATIVE ANALYSIS', '# epsh1, epsh2, depsh, rxpsh'
+      write(unit, '(4f8.2)') epsh1, epsh2, depsh, rxpsh
+   else
+      write(unit, '(a/a/a)') '#','# LOG DERIVATIVE ANALYSIS', '# epsh1, epsh2, depsh'
+      write(unit, '(3f8.2)') epsh1, epsh2, depsh
+   end if
 
    write(unit, '(a/a/a)') '#','# OUTPUT GRID','# rlmax, drl'
    write(unit, '(2f8.4)') rlmax, drl

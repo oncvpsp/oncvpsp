@@ -126,7 +126,7 @@ subroutine sratom(na,la,ea,fa,rpk,nc,ncv,it,rhoc,rho, &
          end if
          et=ea(ii)
          ierr = 0
-         call lschfb(na(ii),la(ii),ierr,et,rr,vi,u(:,ncv),up(:,ncv),zz,mmax,mch,srel)
+         call lschfb(na(ii),la(ii),ierr,et,rr,vi,u(:,ii),up(:,ii),zz,mmax,mch,srel)
          if(ierr .ne. 0) then
             write(6,'(/a,3i4)') 'sratom123: lschfb convergence ERROR n,l,iter=', &
                &       na(ii),la(ii),it
@@ -139,15 +139,15 @@ subroutine sratom(na,la,ea,fa,rpk,nc,ncv,it,rhoc,rho, &
 
          ! accumulate charge and eigenvalues
          eeig = eeig + fa(ii) * ea(ii)
-         rho(:)=rho(:) + fa(ii)*(u(:,ncv)/rr(:))**2
+         rho(:)=rho(:) + fa(ii)*(u(:,ii)/rr(:))**2
          if(ii<=nc) then
-            rhoc(:)=rhoc(:) + fa(ii)*(u(:,ncv)/rr(:))**2
+            rhoc(:)=rhoc(:) + fa(ii)*(u(:,ii)/rr(:))**2
          end if
 
 
          ! find outermost peak of wavefunction
          do jj=mch-1,1,-1
-            if(up(jj,ncv)*up(jj+1,ncv)<0.0d0) then
+            if(up(jj,ii)*up(jj+1,ii)<0.0d0) then
                rpk(ii)=rr(jj)
                exit
             end if

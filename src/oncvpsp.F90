@@ -657,7 +657,7 @@ program oncvpsp
                          lloc, lpopt, dvloc0, &
                          nproj, debl, &
                          icmod, fcfact, rcfact, &
-                         epsh1, epsh2, depsh, &
+                         epsh1, epsh2, depsh, rxpsh, &
                          rlmax, drl, &
                          ncnf, nvcnf, nacnf, lacnf, facnf, &
                          ea)
@@ -780,9 +780,9 @@ program oncvpsp
                                          MAX_NUM_PROJ, ll, nproj(l1), &
                                          ae_bound_well_n_qn(:, l1), ae_bound_well_eig(:, l1), &
                                          mmax, &
-                                         ae_bound_well_rpsi, ae_bound_well_drpsi_dr, &
+                                         ae_bound_well_rpsi(:, :, l1), ae_bound_well_drpsi_dr(:, :, l1), &
                                          vr(:, :, l1), &
-                                         ae_bound_well_is_bound)
+                                         ae_bound_well_is_bound(:, l1))
       end if
 #endif
 
