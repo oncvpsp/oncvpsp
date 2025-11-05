@@ -1,5 +1,6 @@
 module output_hdf5_m
    use, intrinsic :: iso_fortran_env, only: dp => real64
+   use constants_m, only: MAX_NUM_PROJ, MAX_NUM_ELL
    ! High-level HDF5 utilities
    use hdf5_utils_m, only: HID_T, &
       hdf_open_file, hdf_close_file, &
@@ -17,6 +18,8 @@ module output_hdf5_m
       write_log_mesh_hdf5, &
       write_sratom_hdf5, &
       write_optimize_inputs_hdf5, &
+      write_optimize_results_hdf5, &
+      write_bound_valence_states_hdf5, &
       write_reference_configuration_results_hdf5, &
       write_output_hdf5, &
       write_teter_optimization_hdf5
@@ -480,18 +483,21 @@ contains
             nm_iter, 101, nm_opt_amp_param, nm_opt_scale_param)
        case default
       end select
+      ! Local potential
+      call hdf_write_dataset(file_id, 'local_potential', vpuns(:, lloc + 1))
+      call hdf_attach_dimension_scale(file_id, 'log_mesh', file_id, 'local_potential')
+      ! Screened local potential
+      call hdf_write_dataset(file_id, 'screened_local_potential', vp(:, lloc + 1))
+      call hdf_attach_dimension_scale(file_id, 'log_mesh', file_id, 'screened_local_potential')
       ! Unscreened pseudopotentials
-      call hdf_create_group(file_id, 'unscreened_pseudotentials')
-      call hdf_open_group(file_id, 'unscreened_pseudotentials', group_id)
+      call hdf_create_group(file_id, 'unscreened_pseudopotentials')
+      call hdf_open_group(file_id, 'unscreened_pseudopotentials', group_id)
       do l1 = 1, lmax + 1
          write(name, '(a,i0)') 'l_', l1 - 1
          call hdf_write_dataset(group_id, name, vpuns(:, l1))
          call hdf_attach_dimension_scale(file_id, 'log_mesh', group_id, name)
       end do
       call hdf_close_group(group_id)
-      ! Local potential
-      call hdf_write_dataset(file_id, 'local_potential', vpuns(:, lloc + 1))
-      call hdf_attach_dimension_scale(file_id, 'log_mesh', file_id, 'local_potential')
       ! Semi-local pseudopotentials
       call hdf_create_group(file_id, 'semilocal_pseudopotentials')
       call hdf_open_group(file_id, 'semilocal_pseudopotentials', group_id)
@@ -763,6 +769,97 @@ contains
       call hdf_close_group(group_id)
 
    end subroutine write_optimize_inputs_hdf5
+
+   subroutine write_optimize_results_hdf5(file_id, lmax, nproj, mmax, rr, ps_rpsi)
+      implicit none
+      integer(HID_T), intent(in) :: file_id
+      integer, intent(in) :: lmax
+      integer, intent(in) :: nproj(6)
+      integer, intent(in) :: mmax
+      real(dp), intent(in) :: rr(mmax)
+      real(dp), intent(in) :: ps_rpsi(mmax, MAX_NUM_PROJ, MAX_NUM_ELL)
+
+      integer(HID_T) :: group_id
+      integer(HID_T) :: subgroup_id
+      integer :: ll
+      integer :: l1
+      integer :: iproj
+      character(len=1024) :: name
+
+      call hdf_create_group(file_id, 'optimize_results')
+      call hdf_open_group(file_id, 'optimize_results', group_id)
+
+      do ll = 0, lmax
+         l1 = ll + 1
+         write(name, '(a,i0)') 'l_', ll
+         call hdf_create_group(group_id, trim(name))
+         call hdf_open_group(group_id, trim(name), subgroup_id)
+
+         call hdf_write_attribute(subgroup_id, '', 'l', ll)
+         call hdf_write_attribute(subgroup_id, '', 'nproj_l', nproj(l1))
+         do iproj = 1, nproj(l1)
+            write(name, '(a,i0)') 'i_', iproj
+            call hdf_write_dataset(subgroup_id, trim(name), ps_rpsi(:, iproj, l1))
+         end do
+
+         call hdf_close_group(subgroup_id)
+      end do
+
+      call hdf_close_group(group_id)
+
+   end subroutine write_optimize_results_hdf5
+
+   subroutine write_bound_valence_states_hdf5(file_id, nv, na, la, fa, mmax, &
+                                              ae_uu, ae_up, &
+                                              ps_uu, ps_up)
+      implicit none
+      integer(HID_T), intent(in) :: file_id
+      integer, intent(in) :: nv
+      integer, intent(in) :: na(nv)
+      integer, intent(in) :: la(nv)
+      real(dp), intent(in) :: fa(nv)
+      integer, intent(in) :: mmax
+      real(dp), intent(in) :: ae_uu(mmax, nv)
+      real(dp), intent(in) :: ae_up(mmax, nv)
+      real(dp), intent(in) :: ps_uu(mmax, nv)
+      real(dp), intent(in) :: ps_up(mmax, nv)
+
+      integer(HID_T) :: group_id
+      integer(HID_T) :: subgroup_id
+      integer :: i
+      integer :: istate(nv)
+
+      call hdf_create_group(file_id, 'bound_valence_states')
+      call hdf_open_group(file_id, 'bound_valence_states', group_id)
+      call hdf_write_attribute(group_id, '', 'nv', nv)
+
+      do i = 1, nv
+         istate(i) = i
+      end do
+      call hdf_write_dataset(group_id, 'state_index', istate)
+      call hdf_set_dimension_scale(group_id, 'state_index', 'state')
+
+      call hdf_create_group(group_id, 'all_electron')
+      call hdf_open_group(group_id, 'all_electron', subgroup_id)
+      call hdf_write_dataset(subgroup_id, 'n', na)
+      call hdf_attach_dimension_scale(group_id, 'state_index', subgroup_id, 'n')
+      call hdf_write_dataset(subgroup_id, 'l', la)
+      call hdf_attach_dimension_scale(group_id, 'state_index', subgroup_id, 'l')
+      call hdf_write_dataset(subgroup_id, 'f', fa)
+      call hdf_attach_dimension_scale(group_id, 'state_index', subgroup_id, 'f')
+      call hdf_write_dataset(subgroup_id, 'uu', ae_uu)
+      call hdf_write_dataset(subgroup_id, 'up', ae_up)
+      call hdf_close_group(subgroup_id)
+
+      call hdf_create_group(group_id, 'pseudo')
+      call hdf_open_group(group_id, 'pseudo', subgroup_id)
+      call hdf_write_dataset(subgroup_id, 'l', la)
+      call hdf_attach_dimension_scale(group_id, 'state_index', subgroup_id, 'l')
+      call hdf_write_dataset(subgroup_id, 'uu', ps_uu)
+      call hdf_write_dataset(subgroup_id, 'up', ps_up)
+      call hdf_close_group(subgroup_id)
+
+   end subroutine write_bound_valence_states_hdf5
 
    subroutine write_wavefunctions_hdf5(file_id, mmax, rr, lmax, &
       lloc, mxprj, npa, nproj, &

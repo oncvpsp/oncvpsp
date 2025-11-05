@@ -2,67 +2,77 @@
 ! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! calculates residual energy operator matrix elements as a function of q
 
  subroutine eresid(ll,irc,nnull,nbas,mmax,rr,drdum,dqdum,qmax,qroot, &
 &                  uu,pswf0_sb,pswfnull_sb, nqout,qout, &
 &                  eresid0,eresiddot,eresidmat)
-
-!ll  anglar momentum
-!irc  log mesh index of rc
-!nnull  number of unconstrained basis vectors for residual minimization
-!nbas  number of sbf basis functions
-!mmax  index of largest radius for non-zero value of wave function
-!rr(mmax)  log radial mesh
-!dr  linear radial mesh spacing for Fourier transforms
-!dq  linear wave vector mesh spacing for residual kinetic energy integration
-!qmax  largest wave vector for E_res integration
-!qroot(nbas)  q values for sbfs in basis
-!uu(mmax)  r*all-electron wave function
-!pswf0_sb(nbas)  sbf basis  coefficients for constrained part of pseudo 
-!                    wave function
-!pswfnull_sb(nbas,nnull) sbf coefficients for unconstrained basis of pseudo 
-!                       wave function
-!nqout  number of wave vector lower cutoffs
-!qout(nqout)  wave vector lower cutoffs for E_res for which output is wanted,
-!       rounded on output to nearest multiple of dq
-!nqout  number of q values in [0,qmax] for which results are to be saved
-!qout(nqout)  set of these q values
-!eresid0(nqout)  set of <pswf0| E_resid |pswf0> matrix elements
-!eresiddot(nnull,nqout) set of <pswfnull| E_resid |pswf0> matrix elements
-!eresidevec(nnull,null,nqout)  set of <pswfnull| E_res |pswfnull'> matrices
+ !! calculates residual energy operator matrix elements as a function of q
 
  implicit none
  integer, parameter :: dp=kind(1.0d0)
  real(dp), parameter :: pi=3.141592653589793238462643383279502884197_dp
 
-!Input variables
- integer :: irc,ll,nnull,nbas,mmax,nqout
- real(dp) :: rr(mmax),uu(mmax),pswf0_sb(nbas),pswfnull_sb(nbas,nnull)
- real(dp) :: qroot(nbas)
-!real(dp) :: dr,dq,qmax
- real(dp) :: drdum,dqdum,qmax
+ ! Input variables
+ !> irc  log mesh index of rc
+ integer, intent(in) :: irc
+ !> ll  anglar momentum
+ integer, intent(in) :: ll
+ !> nnull  number of unconstrained basis vectors for residual minimization
+ integer, intent(in) :: nnull
+ !> nbas  number of sbf basis functions
+ integer, intent(in) :: nbas
+ !> mmax  index of largest radius for non-zero value of wave function
+ integer, intent(in) :: mmax
+ !> nqout  number of wave vector lower cutoffs
+ !> nqout  number of q values in [0,qmax] for which results are to be saved
+ integer, intent(in) :: nqout
+ !> rr(mmax)  log radial mesh
+ real(dp), intent(in) :: rr(mmax)
+ !> uu(mmax)  r*all-electron wave function
+ real(dp), intent(in) :: uu(mmax)
+ !> pswf0_sb(nbas)  sbf basis  coefficients for constrained part of pseudo
+ !>                     wave function
+ real(dp), intent(in) :: pswf0_sb(nbas)
+ !> pswfnull_sb(nbas,nnull) sbf coefficients for unconstrained basis of pseudo
+ !>                        wave function
+ real(dp), intent(in) :: pswfnull_sb(nbas,nnull)
+ !> qroot(nbas)  q values for sbfs in basis
+ real(dp), intent(in) :: qroot(nbas)
+!real(dp), intent(in) :: dr,dq,qmax
+ !> dr  linear radial mesh spacing for Fourier transforms
+ real(dp), intent(in) :: drdum
+ !> dq  linear wave vector mesh spacing for residual kinetic energy integration
+ real(dp), intent(in) :: dqdum
+ !> qmax  largest wave vector for E_res integration
+ real(dp), intent(in) :: qmax
 
 !Output variables
- real(dp) :: eresid0(nqout),eresiddot(nnull,nqout)
- real(dp) :: eresidmat(nnull,nnull,nqout)
+ !> eresid0(nqout)  set of <pswf0| E_resid |pswf0> matrix elements
+ real(dp), intent(out) :: eresid0(nqout)
+ !> eresiddot(nnull,nqout) set of <pswfnull| E_resid |pswf0> matrix elements
+ real(dp), intent(out) :: eresiddot(nnull,nqout)
+ !> eresidevec(nnull,null,nqout)  set of <pswfnull| E_res |pswfnull'> matrices
+ real(dp), intent(out) :: eresidmat(nnull,nnull,nqout)
 
-!Input/output variables
- real(dp) :: qout(nqout)
+ ! Input/output variables
+ !> qout(nqout)  wave vector lower cutoffs for E_res for which output is wanted,
+ !>        rounded on output to nearest multiple of dq
+ !> qout(nqout)  set of these q values
+ real(dp), intent(in out) :: qout(nqout)
 
 !Local variables
  real(dp), allocatable :: rlin(:),uulin(:),sbf(:),ps0(:)
@@ -242,7 +252,7 @@
     qout(ii)=qq
    end if
   end do
- 
+
  end do !big iq loop
 
 

@@ -18,52 +18,50 @@
 !
  subroutine run_vkb(lmax,lloc,lpopt,dvloc0,irc,nproj,rr,mmax,mxprj,pswf, &
 &                   vfull,vp,evkb,vkb,nlim,vr)
-
-! computes Vanderbilt / Kleinman-Bylander non-local potentials
-
-!lmax  maximum angular momentum
-!lloc  l for local potential (lloc==4 => use linear combination)
-!lpopt  choice of polynomial for lloc==4
-!dvloc0  amplitude at rr==0 to be smoothely added for lloc==4
-!irc  core radii indices
-!nproj  number of projectors for each l
-!rr  log radial grid
-!mmax  size of radial grid
-!mxprj  dimension of number of projectors
-!pswf pseudo wave functions
-!vfull  all-electron potential
-!vp  semi-local pseudopotentials for first projectors
-!     (vp(:,5) is local potential if lloc=4)
-!vkb  semi-local "potentials"*pswf (input); VKB projectors (output)
-!evkb  coefficients of BKB projectors (output)
-!nlim  index of maximum rc including that of vlocal (output)
-!vr  effective scalar-relativisic "potential" calculated in vrel
+ !! computes Vanderbilt / Kleinman-Bylander non-local potentials
 
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
-!Input variables
+ ! Input variables
+ !> lmax  maximum angular momentum
  integer, intent(in) :: lmax
+ !> lloc  l for local potential (lloc==4 => use linear combination)
  integer, intent(in) :: lloc
+ !> lpopt  choice of polynomial for lloc==4
  integer, intent(in) :: lpopt
  integer :: lwork
+ !> mmax  size of radial grid
  integer, intent(in) :: mmax
+ !> mxprj  dimension of number of projectors
  integer, intent(in) :: mxprj
+ !> irc  core radii indices
  integer, intent(in) :: irc(6)
+ !> nproj  number of projectors for each l
  integer, intent(in) :: nproj(6)
+ !> rr  log radial grid
  real(dp), intent(in) :: rr(mmax)
+ !> pswf pseudo wave functions
  real(dp), intent(in) :: pswf(mmax,mxprj,5)
+ !> vfull  all-electron potential
  real(dp), intent(in) :: vfull(mmax)
+ !> vp  semi-local pseudopotentials for first projectors
+ !>      (vp(:,5) is local potential if lloc=4)
  real(dp), intent(in) :: vp(mmax,5)
+ !> dvloc0  amplitude at rr==0 to be smoothely added for lloc==4
  real(dp), intent(in) :: dvloc0
 
-!Input/Output variables
+ ! Input/Output variables
+ !> vkb  semi-local "potentials"*pswf (input); VKB projectors (output)
  real(dp), intent(in out) :: vkb(mmax,mxprj,4)
+ !> evkb  coefficients of BKB projectors (output)
  real(dp), intent(out) :: evkb(mxprj,4)
+ !> vr  effective scalar-relativisic "potential" calculated in vrel
  real(dp), intent(in) :: vr(mmax,mxprj,6)
+ !> nlim  index of maximum rc including that of vlocal (output)
  integer, intent(out) :: nlim
 
-!Local variables
+ ! Local variables
  integer :: ii,ipk,jj,kk,ierr,l1,info,np
  real(dp) :: apk,sn,tt,qq12
  real(dp) :: xx,ff
@@ -81,7 +79,6 @@
 
 
 ! calculate local potential
-
  if(lloc==4) then
    call vploc(rr,vfull,vp,dvloc0,irc(5),mmax,lpopt)
  end if

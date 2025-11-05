@@ -66,6 +66,8 @@ program oncvpsp
       write_log_mesh_hdf5, &
       write_sratom_hdf5, &
       write_optimize_inputs_hdf5, &
+      write_optimize_results_hdf5, &
+      write_bound_valence_states_hdf5, &
       write_reference_configuration_results_hdf5, &
       write_output_hdf5
 #endif
@@ -255,6 +257,15 @@ program oncvpsp
    !> ???
    logical :: ae_bound_well_is_bound(MAX_NUM_PROJ, MAX_NUM_ELL)
 
+   ! Post-optimization AE and PS bound valence states
+   !> All-electron radial wavefunctions r*psi(r) for bound valence states
+   real(dp), allocatable :: ae_bound_val_rpsi(:, :)
+   !> All-electron radial wavefunction derivatives r*dpsi(r)/dr for bound valence states
+   real(dp), allocatable :: ae_bound_val_drpsi_dr(:, :)
+   !> Pseudo radial wavefunctions r*phi(r) for bound valence states
+   real(dp), allocatable :: ps_bound_val_rpsi(:, :)
+   !> Pseudo radial wavefunction derivatives r*dphi(r)/dr for bound valence states
+   real(dp), allocatable :: ps_bound_val_drpsi_dr(:, :)
 
    ! Model core charge optimization variables
    !> Model core charge density and its first n derivatives
@@ -415,7 +426,11 @@ program oncvpsp
 
    write(6,'(a/a//)') &
       &      'ONCVPSP  (Optimized Norm-Conservinng Vanderbilt PSeudopotential)', &
+#if (RELATIVISTIC==1)
       &      'scalar-relativistic version 4.0.1 03/01/2019'
+#else
+      &      'non-relativistic version 4.0.1 03/01/2019'
+#endif
 
    write(6,'(a/a/a//)') &
       &      'While it is not required under the terms of the GNU GPL, it is',&
@@ -604,6 +619,10 @@ program oncvpsp
    allocate(ps_bound_scattering_drpsi_dr(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
    allocate(ae_bound_rpsi(mmax, nc+nv), source=0.0_dp)
    allocate(ae_bound_drpsi_dr(mmax, nc+nv), source=0.0_dp)
+   allocate(ae_bound_val_rpsi(mmax, nv), source=0.0_dp)
+   allocate(ae_bound_val_drpsi_dr(mmax, nv), source=0.0_dp)
+   allocate(ps_bound_val_rpsi(mmax, nv), source=0.0_dp)
+   allocate(ps_bound_val_drpsi_dr(mmax, nv), source=0.0_dp)
 
    do ii=1,mmax
       rr(ii)=rr1*exp(al*(ii-1))
@@ -811,6 +830,15 @@ program oncvpsp
 
    end do !l1
 
+#if (defined WITH_HDF5)
+   if (do_hdf5) then
+      call write_optimize_results_hdf5(hdf5_file_id, &
+                                       lmax, nproj, &
+                                       mmax, rr, &
+                                       ps_rpsi)
+   end if
+#endif
+
    ! construct Vanderbilt / Kleinman-Bylander projectors
    write(6,'(/a,a)') 'Construct Vanderbilt / Kleinmman-Bylander projectors'
    call run_vkb(lmax,lloc,lpopt,dvloc0,irc,nproj,rr,mmax,MAX_NUM_PROJ,ps_rpsi,vfull,v_ps_sl, &
@@ -851,6 +879,8 @@ program oncvpsp
       ! Accumulate all-electron charge density
       ae_psi2_val(:, kk)=(uu(:) / rr(:))**2
       ae_rho_val(:) = ae_rho_val(:) + fa(nc + kk) * ae_psi2_val(:, kk)
+      ae_bound_val_rpsi(:, kk) = uu(:)
+      ae_bound_val_drpsi_dr(:, kk) = up(:)
 
       ! Get pseudo valence state
       emax = 0.75_dp * et
@@ -866,6 +896,8 @@ program oncvpsp
 
       ! save valence pseudo wave functions for upfout
       uupsa(:,kk)=uu(:)
+      ps_bound_val_rpsi(:, kk) = uu(:)
+      ps_bound_val_drpsi_dr(:, kk) = up(:)
 
       ! Accumulate pseudo charge density
       ps_psi2_val(:,kk)=(uu(:)/rr(:))**2
@@ -876,6 +908,15 @@ program oncvpsp
       nodes(l1)=nodes(l1)+1
       irps=max(irps,irc(l1))
    end do !kk
+#if (defined WITH_HDF5)
+   if (do_hdf5) then
+      call write_bound_valence_states_hdf5(hdf5_file_id, &
+                                           nv, na(nc + 1:nc + nv), la(nc + 1:nc + nv), fa(nc + 1:nc + nv), &
+                                           mmax, &
+                                           ae_bound_val_rpsi, ae_bound_val_drpsi_dr, &
+                                           ps_bound_val_rpsi, ps_bound_val_drpsi_dr)
+   end if
+#endif
 
    ! Construct model core charge
    allocate(rhomod(mmax,5), source=0.0_dp)

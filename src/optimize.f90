@@ -2,17 +2,17 @@
 ! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
-! 
+!
 ! This program is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! This program is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -24,42 +24,50 @@
 &                    pswfnull_sb,pswfnull_or,uunorm,ps0norm,eresidmin,&
 &                    pswfopt_sb,pswfopt_or,ekin_anal,eresq)
 
-!nnull  number of unconstrained basis vectors for residual minimization
-!nbas  number of sbf basis functions
-!pswf0_sb(nbas)  sbf basis  coefficients for constrained part of pseudo 
-!                    wave function
-!pswf0_or(nbas)  or basis  coefficients
-!nqout  number of q values in [0,qmax] for which results are to be saved
-!qout(nqout)  q values in [0,qmax] for which residuals are to be calculated
-!eresid0(nqout) set of <pswf0| E_resid |pswf0> matrix elements
-!eresiddot(nnull,nqout) set of <pswfnull| E_resid |pswf0> matrix elements
-!eresidmat(nnull,nnull,nqout) set of <pswfnull | E_resid |pswfnull'>
-!pswfnull_sb(nbas,nnull)  sbf coefficients of null-space eigenfunctions
-!pswfnull_sb(nbas,nnull)  or basis coefficients of null-space eigenfunctions
-!uunorm  all-electron charge inside rc
-!ps0norm  ps0 charge inside rc
-!pswfopt_sb optimized pseudowavefunction sbf coefficients
-!orbasis_it  transformation matrix from sb to or basis
-!pswfopt_or optimized pseudowavefunction or basis coefficients
-!ekin_anal  total pswf kinetic energy calculated analytically from E_resid
-!eresq(nqout)  E_resid for optimized pswf as a function of cutoff
+
 
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
-!Input variables
- integer :: nnull,nbas,nqout
- real(dp) :: pswf0_sb(nbas),pswfnull_sb(nbas,nnull)
- real(dp) :: pswf0_or(nbas),pswfnull_or(nbas,nnull)
- real(dp) :: eresid0(nqout),eresiddot(nnull,nqout),eresidmat(nnull,nnull,nqout)
- real(dp) :: orbasis_it(nbas,nbas)
- real(dp) :: qout(nqout),eresq(nqout)
- real(dp) :: uunorm,ps0norm
+ !Input variables
+ !> nnull  number of unconstrained basis vectors for residual minimization
+ integer, intent(in) :: nnull
+ !> nbas  number of sbf basis functions
+ integer, intent(in) :: nbas
+ !> nqout  number of q values in [0,qmax] for which results are to be saved
+ integer, intent(in) :: nqout
+ !> pswf0_sb(nbas)  sbf basis  coefficients for constrained part of pseudo
+ !>                     wave function
+ real(dp), intent(in) :: pswf0_sb(nbas)
+ !> pswfnull_sb(nbas,nnull)  sbf coefficients of null-space eigenfunctions
+ real(dp), intent(in) :: pswfnull_sb(nbas,nnull)
+ !> pswf0_or(nbas)  or basis  coefficients
+ real(dp), intent(in) :: pswf0_or(nbas)
+ !> pswfnull_sb(nbas,nnull)  or basis coefficients of null-space eigenfunctions
+ real(dp), intent(in) :: pswfnull_or(nbas,nnull)
+ !> eresid0(nqout) set of <pswf0| E_resid |pswf0> matrix elements
+ real(dp), intent(in) :: eresid0(nqout)
+ !> eresiddot(nnull,nqout) set of <pswfnull| E_resid |pswf0> matrix elements
+ real(dp), intent(in) :: eresiddot(nnull,nqout)
+ !> eresidmat(nnull,nnull,nqout) set of <pswfnull | E_resid |pswfnull'>
+ real(dp), intent(in) :: eresidmat(nnull,nnull,nqout)
+ !> qout(nqout)  q values in [0,qmax] for which residuals are to be calculated
+ real(dp), intent(in) :: qout(nqout)
+ !> uunorm  all-electron charge inside rc
+ real(dp), intent(in) :: uunorm
+ !> ps0norm  ps0 charge inside rc
+ real(dp), intent(in) :: ps0norm
 
 !Output variables
- real(dp) :: eresidmin,ekin_anal
- real(dp) :: pswfopt_sb(nbas),pswfopt_or(nbas)
- real(dp) :: eres(nqout)
+ real(dp), intent(out) :: eresidmin
+ !> ekin_anal  total pswf kinetic energy calculated analytically from E_resid
+ real(dp), intent(out) :: ekin_anal
+ !> pswfopt_sb optimized pseudowavefunction sbf coefficients
+ real(dp), intent(out) :: pswfopt_sb(nbas)
+ !> pswfopt_or optimized pseudowavefunction or basis coefficients
+ real(dp), intent(out) :: pswfopt_or(nbas)
+ !> eresq(nqout)  E_resid for optimized pswf as a function of cutoff
+ real(dp), intent(out) :: eresq(nqout)
 
 !Local variables
  real(dp) :: yy,tt,emin,rtsgn,sn
@@ -156,7 +164,7 @@
  x1min=0.0d0
  x1max=yy
  converged=.false.
-  
+
  do iter=1,niter
 
   x1=0.5d0*(x1max+x1min)
@@ -165,7 +173,7 @@
   do ii=2,nnull
    pswfopt(ii)=-eresiddot_ev(ii)/(eresideval(ii)-eresideval(1) &
 &               +abs(eresiddot_ev(1))/x1)
-   tt=tt+pswfopt(ii)**2 
+   tt=tt+pswfopt(ii)**2
   end do
 
   if(x1max-x1min<eps) then
@@ -196,7 +204,7 @@
  ekin_anal=0.0d0
 !find cutoff-dependence of E_resid for optimized pswf
 !must transform pswfopt to the null basis representation to be
-!consistent with the input dot product and 
+!consistent with the input dot product and
  allocate(work(nnull))
  do ii=1,nnull
   pswfopt_nu(ii)=0.0d0
@@ -218,7 +226,7 @@
   eresq(kk)=emin
   if(qout(kk)==0.0d0) ekin_anal=emin
  end do
- 
+
 !calculate optimized pswf in sbf representation
  pswfopt_sb(:)=pswf0_sb(:)
  pswfopt_or(:)=pswf0_or(:)
@@ -230,4 +238,3 @@
  deallocate(pswfopt,pswfopt_nu)
  return
  end subroutine optimize
-
