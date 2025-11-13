@@ -56,10 +56,10 @@
  real(dp) :: et,etest,emin,sls
  real(dp) :: fcfact,rcfact,dvloc0
  real(dp) :: rr1,rcion,rciont,rcmax,rct,rlmax,rpkt
- real(dp) :: sf,zz,zion,zval,etot
+ real(dp) :: sf,zz,zion,zval,ae_e_tot
  real(dp) :: xdummy
 !
- real(dp) :: cl(6),debl(6),ea(30),ep(6),fa(30),facnf(30,5)
+ real(dp) :: cl(6),debl(6),ae_eig(30),ep(6),fa(30),facnf(30,5)
  real(dp) :: fat(30,2)
  real(dp) :: fnp(6),fp(6)
  real(dp) :: qcut(6),qmsbf(6),rc(6),rc0(6)
@@ -70,12 +70,12 @@
 
  real(dp), allocatable :: vkb_coef(:,:),cvgplt(:,:,:,:),ae_bound_well_overlap(:,:)
  real(dp), allocatable :: rr(:)
- real(dp), allocatable :: ps_rho_val(:),rhoc(:),rhot(:)
+ real(dp), allocatable :: ps_rho_val(:),ae_rho_core(:),rho_tmp(:)
  real(dp), allocatable :: uu(:),up(:)
- real(dp), allocatable :: v_ps_sl(:,:),vfull(:),vkb_proj(:,:,:),ps_rpsi(:,:,:)
+ real(dp), allocatable :: v_ps_sl(:,:),ae_v_full(:),vkb_proj(:,:,:),ps_rpsi(:,:,:)
  real(dp), allocatable :: vwell(:)
  real(dp), allocatable :: vpuns(:,:)
- real(dp), allocatable :: vo(:),vxc(:)
+ real(dp), allocatable :: vo(:),ae_v_xc(:)
  real(dp), allocatable :: rhomod(:,:),ae_psi2_val(:,:),ps_psi2_val(:,:),ae_rho_val(:)
  real(dp), allocatable :: uupsa(:,:) !pseudo-atomic orbitals array
  real(dp), allocatable :: ae_bound_well_eig(:,:),fpa(:,:)
@@ -231,13 +231,13 @@
 
 
  allocate(rr(mmax))
- allocate(ps_rho_val(mmax),rhoc(mmax),rhot(mmax))
+ allocate(ps_rho_val(mmax),ae_rho_core(mmax),rho_tmp(mmax))
  allocate(uu(mmax),up(mmax),uupsa(mmax,30))
  allocate(vkb_coef(mxprj,4), cvgplt(2,7,mxprj,4),ae_bound_well_overlap(mxprj,mxprj))
- allocate(v_ps_sl(mmax,5),vfull(mmax),vkb_proj(mmax,mxprj,4),ps_rpsi(mmax,mxprj,4))
+ allocate(v_ps_sl(mmax,5),ae_v_full(mmax),vkb_proj(mmax,mxprj,4),ps_rpsi(mmax,mxprj,4))
  allocate(vwell(mmax))
  allocate(vpuns(mmax,5))
- allocate(vo(mmax),vxc(mmax))
+ allocate(vo(mmax),ae_v_xc(mmax))
  allocate(ae_psi2_val(mmax,nv),ps_psi2_val(mmax,nv),ae_rho_val(mmax))
  allocate(ae_bound_well_n_qn(mxprj,6))
  allocate(ae_bound_well_eig(mxprj,6),fpa(mxprj,6))
@@ -256,8 +256,8 @@
 !
 ! full potential atom solution
 !
-   call sratom(na,la,ea,fa,rpk,nc,nc+nv,it,rhoc,ps_rho_val, &
-   &           rr,vfull,vxc,zz,mmax,iexc,etot,ierr,srel)
+   call sratom(na,la,ae_eig,fa,rpk,nc,nc+nv,it,ae_rho_core,ps_rho_val, &
+   &           rr,ae_v_full,ae_v_xc,zz,mmax,iexc,ae_e_tot,ierr,srel)
 !
 !
 
@@ -288,7 +288,7 @@
 &      '      ',psfile
  write(6,'(a/a)') '#','#   n    l    f        energy (Ha)'
  do ii=1,nc+nv
-   write(6,'(2i5,f8.2,1pe18.7)') na(ii),la(ii),fa(ii),ea(ii)
+   write(6,'(2i5,f8.2,1pe18.7)') na(ii),la(ii),fa(ii),ae_eig(ii)
  end do
 
  write(6,'(a/a/a)') '#','# PSEUDOPOTENTIAL AND OPTIMIZATION','# lmax'
@@ -337,7 +337,7 @@
   write(6,'(a)') 'oncvpsp: ERROR all-electron reference atom not converged'
   stop
  end if
- write(6,'(a,1p,d18.8)') '  all-electron total energy (Ha)',etot
+ write(6,'(a,1p,d18.8)') '  all-electron total energy (Ha)',ae_e_tot
 
 !find log mesh point nearest input rc
  rcmax=0.0d0
@@ -382,15 +382,15 @@
      do kk=nc+1,nc+nv
        if(la(kk)==l1-1) then
          iprj=iprj+1
-         et=ea(kk)
+         et=ae_eig(kk)
          call lschfb(na(kk),la(kk),ierr,et, &
-&                      rr,vfull,uu,up,zz,mmax,mch,srel)
+&                      rr,ae_v_full,uu,up,zz,mmax,mch,srel)
          if(ierr /= 0) then
            write(6,'(/a,3i4)') 'oncvpsp-387: lschfb convergence ERROR n,l,iter=', &
 &           na(ii),la(ii),it
            stop
          end if
-         ae_bound_well_eig(iprj,l1)=ea(kk)
+         ae_bound_well_eig(iprj,l1)=ae_eig(kk)
          ae_bound_well_n_qn(iprj,l1)=na(kk)
          ae_bound_well_rpsi(:,iprj)=uu(:)
          ae_bound_well_drpsi_dr(:,iprj)=up(:)
@@ -418,7 +418,7 @@
        end if
 
        call wellstate(ae_bound_well_n_qn(iprj,l1),ll,irc(l1),ae_bound_well_eig(iprj,l1),rr, &
-&                     vfull,uu,up,zz,mmax,mch,srel)
+&                     ae_v_full,uu,up,zz,mmax,mch,srel)
        ae_bound_well_rpsi(:,iprj)=uu(:)
        ae_bound_well_drpsi_dr(:,iprj)=up(:)
      end do !kk
@@ -427,7 +427,7 @@
    do iprj=1,nproj(l1)
 
 !calculate relativistic correction to potential to force projectors to 0 at rc
-     call vrel(ll,ae_bound_well_eig(iprj,l1),rr,vfull,vr(1,iprj,l1),ae_bound_well_rpsi(1,iprj),ae_bound_well_drpsi_dr(1,iprj), &
+     call vrel(ll,ae_bound_well_eig(iprj,l1),rr,ae_v_full,vr(1,iprj,l1),ae_bound_well_rpsi(1,iprj),ae_bound_well_drpsi_dr(1,iprj), &
 &              zz,mmax,irc(l1),srel)
 
    end do
@@ -442,7 +442,7 @@
 
    call run_optimize(ae_bound_well_eig(1,l1),ll,mmax,mxprj,rr,ae_bound_well_rpsi,ae_bound_well_overlap, &
 &                    irc(l1),qcut(l1),qmsbf(l1),ncon(l1),nbas(l1),nproj(l1), &
-&                    ps_rpsi(1,1,l1),v_ps_sl(1,l1),vkb_proj(1,1,l1),vfull,cvgplt(1,1,1,l1))
+&                    ps_rpsi(1,1,l1),v_ps_sl(1,l1),vkb_proj(1,1,l1),ae_v_full,cvgplt(1,1,1,l1))
 
  end do !l1
 
@@ -450,7 +450,7 @@
 
  write(6,'(/a,a)') 'Construct Vanderbilt / Kleinmman-Bylander projectors'
 
- call run_vkb(lmax,lloc,lpopt,dvloc0,irc,nproj,rr,mmax,mxprj,ps_rpsi,vfull,v_ps_sl, &
+ call run_vkb(lmax,lloc,lpopt,dvloc0,irc,nproj,rr,mmax,mxprj,ps_rpsi,ae_v_full,v_ps_sl, &
 &             vkb_coef,vkb_proj,nlim,vr)
 
 !restore this to its proper value
@@ -474,11 +474,11 @@
  irps=0
  do kk=1,nv
 
-   et=ea(nc+kk)
+   et=ae_eig(nc+kk)
    ll=la(nc+kk)
    l1=ll+1
    call lschfb(na(nc+kk),ll,ierr,et, &
-&                rr,vfull,uu,up,zz,mmax,mch,srel)
+&                rr,ae_v_full,uu,up,zz,mmax,mch,srel)
    if(ierr /= 0) then
      write(6,'(/a,3i4)') 'oncvpsp-461: lschfb convergence ERROR n,l,iter=', &
 &     na(ii),la(ii),it
@@ -522,22 +522,22 @@
 ! or Teter function fit
 
  if(icmod==1) then
-   call modcore(icmod,ps_psi2_val,ps_rho_val,rhoc,ae_psi2_val,ae_rho_val,rhomod, &
+   call modcore(icmod,ps_psi2_val,ps_rho_val,ae_rho_core,ae_psi2_val,ae_rho_val,rhomod, &
 &               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
 
  else if(icmod==2) then
-   call modcore2(icmod,ps_psi2_val,ps_rho_val,rhoc,ae_psi2_val,ae_rho_val,rhomod, &
+   call modcore2(icmod,ps_psi2_val,ps_rho_val,ae_rho_core,ae_psi2_val,ae_rho_val,rhomod, &
 &               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
 
  else if(icmod>=3) then
-   call modcore3(icmod,ps_psi2_val,ps_rho_val,rhoc,ae_psi2_val,ae_rho_val,rhomod, &
+   call modcore3(icmod,ps_psi2_val,ps_rho_val,ae_rho_core,ae_psi2_val,ae_rho_val,rhomod, &
 &               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
 
  end if
 
 ! screening potential for pseudocharge
 
- call vout(1,ps_rho_val,rhomod(1,1),vo,vxc,zval,eeel,eexc,rr,mmax,iexc)
+ call vout(1,ps_rho_val,rhomod(1,1),vo,ae_v_xc,zval,eeel,eexc,rr,mmax,iexc)
 
 ! total energy output
 
@@ -545,9 +545,9 @@
  write(6,'(/a,f12.6/)') 'Pseudoatom total energy', epstot
 
  call run_diag(lmax,ae_bound_well_n_qn,ae_bound_well_eig,lloc,irc, &
-&                    vkb_proj,vkb_coef,nproj,rr,vfull,v_ps_sl,zz,mmax,mxprj,srel)
+&                    vkb_proj,vkb_coef,nproj,rr,ae_v_full,v_ps_sl,zz,mmax,mxprj,srel)
 
- call run_ghosts(lmax,la,ea,nc,nv,lloc,irc,qmsbf, &
+ call run_ghosts(lmax,la,ae_eig,nc,nv,lloc,irc,qmsbf, &
 &                    vkb_proj,vkb_coef,nproj,rr,v_ps_sl,mmax,mxprj)
 
 ! unscreen semi-local potentials
@@ -572,29 +572,29 @@
 !if(.false.) then
 
 !ncnf=0
- rhot(:)=ps_rho_val(:)
+ rho_tmp(:)=ps_rho_val(:)
  do jj=1,ncnf+1
 
    write(6,'(/a,i2)') 'Test configuration',jj-1
 
 ! charge density is initialized to that of reference configuration
 
-   rhot(:)=ps_rho_val(:)
+   rho_tmp(:)=ps_rho_val(:)
 
-   call run_config(jj,nacnf,lacnf,facnf,nc,nvcnf,rhot,rhomod,rr,zz, &
-&                  rcmax,mmax,mxprj,iexc,ea,etot,epstot,nproj,vpuns, &
+   call run_config(jj,nacnf,lacnf,facnf,nc,nvcnf,rho_tmp,rhomod,rr,zz, &
+&                  rcmax,mmax,mxprj,iexc,ae_eig,ae_e_tot,epstot,nproj,vpuns, &
 &                  lloc,vkb_proj,vkb_coef,srel)
 
  end do !jj
 
  call run_plot(lmax,ae_bound_well_n_qn,ae_bound_well_eig,lloc,irc, &
-&                    vkb_proj,vkb_coef,nproj,rr,vfull,v_ps_sl,vpuns,zz,mmax,mxprj,drl,nrl, &
-&                    ps_rho_val,rhoc,rhomod,srel,cvgplt)
+&                    vkb_proj,vkb_coef,nproj,rr,ae_v_full,v_ps_sl,vpuns,zz,mmax,mxprj,drl,nrl, &
+&                    ps_rho_val,ae_rho_core,rhomod,srel,cvgplt)
 
 
 
  call run_phsft(lmax,lloc,nproj,ae_bound_well_eig,epsh1,epsh2,depsh,vkb_proj,vkb_coef, &
-&               rr,vfull,v_ps_sl,zz,mmax,mxprj,irc,srel)
+&               rr,ae_v_full,v_ps_sl,zz,mmax,mxprj,irc,srel)
 
  call gnu_script(ae_bound_well_eig,vkb_coef,lmax,lloc,mxprj,nproj)
 
@@ -602,7 +602,7 @@
 
 
   call linout(lmax,lloc,rc,vkb_proj,vkb_coef,nproj,rr,vpuns,ps_rho_val,rhomod, &
-&             ae_rho_val,rhoc,zz,zion,mmax,mxprj,iexc,icmod,nrl,drl,atsym, &
+&             ae_rho_val,ae_rho_core,zz,zion,mmax,mxprj,iexc,icmod,nrl,drl,atsym, &
 &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
 &             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
 &             epsh1,epsh2,depsh,rlmax,psfile)
@@ -613,7 +613,7 @@
 &             zz,zion,mmax,mxprj,iexc,icmod,nrl,drl,atsym,epstot, &
 &             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
 &             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
-&             epsh1,epsh2,depsh,rlmax,psfile,uupsa,ea)
+&             epsh1,epsh2,depsh,rlmax,psfile,uupsa,ae_eig)
  end if
 
  stop

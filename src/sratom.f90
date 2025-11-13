@@ -18,50 +18,47 @@
 !
 subroutine sratom(na,la,ea,fa,rpk,nc,ncv,it,rhoc,rho, &
                   rr,vi,vxc,zz,mmax,iexc,etot,ierr,srel,u,up)
-
-! self-consistent scalar-relativistic all-electron atom
-! calculation using log mesh (non-relativistic when srel=.false.)
-
-!na  principal quantum number array, dimension ncv
-!la  angular-momenta
-!ea  eigenvalues (output)
-!fa  occupancies
-!rpk  radius of outermost peak of wave function
-!nc  number of core states
-!ncv  number of core+valence states
-!it  number of iterations (output)
-!rr  log radial mesh
-!vi  all-electron potential (output)
-!zz  atomic number
-!mmax  size of log grid
-!iexc  exchange-correlation function to be used
-!etot  all-electron total energy (output)
-!ierr  error flag
-!srel  .true. for scalar-relativistic, .false. for non-relativistic
-
+!! self-consistent scalar-relativistic all-electron atom
+!! calculation using log mesh (non-relativistic when srel=.false.)
    implicit none
    integer, parameter :: dp=kind(1.0d0)
 
    ! Input variables
+   !> mmax  size of log grid
    integer, intent(in) :: mmax
+   !> iexc  exchange-correlation function to be used
    integer, intent(in) :: iexc
+   !> nc  number of core states
    integer, intent(in) :: nc
+   !> ncv  number of core+valence states
    integer, intent(in) :: ncv
+   !> na  principal quantum number array, dimension ncv
    integer, intent(in) :: na(ncv)
+   !> la  angular-momenta
    integer, intent(in) :: la(ncv)
+   !> zz  atomic number
    real(dp), intent(in) :: zz
+   !> fa  occupancies
    real(dp), intent(in) :: fa(ncv)
+   !> rr  log radial mesh
    real(dp), intent(in) :: rr(mmax)
+   !> srel  .true. for scalar-relativistic, .false. for non-relativistic
    logical, intent(in) :: srel
 
    ! Output variables
+   !> it  number of iterations (output)
    integer, intent(out) :: it
+   !> ierr  error flag
    integer, intent(out) :: ierr
+   !> etot  all-electron total energy (output)
    real(dp), intent(out) :: etot
+   !> ea  eigenvalues (output)
    real(dp), intent(out) :: ea(ncv)
+   !> rpk  radius of outermost peak of wave function
    real(dp), intent(out) :: rpk(ncv)
    real(dp), intent(out) :: rho(mmax)
    real(dp), intent(out) :: rhoc(mmax)
+   !> vi  all-electron potential (output)
    real(dp), intent(out) :: vi(mmax)
    real(dp), intent(out) :: vxc(mmax)
    real(dp), intent(out) :: u(mmax, ncv)

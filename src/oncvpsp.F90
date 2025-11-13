@@ -163,11 +163,11 @@ program oncvpsp
    real(dp) :: zz
    real(dp) :: zion
    real(dp) :: zval
-   real(dp) :: etot
+   real(dp) :: ae_e_tot
    !
    real(dp) :: debl(MAX_NUM_ELL)
    !> Reference configuration all-electron bound state eigenvalues
-   real(dp) :: ea(MAX_NUM_STATE)
+   real(dp) :: ae_eig(MAX_NUM_STATE)
    real(dp) :: ep(MAX_NUM_ELL)
    real(dp) :: fa(MAX_NUM_STATE)
    real(dp) :: facnf(MAX_NUM_STATE,MAX_NUM_TEST)
@@ -195,13 +195,13 @@ program oncvpsp
    real(dp), allocatable :: ps_rho_val(:)
    !> All-electron core charge density
    !> (mmax)
-   real(dp), allocatable :: rhoc(:)
+   real(dp), allocatable :: ae_rho_core(:)
    !> Temporary charge density array
    !> (mmax)
-   real(dp), allocatable :: rhot(:)
+   real(dp), allocatable :: rho_tmp(:)
    !> Zero-valued charge density array
    !> (mmax)
-   real(dp), allocatable :: rhozero(:)
+   real(dp), allocatable :: rho_zero(:)
    !> Radial wavefunction r*psi(r) temporary array
    !> (mmax)
    real(dp), allocatable :: uu(:)
@@ -213,7 +213,7 @@ program oncvpsp
    real(dp), allocatable :: v_ps_sl(:, :)
    !> All-electron total potential
    !> (mmax)
-   real(dp), allocatable :: vfull(:)
+   real(dp), allocatable :: ae_v_full(:)
    !> Vanderbilt-Kleinman-Bylander projectors
    !> (mmax, max_num_proj, max_num_ell)
    real(dp), allocatable :: vkb_proj(:, :, :)
@@ -230,7 +230,7 @@ program oncvpsp
    !>
    real(dp), allocatable :: vo(:)
    !> All-electron exchange-correlation potential
-   real(dp), allocatable :: vxc(:)
+   real(dp), allocatable :: ae_v_xc(:)
    !> All-electron valence charge densities for each state
    real(dp), allocatable :: ae_psi2_val(:, :)
    !> Pseudo valence charge densities for each state
@@ -587,9 +587,9 @@ program oncvpsp
    end do
 
    allocate(rr(mmax), source=0.0_dp)
-   allocate(ps_rho_val(mmax), source=0.0_dp)
-   allocate(rhoc(mmax), source=0.0_dp)
-   allocate(rhot(mmax), source=0.0_dp)
+   allocate(ae_rho_val(mmax), source=0.0_dp)
+   allocate(ae_rho_core(mmax), source=0.0_dp)
+   allocate(rho_tmp(mmax), source=0.0_dp)
    allocate(uu(mmax), source=0.0_dp)
    allocate(up(mmax), source=0.0_dp)
    allocate(uupsa(mmax, MAX_NUM_STATE), source=0.0_dp)
@@ -597,13 +597,13 @@ program oncvpsp
    allocate(cvgplt(2, 7, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
    allocate(ae_bound_well_overlap(MAX_NUM_PROJ, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
    allocate(v_ps_sl(mmax, MAX_NUM_ELL), source=0.0_dp)
-   allocate(vfull(mmax), source=0.0_dp)
+   allocate(ae_v_full(mmax), source=0.0_dp)
    allocate(vkb_proj(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
    allocate(ps_rpsi(mmax, MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
    allocate(vwell(mmax), source=0.0_dp)
    allocate(vpuns(mmax, MAX_NUM_ELL), source=0.0_dp)
    allocate(vo(mmax), source=0.0_dp)
-   allocate(vxc(mmax), source=0.0_dp)
+   allocate(ae_v_xc(mmax), source=0.0_dp)
    allocate(ae_psi2_val(mmax, nv), source=0.0_dp)
    allocate(ps_psi2_val(mmax, nv), source=0.0_dp)
    allocate(ae_rho_val(mmax), source=0.0_dp)
@@ -633,8 +633,8 @@ program oncvpsp
    !
    ! full potential atom solution
    !
-   call sratom(na,la,ea,fa,rpk,nc,nc+nv,it,rhoc,ps_rho_val, &
-               rr,vfull,vxc,zz,mmax,iexc,etot,ierr,srel, &
+   call sratom(na,la,ae_eig,fa,rpk,nc,nc+nv,it,ae_rho_core,ae_rho_val, &
+               rr,ae_v_full,ae_v_xc,zz,mmax,iexc,ae_e_tot,ierr,srel, &
                ae_bound_rpsi,ae_bound_drpsi_dr)
 #if (defined WITH_HDF5)
    if (do_hdf5) then
@@ -642,10 +642,10 @@ program oncvpsp
                              nc, nv, &
                              na, la, fa, &
                              mmax, rr, &
-                             vfull, vxc, &
-                             rhoc, ps_rho_val, &
+                             ae_v_full, ae_v_xc, &
+                             ae_rho_core, ae_rho_val, &
                              ae_bound_rpsi, ae_bound_drpsi_dr, &
-                             rpk, ea, etot)
+                             rpk, ae_eig, ae_e_tot)
    end if
 #endif
    ! Drop digits beyond 5 decimals for input rcs before making any use of them
@@ -679,8 +679,8 @@ program oncvpsp
                          epsh1, epsh2, depsh, rxpsh, &
                          rlmax, drl, &
                          ncnf, nvcnf, nacnf, lacnf, facnf, &
-                         ea)
-   call write_reference_configuration_results_text(stdout, it, 100, etot)
+                         ae_eig)
+   call write_reference_configuration_results_text(stdout, it, 100, ae_e_tot)
 #if (defined WITH_HDF5)
    if (do_hdf5) then
       ! These need to be written now because some of them are modified later
@@ -697,7 +697,7 @@ program oncvpsp
                             rlmax, drl, &
                             ncnf, nvcnf, nacnf, lacnf, facnf)
       ! Ditto here; etot and ea are likely overwritten later
-      call write_reference_configuration_results_hdf5(hdf5_file_id, nc + nv, it, 100, etot, ea)
+      call write_reference_configuration_results_hdf5(hdf5_file_id, nc + nv, it, 100, ae_e_tot, ae_eig)
    end if
 #endif
 
@@ -747,8 +747,8 @@ program oncvpsp
          do kk = nc + 1, nc + nv
             if (la(kk) == l1 - 1) then
                iprj = iprj + 1
-               et = ea(kk)
-               call lschfb(na(kk),la(kk),ierr,et,rr,vfull,uu,up,zz,mmax,mch,srel)
+               et = ae_eig(kk)
+               call lschfb(na(kk),la(kk),ierr,et,rr,ae_v_full,uu,up,zz,mmax,mch,srel)
                if(ierr /= 0) then
                   write(6,'(/a,3i4)') 'oncvpsp: lschfb convergence ERROR n,l,iter=', &
                      &           na(ii),la(ii),it
@@ -756,7 +756,7 @@ program oncvpsp
                end if
                ae_bound_well_rpsi(:, iprj, l1) = uu(:)
                ae_bound_well_drpsi_dr(:, iprj, l1) = up(:)
-               ae_bound_well_eig(iprj, l1) = ea(kk)
+               ae_bound_well_eig(iprj, l1) = ae_eig(kk)
                ae_bound_well_n_qn(iprj, l1) = na(kk)
                ae_bound_well_is_bound(iprj, l1)=.true.
             end if !la(kk)==l1-1
@@ -785,7 +785,7 @@ program oncvpsp
             end if
             ! Solve for a well-confined state
             call wellstate(ae_bound_well_n_qn(iprj, l1), ll, irc(l1), ae_bound_well_eig(iprj, l1), rr, &
-                           vfull, uu, up, zz, mmax, mch, srel)
+                           ae_v_full, uu, up, zz, mmax, mch, srel)
             ! Store the resulting wavefunction
             ae_bound_well_rpsi(:, iprj, l1) = uu(:)
             ae_bound_well_drpsi_dr(:, iprj, l1) = up(:)
@@ -808,7 +808,7 @@ program oncvpsp
       do iprj=1,nproj(l1)
 
          ! calculate relativistic correction to potential to force projectors to 0 at rc
-         call vrel(ll,ae_bound_well_eig(iprj,l1),rr,vfull,vr(:,iprj,l1), &
+         call vrel(ll,ae_bound_well_eig(iprj,l1),rr,ae_v_full,vr(:,iprj,l1), &
                    ae_bound_well_rpsi(:,iprj,l1),ae_bound_well_drpsi_dr(:,iprj,l1), &
                    zz,mmax,irc(l1),srel)
 
@@ -826,7 +826,7 @@ program oncvpsp
       call run_optimize(ae_bound_well_eig(:,l1),ll,mmax,MAX_NUM_PROJ,rr, &
                         ae_bound_well_rpsi(:,:,l1),ae_bound_well_overlap(:,:,l1), &
                         irc(l1),qcut(l1),qmsbf(l1),ncon(l1),nbas(l1),nproj(l1), &
-                        ps_rpsi(:,:,l1),v_ps_sl(:,l1),vkb_proj(:,:,l1),vfull,cvgplt(:,:,:,l1))
+                        ps_rpsi(:,:,l1),v_ps_sl(:,l1),vkb_proj(:,:,l1),ae_v_full,cvgplt(:,:,:,l1))
 
    end do !l1
 
@@ -841,7 +841,7 @@ program oncvpsp
 
    ! construct Vanderbilt / Kleinman-Bylander projectors
    write(6,'(/a,a)') 'Construct Vanderbilt / Kleinmman-Bylander projectors'
-   call run_vkb(lmax,lloc,lpopt,dvloc0,irc,nproj,rr,mmax,MAX_NUM_PROJ,ps_rpsi,vfull,v_ps_sl, &
+   call run_vkb(lmax,lloc,lpopt,dvloc0,irc,nproj,rr,mmax,MAX_NUM_PROJ,ps_rpsi,ae_v_full,v_ps_sl, &
                 vkb_coef,vkb_proj,nlim,vr)
 
    ! restore this to its proper value
@@ -866,10 +866,10 @@ program oncvpsp
    do kk=1,nv
 
       ! Get all-electron valence state
-      et=ea(nc+kk)
+      et=ae_eig(nc+kk)
       ll=la(nc+kk)
       l1=ll+1
-      call lschfb(na(nc+kk),ll,ierr,et,rr,vfull,uu,up,zz,mmax,mch,srel)
+      call lschfb(na(nc+kk),ll,ierr,et,rr,ae_v_full,uu,up,zz,mmax,mch,srel)
       if(ierr /= 0) then
          write(6,'(/a,3i4)') 'oncvpsp: lschfb convergence ERROR n,l,iter=', &
             &     na(ii),la(ii),it
@@ -920,26 +920,26 @@ program oncvpsp
 
    ! Construct model core charge
    allocate(rhomod(mmax,5), source=0.0_dp)
-   allocate(rhozero(mmax), source=0.0_dp)
+   allocate(rho_zero(mmax), source=0.0_dp)
    allocate(d2exc_dummy(nv, nv))
    allocate(d2excae(nv, nv))
    allocate(d2excps_no_rhom(nv, nv))
    allocate(d2excps_rhom(nv, nv))
    select case (icmod)
     case (1)
-      call get_modcore1_match(irps, fcfact, mmax, rhoc, ps_rho_val, modcore1_ircc, irmod)
-      call modcore1(icmod,ps_psi2_val,ps_rho_val,rhoc,ae_psi2_val,ae_rho_val,rhomod, &
+      call get_modcore1_match(irps, fcfact, mmax, ae_rho_core, ps_rho_val, modcore1_ircc, irmod)
+      call modcore1(icmod,ps_psi2_val,ps_rho_val,ae_rho_core,ae_psi2_val,ae_rho_val,rhomod, &
                     fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, &
                     modcore1_iter)
     case (2)
       irmod = mmax
-      call get_modcore2_match(mmax, rr, rhoc, ps_rho_val, fcfact, modcore2_ircc, modcore2_a0, modcore2_b0)
-      call get_modcore3_match(mmax, rr, rhoc, ps_rho_val, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
-      call modcore2(icmod,ps_psi2_val,ps_rho_val,rhoc,ae_psi2_val,ae_rho_val,rhomod, &
+      call get_modcore2_match(mmax, rr, ae_rho_core, ps_rho_val, fcfact, modcore2_ircc, modcore2_a0, modcore2_b0)
+      call get_modcore3_match(mmax, rr, ae_rho_core, ps_rho_val, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
+      call modcore2(icmod,ps_psi2_val,ps_rho_val,ae_rho_core,ae_psi2_val,ae_rho_val,rhomod, &
                     fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
     case (3)
       irmod = mmax
-      call get_modcore3_match(mmax, rr, rhoc, ps_rho_val, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
+      call get_modcore3_match(mmax, rr, ae_rho_core, ps_rho_val, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
       if (teter_relative) then
          teter_amp = fcfact * modcore3_rhocmatch
          teter_scale = rcfact * modcore3_rmatch
@@ -947,11 +947,11 @@ program oncvpsp
          teter_amp = fcfact
          teter_scale = rcfact
       end if
-      call modcore3(icmod,ps_psi2_val,ps_rho_val,rhoc,ae_psi2_val,ae_rho_val,rhomod, &
+      call modcore3(icmod,ps_psi2_val,ps_rho_val,ae_rho_core,ae_psi2_val,ae_rho_val,rhomod, &
                     teter_amp,teter_scale,irps,mmax,rr,nc,nv,la,zion,iexc)
     case (4)
       irmod = mmax
-      call get_modcore3_match(mmax, rr, rhoc, ps_rho_val, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
+      call get_modcore3_match(mmax, rr, ae_rho_core, ps_rho_val, modcore3_ircc, modcore3_rmatch, modcore3_rhocmatch)
       if (teter_relative) then
          call linspace(teter_amp_min, teter_amp_max, teter_amp_step, n_teter_amp, teter_amp_prefacs)
          call linspace(teter_scale_min, teter_scale_max, teter_scale_step, n_teter_scale, teter_scale_prefacs)
@@ -967,7 +967,7 @@ program oncvpsp
       end if
       allocate(grid_objective(n_teter_amp, n_teter_scale))
       call modcore4(mmax, rr, nc, nv, la, zion, irps, iexc, &
-                    ps_psi2_val, ps_rho_val, rhoc, ae_psi2_val, ae_rho_val, &
+                    ps_psi2_val, ps_rho_val, ae_rho_core, ae_psi2_val, ae_rho_val, &
                     teter_objective_name, &
                     n_teter_amp, n_teter_scale, teter_amp_params, teter_scale_params, &
                     grid_objective, grid_opt_amp_param, grid_opt_scale_param, grid_opt_objective, &
@@ -981,10 +981,10 @@ program oncvpsp
 
    if (icmod > 0) then
       ! Compute d2Exc with core charge = true AE core charge
-      call der2exc(ae_rho_val, rhoc, ae_psi2_val, rr, d2excae, d2exc_dummy, d2exc_rmse_dummy, &
+      call der2exc(ae_rho_val, ae_rho_core, ae_psi2_val, rr, d2excae, d2exc_dummy, d2exc_rmse_dummy, &
                    zion, iexc, nc, nv, la, irmod, mmax)
       ! Compute d2Exc with core charge = 0
-      call der2exc(ps_rho_val, rhozero, ps_psi2_val, rr, d2excps_no_rhom, d2excae, d2exc_rmse_no_rhom, &
+      call der2exc(ps_rho_val, rho_zero, ps_psi2_val, rr, d2excps_no_rhom, d2excae, d2exc_rmse_no_rhom, &
                    zion, iexc, nc, nv, la, irmod, mmax)
       ! Compute d2Exc with core charge = model core charge
       call der2exc(ps_rho_val, rhomod(:, 1), ps_psi2_val, rr, d2excps_rhom, d2excae, d2exc_rmse_rhom, &
@@ -1013,16 +1013,16 @@ program oncvpsp
    end select
 
    ! screening potential for pseudocharge
-   call vout(1,ps_rho_val,rhomod(1,1),vo,vxc,zval,eeel,eexc,rr,mmax,iexc)
+   call vout(1,ps_rho_val,rhomod(1,1),vo,ae_v_xc,zval,eeel,eexc,rr,mmax,iexc)
 
    ! total energy output
    epstot= eeig + eexc - 0.5_dp*eeel
    write(6,'(/a,f12.6/)') 'Pseudoatom total energy', epstot
 
    call run_diag(lmax,ae_bound_well_n_qn,ae_bound_well_eig,lloc,irc, &
-      &                    vkb_proj,vkb_coef,nproj,rr,vfull,v_ps_sl,zz,mmax,MAX_NUM_PROJ,srel)
+      &                    vkb_proj,vkb_coef,nproj,rr,ae_v_full,v_ps_sl,zz,mmax,MAX_NUM_PROJ,srel)
 
-   call run_ghosts(lmax,la,ea,nc,nv,lloc,irc,qmsbf, &
+   call run_ghosts(lmax,la,ae_eig,nc,nv,lloc,irc,qmsbf, &
       &                    vkb_proj,vkb_coef,nproj,rr,v_ps_sl,mmax,MAX_NUM_PROJ)
 
    ! unscreen semi-local potentials
@@ -1044,12 +1044,12 @@ program oncvpsp
 
    ! loop over reference plus test atom configurations
    call run_test_configurations(ncnf,nacnf,lacnf,facnf,nc,nvcnf,ps_rho_val,rhomod,rr,zz, &
-                                rcmax,mmax,MAX_NUM_PROJ,iexc,ea,etot,epstot,nproj,vpuns, &
+                                rcmax,mmax,MAX_NUM_PROJ,iexc,ae_eig,ae_e_tot,epstot,nproj,vpuns, &
                                 lloc,vkb_proj,vkb_coef,srel, &
                                 nvt,nat,lat,fat,eat,eatp,eaetst,etsttot)
    fat3(:,:)=fat(:,3,:)
    eat3(:,:)=eat(:,3,:)
-   call write_test_configs_text(stdout,ncnf,nc,nvt,nat,lat,fat3,eat3,eatp,etot,eaetst,epstot,etsttot)
+   call write_test_configs_text(stdout,ncnf,nc,nvt,nat,lat,fat3,eat3,eatp,ae_e_tot,eaetst,epstot,etsttot)
 
    call get_pseudo_linear_mesh_parameters(mmax, rr, lmax, irc, drl, nrl, &
                                           n1, n2, n3, n4)
@@ -1061,8 +1061,8 @@ program oncvpsp
                            vpuns(:, lloc + 1))
    end if
    call write_rho_rhoc_rhom_text(stdout, mmax, rr, lmax, irc, drl, nrl, &
-                                 ps_rho_val, rhoc, rhomod(:, 1))
-   call get_wavefunctions(zz, srel, mmax, rr, vfull, lloc, v_ps_sl, lmax, &
+                                 ps_rho_val, ae_rho_core, rhomod(:, 1))
+   call get_wavefunctions(zz, srel, mmax, rr, ae_v_full, lloc, v_ps_sl, lmax, &
                           irc, nproj, drl, nrl, MAX_NUM_PROJ, ae_bound_well_eig, ae_bound_well_n_qn, vkb_proj, vkb_coef, &
                           ae_bound_scattering_rpsi, ae_bound_scattering_drpsi_dr, ps_bound_scattering_rpsi, &
                           ps_bound_scattering_drpsi_dr, ae_bound_scattering_ir_match, ps_bound_scattering_ir_match, &
@@ -1079,7 +1079,7 @@ program oncvpsp
    npsh = int(((epsh2 - epsh1) / depsh) - 0.5_dp) + 1
    allocate(epsh(npsh), pshf(npsh, 4), pshp(npsh, 4))
    call run_phsft(lmax,lloc,nproj,ae_bound_well_eig,epsh1,epsh2,depsh,rxpsh,npsh,vkb_proj,vkb_coef, &
-                  rr,vfull,v_ps_sl,zz,mmax,MAX_NUM_PROJ,irc,srel, &
+                  rr,ae_v_full,v_ps_sl,zz,mmax,MAX_NUM_PROJ,irc,srel, &
                   irpsh,rpsh,epsh,pshf,pshp)
    call write_phsft_text(stdout,rpsh,npsh,epsh,pshf,pshp)
 
@@ -1091,9 +1091,9 @@ program oncvpsp
                              zz, nc, nv, MAX_NUM_PROJ, lmax, lloc, ae_bound_well_n_qn, ae_bound_well_eig, irc, nproj, &
                              mmax, rr, &  ! log radial mesh
                              drl, nrl, &  ! linear radial mesh
-                             ncnf, nvt, nat, lat, fat3, eat3, eatp, etot, eaetst, epstot, etsttot, & ! test configurations
-                             vfull, v_ps_sl, vpuns, &  ! potentials
-                             ae_rho_val, ps_rho_val, rhoc, &  ! charge densities
+                             ncnf, nvt, nat, lat, fat3, eat3, eatp, ae_e_tot, eaetst, epstot, etsttot, & ! test configurations
+                             ae_v_full, v_ps_sl, vpuns, &  ! potentials
+                             ae_rho_val, ps_rho_val, ae_rho_core, &  ! charge densities
                              icmod, fcfact, rcfact, rhomod, &  ! model core charge density
                              modcore1_ircc, modcore1_iter, &
                              modcore2_ircc, modcore2_a0, modcore2_b0, &
@@ -1117,7 +1117,7 @@ program oncvpsp
 
    if(trim(psfile)=='psp8' .or. trim(psfile)=='both') then
       call linout(lmax,lloc,rc,vkb_proj,vkb_coef,nproj,rr,vpuns,ps_rho_val,rhomod, &
-                  ae_rho_val,rhoc,zz,zion,mmax,MAX_NUM_PROJ,iexc,icmod,nrl,drl,atsym, &
+                  ae_rho_val,ae_rho_core,zz,zion,mmax,MAX_NUM_PROJ,iexc,icmod,nrl,drl,atsym, &
                   na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
                   fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
                   epsh1,epsh2,depsh,rlmax,psfile)
@@ -1128,7 +1128,7 @@ program oncvpsp
                   zz,zion,mmax,MAX_NUM_PROJ,iexc,icmod,nrl,drl,atsym,epstot, &
                   na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
                   fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
-                  epsh1,epsh2,depsh,rlmax,psfile,uupsa,ea)
+                  epsh1,epsh2,depsh,rlmax,psfile,uupsa,ae_eig)
    end if
 
    if(trim(psfile)=='psml' .or. trim(psfile)=='both') then

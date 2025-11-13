@@ -80,6 +80,8 @@ subroutine read_input_toml(unit, &
    real(dp), intent(out) :: fcfact
    !> Core charge width factor
    real(dp), intent(out) :: rcfact
+   !> Whether to interpret teter_amp and teter_scale as values relative
+   !> to modcore3's `rhocmatch` and `rcmatch`
    logical, intent(out) :: teter_relative
    real(dp), intent(out) :: teter_amp
    real(dp), intent(out) :: teter_scale
@@ -296,7 +298,8 @@ subroutine read_input_toml(unit, &
       rcfact = 0.0_dp
    end if
    if (icmod >= 3 .and. icmod <= 4) then
-      call get_value(child, "rcfact", rcfact)
+      ! Ignore rcfact for icmod 3 and 4; use teter_amp and teter_scale instead
+      ! call get_value(child, "rcfact", rcfact)
       call get_value(child, "teter_amp", fcfact)
       call get_value(child, "teter_scale", rcfact)
       call get_value(child, "teter_relative", teter_relative, default=.true.)

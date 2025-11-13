@@ -17,40 +17,39 @@
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
  subroutine lschfb(nn,ll,ierr,ee,rr,vv,uu,up,zz,mmax,mch,srel)
-
-!Finds bound states of an all-electron atomic potential using
-!Pauli-type  scalar-relativistic Schroedinger equation
-
-!nn  principal quantum number
-!ll  angular-momentum quantum number
-!ierr  non-zero return if error
-!ee  bound-state energy, input guess and output calculated value
-!rr  log radial mesh
-!vv  local atomic potential
-!uu  output radial wave function (*rr)
-!up  d(uu)/dr
-!zz  atomic number
-!mmax  size of log grid
-!mch matching mesh point for inward-outward integrations
-!srel .true. for scalar-relativistic, .false. for non-relativistic
-
+ !> Finds bound states of an all-electron atomic potential using
+ !> Pauli-type  scalar-relativistic Schroedinger equation
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
-!Input variables
+ ! Input variables
+ !> mmax  size of log grid
  integer :: mmax
- real(dp) :: rr(mmax),vv(mmax)
+ !> rr  log radial mesh
+ real(dp) :: rr(mmax)
+ !> vv  local atomic potential
+ real(dp) :: vv(mmax)
+ !> zz  atomic number
  real(dp) :: zz
- integer :: nn,ll
+ integer :: nn
+ !> ll  angular-momentum quantum number
+ integer :: ll
+ !> srel .true. for scalar-relativistic, .false. for non-relativistic
  logical :: srel
 
-!Output variables
- real(dp) :: uu(mmax),up(mmax)
+ ! Output variables
+ !> uu  output radial wave function (*rr)
+ real(dp) :: uu(mmax)
+ !> up  d(uu)/dr
+ real(dp) :: up(mmax)
+ !> ee  bound-state energy, input guess and output calculated value
  real(dp) :: ee
- integer :: ierr,mch
+ !> ierr  non-zero return if error
+ integer :: ierr
+ !> mch matching mesh point for inward-outward integrations
+ integer :: mch
 
-!Local variables
-
+ ! Local variables
  real(dp) :: aei,aeo,aii,aio,als !functions in aeo.f90
  real(dp) :: de,emax,emin
  real(dp) :: eps,fss,tfss,gamma,ro,sc

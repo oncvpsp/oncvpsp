@@ -71,22 +71,22 @@ subroutine get_wavefunctions(zz, srel, mmax, rr, vfull, lloc, vp, lmax, &
    ! Output variables
    !> All-electron wavefunctions
    real(dp), intent(out) :: uu_ae(mmax,mxprj,4)
-   !> Pseudo wavefunctions
-   real(dp), intent(out) :: uu_ps(mmax,mxprj,4)
    !> All-electron wavefunction radial derivatives
    real(dp), intent(out) :: up_ae(mmax,mxprj,4)
-   !> Pseudo wavefunction radial derivatives
-   real(dp), intent(out) :: up_ps(mmax,mxprj,4)
    !> Matching points for all-electron wavefunctions
    integer, intent(out) :: mch_ae(mxprj,4)
-   !> Matching points for pseudo wavefunctions
-   integer, intent(out) :: mch_ps(mxprj,4)
    !> All-electron state energies
    real(dp), intent(out) :: e_ae(mxprj,4)
-   !> Pseudo state energies
-   real(dp), intent(out) :: e_ps(mxprj,4)
    !> Signs of all-electron wavefunctions at matching points
    real(dp), intent(out) :: sign_ae(mxprj,4)
+   !> Pseudo wavefunctions
+   real(dp), intent(out) :: uu_ps(mmax,mxprj,4)
+   !> Pseudo wavefunction radial derivatives
+   real(dp), intent(out) :: up_ps(mmax,mxprj,4)
+   !> Matching points for pseudo wavefunctions
+   integer, intent(out) :: mch_ps(mxprj,4)
+   !> Pseudo state energies
+   real(dp), intent(out) :: e_ps(mxprj,4)
    !> Signs of pseudo wavefunctions at matching points
    real(dp), intent(out) :: sign_ps(mxprj,4)
    !> .true. for scattering states, .false. for bound states
@@ -166,12 +166,14 @@ subroutine get_bound_wavefunctions(e_in, nn, ll, nproj, iproj, zz, srel, mmax, r
    ! Output variables
    real(dp), intent(out) :: uu_ae(mmax)
    real(dp), intent(out) :: up_ae(mmax)
+   integer, intent(out) :: mch_ae
+   real(dp), intent(out) :: e_ae
+   real(dp), intent(out) :: sign_ae
    real(dp), intent(out) :: uu_ps(mmax)
    real(dp), intent(out) :: up_ps(mmax)
-   integer, intent(out) :: mch_ae
    integer, intent(out) :: mch_ps
-   real(dp), intent(out) :: e_ps, e_ae
-   real(dp), intent(out) :: sign_ae, sign_ps
+   real(dp), intent(out) :: e_ps
+   real(dp), intent(out) :: sign_ps
 
    ! Local variables
    integer :: ierr
