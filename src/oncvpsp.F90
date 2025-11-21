@@ -606,7 +606,7 @@ program oncvpsp
    allocate(ae_v_xc(mmax), source=0.0_dp)
    allocate(ae_psi2_val(mmax, nv), source=0.0_dp)
    allocate(ps_psi2_val(mmax, nv), source=0.0_dp)
-   allocate(ae_rho_val(mmax), source=0.0_dp)
+   allocate(ps_rho_val(mmax), source=0.0_dp)
    allocate(ae_bound_well_n_qn(MAX_NUM_PROJ, MAX_NUM_ELL), source=0)
    allocate(ae_bound_well_eig(MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)
    allocate(fpa(MAX_NUM_PROJ, MAX_NUM_ELL), source=0.0_dp)

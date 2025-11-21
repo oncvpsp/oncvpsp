@@ -1,19 +1,25 @@
 #!/bin/sh
 #edits various shell scripts to provide full path to executables
 
-if [ -f $(pwd)/src/oncvpsp.x ]
-then
-    echo "oncvpsp.x found in src/ from a make build"
-    NEW_BIN_DIR=`pwd`/src/
-elif [ -f $(pwd)/build/bin/oncvpsp.x ]
-then
-    echo "oncvpsp.x found in build/bin/ from a CMake build"
-    NEW_BIN_DIR=`pwd`/build/bin/
+if [ "$#" -ne 0 ]; then
+  if [ -f $1/oncvpsp.x ]; then
+    echo "oncvpsp.x found in $1"
+    NEW_BIN_DIR=$1
+  else
+    echo "oncvpsp.x NOT found in $1"
+    stop 1
+  fi
+elif [ -f $(pwd)/src/oncvpsp.x ]; then
+  echo "oncvpsp.x found in src/ from a make build"
+  NEW_BIN_DIR=$(pwd)/src/
+elif [ -f $(pwd)/build/bin/oncvpsp.x ]; then
+  echo "oncvpsp.x found in build/bin/ from a CMake build"
+  NEW_BIN_DIR=$(pwd)/build/bin/
 else
-    echo "oncvpsp.x not found in src/ or build/bin/"
-    exit 1
+  echo "oncvpsp.x not found in src/ or build/bin/"
+  exit 1
 fi
-NEW_PREFIX=`pwd`
+NEW_PREFIX=$(pwd)
 
 cp scripts/extract.sh scripts/replot.sh tests/
 

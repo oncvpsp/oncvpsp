@@ -1,7 +1,8 @@
 ###########################################################
 # ONCVPSP library
 ###########################################################
-set(src_liboncvpsp
+set(src_oncvpsp
+    # Core files
     aeo.f90
     check_data.f90
     const_basis.f90
@@ -50,33 +51,10 @@ set(src_liboncvpsp
     vploc.f90
     vrel.f90
     wf_rc_der.f90
-    output_text_m.f90
     input_text_m.f90
     utils_m.f90
     constants_m.f90
-)
-if (Libxc_FOUND)
-    list(APPEND src_liboncvpsp functionals.F90 exc_libxc.f90)
-else()
-    list(APPEND src_liboncvpsp exc_libxc_stub.f90)
-endif()
-if (WITH_HDF5 AND HDF5_FOUND)
-    add_compile_definitions(WITH_HDF5)
-    list(APPEND src_liboncvpsp hdf5_utils_m.f90 output_hdf5_m.f90)
-    find_package(HDF5 COMPONENTS Fortran HL REQUIRED)
-endif()
-if (WITH_TOML)
-    list(APPEND src_liboncvpsp input_toml_m.f90)
-    add_compile_definitions(WITH_TOML)
-endif()
-add_library(liboncvpsp STATIC ${src_liboncvpsp})
-add_dependencies(liboncvpsp wxml)
-target_link_libraries(liboncvpsp wxml ${COMMON_LIBRARIES})
-
-###########################################################
-# ONCVPSP non- and scalar-relativistic library
-###########################################################
-set(src_liboncvpsp_nr_sr
+    # Non-relativistic and scalar-relativistic files
     fphsft.f90
     fpovlp.f90
     gnu_script.f90
@@ -86,44 +64,13 @@ set(src_liboncvpsp_nr_sr
     run_config.f90
     run_diag.f90
     run_phsft.f90
+    output_text_m.f90
     run_vkb.f90
     sratom.f90
     upfout.f90
     wellstate.f90
     postprocess_m.f90
-)
-add_library(liboncvpsp_nr_sr STATIC ${src_liboncvpsp_nr_sr})
-add_dependencies(liboncvpsp_nr_sr liboncvpsp wxml)
-target_link_libraries(liboncvpsp_nr_sr liboncvpsp wxml ${COMMON_LIBRARIES})
-
-###########################################################
-# oncvpsp.x (scalar-relativistic)
-###########################################################
-add_executable(oncvpspsr oncvpsp.F90)
-target_compile_definitions(oncvpspsr PUBLIC RELATIVISTIC=1)
-add_dependencies(oncvpspsr liboncvpsp_nr_sr)
-target_link_libraries(oncvpspsr liboncvpsp_nr_sr)
-set_target_properties(oncvpspsr
-    PROPERTIES
-        OUTPUT_NAME oncvpsp.x
-)
-
-##########################################################
-# oncvpspnr.x (non-relativistic)
-##########################################################
-add_executable(oncvpspnr oncvpsp.F90)
-target_compile_definitions(oncvpspnr PUBLIC RELATIVISTIC=0)
-add_dependencies(oncvpspnr liboncvpsp_nr_sr)
-target_link_libraries(oncvpspnr liboncvpsp_nr_sr)
-set_target_properties(oncvpspnr
-    PROPERTIES
-        OUTPUT_NAME oncvpspnr.x
-)
-
-###########################################################
-# ONCVPSP relativistic library
-###########################################################
-set(src_liboncvpsp_r
+    # Relativistic files
     fphsft_r.f90
     fpovlp.f90
     gnu_script_r.f90
@@ -141,22 +88,84 @@ set(src_liboncvpsp_r
     upfout_r.f90
     wellstate_r.f90
 )
-add_library(liboncvpsp_r STATIC ${src_liboncvpsp_r})
-target_compile_definitions(liboncvpsp_r PUBLIC RELATIVISTIC=2)
-add_dependencies(liboncvpsp_r liboncvpsp wxml)
-target_link_libraries(liboncvpsp_r liboncvpsp wxml ${COMMON_LIBRARIES})
+# Append Libxc interface or stub
+if (Libxc_FOUND AND ONCVPSP_WITH_Libxc)
+    list(APPEND src_oncvpsp functionals.F90 exc_libxc.f90)
+else ()
+    list(APPEND src_oncvpsp exc_libxc_stub.f90)
+endif ()
+# Append TOML input parser if enabled
+if (ONCVPSP_WITH_TOML)
+    list(APPEND src_oncvpsp input_toml_m.f90)
+endif ()
+# Append HDF5 interface and output routines if enabled
+if (HDF5_FOUND AND ONCVPSP_WITH_HDF5)
+    list(APPEND src_oncvpsp hdf5_utils_m.f90 output_hdf5_m.f90)
+endif()
+
+add_library(oncvpsp STATIC ${src_oncvpsp})
+add_dependencies(oncvpsp wxml)
+target_link_libraries(oncvpsp wxml ${ONCVPSP_DEPENDENCY_LIBRARIES})
+if (ONCVPSP_WITH_TOML)
+    target_compile_definitions(oncvpsp PRIVATE WITH_TOML)
+endif ()
+if (HDF5_FOUND AND ONCVPSP_WITH_HDF5)
+    target_compile_definitions(oncvpsp PRIVATE WITH_HDF5)
+endif ()
+
+###########################################################
+# oncvpsp.x (scalar-relativistic)
+###########################################################
+add_executable(oncvpspsr oncvpsp.F90)
+target_compile_definitions(oncvpspsr PUBLIC RELATIVISTIC=1)
+add_dependencies(oncvpspsr oncvpsp)
+target_link_libraries(oncvpspsr PRIVATE oncvpsp)
+set_target_properties(oncvpspsr
+    PROPERTIES
+        OUTPUT_NAME oncvpsp.x
+)
+if (ONCVPSP_WITH_TOML)
+    target_compile_definitions(oncvpspsr PRIVATE WITH_TOML)
+endif ()
+if (HDF5_FOUND AND ONCVPSP_WITH_HDF5)
+    target_compile_definitions(oncvpspsr PRIVATE WITH_HDF5)
+endif ()
+
+##########################################################
+# oncvpspnr.x (non-relativistic)
+##########################################################
+add_executable(oncvpspnr oncvpsp.F90)
+target_compile_definitions(oncvpspnr PUBLIC RELATIVISTIC=0)
+add_dependencies(oncvpspnr oncvpsp)
+target_link_libraries(oncvpspnr PRIVATE oncvpsp)
+set_target_properties(oncvpspnr
+    PROPERTIES
+        OUTPUT_NAME oncvpspnr.x
+)
+if (ONCVPSP_WITH_TOML)
+    target_compile_definitions(oncvpspnr PRIVATE WITH_TOML)
+endif ()
+if (HDF5_FOUND AND ONCVPSP_WITH_HDF5)
+    target_compile_definitions(oncvpspnr PRIVATE WITH_HDF5)
+endif ()
 
 ##########################################################
 # oncvpspr.x (fully-relativistic)
 ##########################################################
 add_executable(oncvpspr oncvpsp_r.F90)
 target_compile_definitions(oncvpspr PUBLIC RELATIVISTIC=2)
-add_dependencies(oncvpspr liboncvpsp_r)
-target_link_libraries(oncvpspr liboncvpsp_r)
+add_dependencies(oncvpspr oncvpsp)
+target_link_libraries(oncvpspr PRIVATE oncvpsp)
 set_target_properties(oncvpspr
     PROPERTIES
         OUTPUT_NAME oncvpspr.x
 )
+if (ONCVPSP_WITH_TOML)
+    target_compile_definitions(oncvpspr PRIVATE WITH_TOML)
+endif ()
+if (HDF5_FOUND AND ONCVPSP_WITH_HDF5)
+    target_compile_definitions(oncvpspr PRIVATE WITH_HDF5)
+endif ()
 
 ###########################################################
 # Subdirectories
