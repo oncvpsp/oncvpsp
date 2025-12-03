@@ -434,7 +434,7 @@ class OncvpspTextParser:
         return {}
 
     def get_reference_quantum_numbers(self, index) -> list[tuple[int, int, int]]:
-        """Get the quantum numbers (l, n, sign(s)) describing the states of the reference configuration.
+        """Get the quantum numbers (n, l, sign(s)) describing the states of the reference configuration.
         `index` acts upon the reference configuration _as it is written in the input file_, i.e. before
         expanding for spin-orbit splitting in the relativistic case.
 
@@ -442,38 +442,38 @@ class OncvpspTextParser:
             index (int | slice): State ind(ex|ices)
 
         Returns:
-            list[tuple[int, int, int]]: Quantum number tuples (l, n, sign(s)).
+            list[tuple[int, int, int]]: Quantum number tuples (n, l, sign(s)).
         """
         config = self.input["reference_configuration"]
         quantum_numbers = []
         for enn, ell in zip(config["n"][index], config["l"][index]):
             spin_signs = [0] if not self.is_relativistic else ([1] if ell == 0 else [-1, 1])
             for spin_sign in spin_signs:
-                quantum_numbers.append((ell, enn, spin_sign))
+                quantum_numbers.append((enn, ell, spin_sign))
         return quantum_numbers
 
     @property
     def core_quantum_numbers(self) -> list[tuple[int, int, int]]:
-        """Quantum number tuples (l, n, sign(s)) corresponding to the core states.
+        """Quantum number tuples (n, l, sign(s)) corresponding to the core states.
 
         Returns:
-            list[tuple[int, int, int]]: Quantum number tuples (l, n, sign(s)).
+            list[tuple[int, int, int]]: Quantum number tuples (n, l, sign(s)).
         """
         n_core = self.input["oncvpsp"]["nc"]
         return self.get_reference_quantum_numbers(index=slice(0, n_core))
 
     @property
     def valence_quantum_numbers(self) -> list[tuple[int, int, int]]:
-        """Quantum number tuples (l, n, sign(s)) corresponding to the valence states.
+        """Quantum number tuples (n, l, sign(s)) corresponding to the valence states.
 
         Returns:
-            list[tuple[int, int, int]]: Quantum number tuples (l, n, sign(s))
+            list[tuple[int, int, int]]: Quantum number tuples (n, l, sign(s))
         """
         n_core = self.input["oncvpsp"]["nc"]
         return self.get_reference_quantum_numbers(index=slice(n_core, None))
 
     @cached_property
-    def reference_configuration(self) -> dict:
+    def reference_configuration(self) -> list[dict]:
         """Information about the reference configuration states, including all-electron eigenvalues.
 
         Raises:
@@ -501,7 +501,7 @@ class OncvpspTextParser:
             header_match = self.search(r"#   n    l    f        energy \(Ha\)")
         if not header_match:
             raise RuntimeError("Failed to find reference configuration section in output.")
-        data: dict = defaultdict(dict)
+        data: list[dict] = []
         for _, match in self.findall(pattern, start=header_match[0] + 1, stop=header_match[0] + 1 + n_states):
             enn = int(match.group("n"))
             ell = int(match.group("l"))
@@ -513,34 +513,33 @@ class OncvpspTextParser:
                 if ell > 0:
                     eigs[-1] = fort_float(match.group("eig_dw"))
             for spin_sign, eig in eigs.items():
-                data[(ell, enn, spin_sign)] = {
+                data.append({
                     "n": enn,
                     "l": ell,
                     "f": occ,
                     "spin_sign": spin_sign,
                     "eig_ae": eig,
-                }
+                })
                 if self.program_information["program"] == "METAPSP":
-                    data[(ell, enn, spin_sign)]["eig_pbe"] = fort_float(match.group("eig_pbe"))
-        return dict(data)
+                    data[-1]["eig_pbe"] = fort_float(match.group("eig_pbe"))
+        return data
 
     @cached_property
-    def wellstate_metadata(self) -> dict:
+    def wellstate_metadata(self) -> list[dict]:
         """Information about any wellstate solutions found in the output.
 
         Returns:
             dict:
-                (l, n, spin_sign) (tuple[int, int, int]): State identifier tuple.
-                    n (int): Principal quantum number.
-                    l (int): Angular momentum quantum number.
-                    iproj (int): Projector index (n - l for ONCVPSP v3, else 0).
-                    k (int): Dirac quantum number kappa (0 for non-relativistic).
-                    spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
-                    eig_ae (float): All-electron eigenvalue (Ha).
-                    asymptotic_potential (float): Asymptotic potential (Ha).
-                    half_point_radius (float): Half-point radius (a.u.).
+                n (int): Principal quantum number.
+                l (int): Angular momentum quantum number.
+                iproj (int): Projector index (n - l for ONCVPSP v3, else 0).
+                k (int): Dirac quantum number kappa (0 for non-relativistic).
+                spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
+                eig_ae (float): All-electron eigenvalue (Ha).
+                asymptotic_potential (float): Asymptotic potential (Ha).
+                half_point_radius (float): Half-point radius (a.u.).
         """
-        wellstate_metadata = {}
+        wellstate_metadata: list[dict] = []
         matches = self.findall(
             r"\s+Wellstate for l =\s+(?P<ell>\d)  n =\s+(?P<enn>\d+)(?:\s+kap(?:pa)?=\s+(?P<kappa>-?\d+))?"
         )
@@ -556,12 +555,7 @@ class OncvpspTextParser:
             kappa = int(match.group("kappa")) if match.group("kappa") is not None else 0
             iproj = enn - ell if self.program_information["version"].startswith("3") else 0
             spin_sign = 0 if kappa == 0 else (-1 if kappa > 0 else 1)
-            assert (
-                ell,
-                enn,
-                spin_sign,
-            ) not in wellstate_metadata, f"Duplicate wellstate for (l={ell}, n={enn}, kappa={kappa})"
-            wellstate_metadata[(ell, enn, spin_sign)] = {
+            wellstate_metadata.append({
                 "n": enn,
                 "l": ell,
                 "iproj": iproj,
@@ -570,7 +564,7 @@ class OncvpspTextParser:
                 "eig_ae": float(eig_match.group("eig")) if eig_match else None,
                 "asymptotic_potential": (float(ap_match.group("ap")) if ap_match else None),
                 "half_point_radius": (float(hpr_match.group("hpr")) if hpr_match else None),
-            }
+            })
         return wellstate_metadata
 
     @cached_property
@@ -610,7 +604,7 @@ class OncvpspTextParser:
         return [(ell, iproj, spin_sign, start) for (ell, iproj, spin_sign), start in indices.items()]
 
     @property
-    def _optimize_convergence_profiles(self) -> dict[tuple[int, int, int], dict[str, np.ndarray]]:
+    def _optimize_convergence_profiles(self) -> list[dict]:
         convergence_header_pattern = re.compile(r"\s+Ha\s+eV\s+Ha")
         convergence_body_pattern = re.compile(rf"\s+(?P<eresid>{RE_FLOAT})\s+{RE_FLOAT}\s+(?P<ecut>{RE_FLOAT})")
         data: dict[tuple, dict[str, list]] = defaultdict(lambda: defaultdict(list))
@@ -624,7 +618,7 @@ class OncvpspTextParser:
                 ):
                     data[(ell, iproj, spin_sign)]["eresid"].append(float(match.group("eresid")))
                     data[(ell, iproj, spin_sign)]["ecut"].append(float(match.group("ecut")))
-        return {key: {k: np.array(v) for k, v in value.items()} for key, value in data.items()}
+        return [{**{'ell': key[0], 'iproj': key[1], 'spin_sign': key[2]}, **{k: np.array(v) for k, v in value.items()}} for key, value in data.items()]
 
     @cached_property
     def _run_vkb_indices(self) -> list[tuple[int, int, int, int]]:
@@ -645,53 +639,71 @@ class OncvpspTextParser:
         return blocks
 
     @cached_property
-    def vkb_projector_coefficients(self) -> dict:
+    def vkb_projector_coefficients(self) -> list[dict]:
         """Orthonormal Vanderbilt-Kleinman-Bylander coefficients `Dii`.
 
         Returns:
-            dict:
-                (l, iproj, spin_sign) (tuple[int, int, int]): State identifier tuple.
-                    (float): VKB coefficient.
+            list[dict]:
+                ell (int): Angular momentum quantum number.
+                iproj (int): Projector index.
+                spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
+                coefficient (float): VKB coefficient Dii.
         """
-        coefficients: dict = {}
+        coefficients: list[dict] = []
         for ell, spin_sign, _, stop in self._run_vkb_indices:
-            for i, value in enumerate(self.lines[stop].split()[3:], start=1):
-                coefficients[(ell, i, spin_sign)] = float(value)
+            for iproj, value in enumerate(self.lines[stop].split()[3:], start=1):
+                coefficients.append({'ell': ell, 'iproj': iproj, 'spin_sign': spin_sign, 'coefficient': value})
         return coefficients
 
     @cached_property
-    def vkb_scalar_projector_coefficients(self) -> dict:
-        coefficients: dict = {}
+    def vkb_scalar_projector_coefficients(self) -> list[dict]:
+        coefficients: list[dict] = []
         for i, match in self.findall(r" Orthonormal scalar projector coefficients, l =\s+(?P<ell>\d)"):
             ell = int(match.group("ell"))
-            coefficients[ell] = np.array([float(c) for c in self.lines[i + 1].split()])
+            coefficients.append({
+                'ell': ell,
+                'coefficients': np.array([float(c) for c in self.lines[i + 1].split()]),
+            })
         return coefficients
 
     @cached_property
-    def vkb_spin_orbit_projector_coefficients(self) -> dict:
-        coefficients: dict = {}
+    def vkb_spin_orbit_projector_coefficients(self) -> list[dict]:
+        coefficients: list[dict] = []
         for i, match in self.findall(r" Orthonormal spin-orbit projector coefficients, l =\s+(?P<ell>\d)"):
             ell = int(match.group("ell"))
-            coefficients[ell] = np.array([float(c) for c in self.lines[i + 1].split()])
+            coefficients.append({
+                'ell': ell,
+                'coefficients': np.array([float(c) for c in self.lines[i + 1].split()]),
+            })
         return coefficients
 
     @cached_property
-    def vkb_hermiticity_errors(self) -> dict:
+    def vkb_hermiticity_errors(self) -> list[dict]:
         v3_herm_err_pattern = re.compile(rf"Hermiticity error\s+(?P<herm_err>{RE_FLOAT})")
         # TODO: v3_bij_pattern: ^B11, B12, B22   -3.8877D-03    1.0547D-02   -2.8717D-02$
-        v4_herm_err_pattern = re.compile(rf"\s+(?P<iproj>\d)\s+(?P<jproj>\d)\s+(?P<herm_err>{RE_FLOAT})")
-        hermiticity_errors: dict = defaultdict(dict)
+        v4_herm_err_pattern = re.compile(rf"\s+(?P<i>\d)\s+(?P<j>\d)\s+(?P<herm_err>{RE_FLOAT})")
+        hermiticity_errors: list[dict] = []
         for ell, spin_sign, start, stop in self._run_vkb_indices:
             # Parse hermiticity errors
             if herm_err_match := re.match(v3_herm_err_pattern, self.lines[start + 1]):
-                hermiticity_errors[(ell, spin_sign)][(1, 2)] = fort_float(herm_err_match.group("herm_err"))
+                hermiticity_errors.append({
+                    'ell': ell,
+                    'spin_sign': spin_sign,
+                    "i": 1,
+                    "j": 2,
+                    "hermiticity_error": fort_float(herm_err_match.group("herm_err")),
+                })
             else:
                 herm_err_matches = self.findall(v4_herm_err_pattern, start=start, stop=stop)
                 for _, herm_err_match in herm_err_matches:
-                    iproj = int(herm_err_match.group("iproj"))
-                    jproj = int(herm_err_match.group("jproj"))
-                    hermiticity_errors[(ell, spin_sign)][(iproj, jproj)] = fort_float(herm_err_match.group("herm_err"))
-        return dict(hermiticity_errors)
+                    hermiticity_errors.append({
+                        'ell': ell,
+                        'spin_sign': spin_sign,
+                        "i": int(herm_err_match.group("i")),
+                        "j": int(herm_err_match.group("j")),
+                        "hermiticity_error": fort_float(herm_err_match.group("herm_err")),
+                    })
+        return hermiticity_errors
 
     @cached_property
     def d2exc(self) -> dict:
@@ -701,7 +713,7 @@ class OncvpspTextParser:
             dict: AE/PS d2Exc/dfi with/without non-linear core corrections.
         """
         pattern = re.compile(
-            r"d2exc(?P<ae_ps>ae|ps) - (?:all-electron|pseudofunction) derivatives with(?P <no>)? core correction"
+            r"d2exc(?P<ae_ps>ae|ps) - (?:all-electron|pseudofunction) derivatives with(?P<no> no)? core correction"
         )
         matches = self.findall(pattern)
         data = defaultdict(list)
@@ -738,10 +750,10 @@ class OncvpspTextParser:
                 rhocmatch (float): Core charge density at crossover radius (a.u.^-3).
         """
         parameters: dict[str, float] = {}
-        if self.input["model_core"]["icmod"] == 3:
-            parameters["fcfact"] = self.input["model_core"]["fcfact"]
-            parameters["rcfact"] = self.input["model_core"]["rcfact"]
-        if self.input["model_core"]["icmod"] == 4:
+        if self.input["model_core_charge"]["icmod"] == 3:
+            parameters["fcfact"] = self.input["model_core_charge"]["fcfact"]
+            parameters["rcfact"] = self.input["model_core_charge"]["rcfact"]
+        if self.input["model_core_charge"]["icmod"] == 4:
             param_match = self.search(r"amplitude prefactor, scale prefactor")
             if param_match:
                 parameters["fcfact"] = float(self.lines[param_match[0] + 1].split()[0])
@@ -806,7 +818,7 @@ class OncvpspTextParser:
                 "l": int(match.group("ell")),
                 "k": int(match.group("kap")) if match.group("kap") is not None else 0,
                 "spin_sign": 0 if match.group("kap") is None else (-1 if int(match.group("kap")) > 0 else 1),
-                "rcore": float(match.group("rcore")),
+                "rc": float(match.group("rcore")),
                 "rmatch": float(match.group("rmatch")),
                 "e_in": float(match.group("e_in")),
                 "e_test": float(match.group("e_test")),
@@ -848,7 +860,7 @@ class OncvpspTextParser:
                 "l": int(match.group("ell")),
                 "k": int(match.group("kap")) if match.group("kap") is not None else 0,
                 "spin_sign": 0 if match.group("kap") is None else (-1 if int(match.group("kap")) > 0 else 1),
-                "rcore": float(match.group("rcore")),
+                "rc": float(match.group("rcore")),
                 "rmatch": float(match.group("rmatch")),
                 "e_in": float(match.group("e_in")),
                 "e_test": float(match.group("e_or_delta_e_test")) if is_v3 else None,
@@ -893,21 +905,20 @@ class OncvpspTextParser:
         return ghosts
 
     @cached_property
-    def test_configurations(self) -> list[dict]:
+    def test_configurations(self) -> list[list[dict]]:
         """Test configuration results.
 
         Returns:
-            list[dict]:
-                (l, n, spin_sign) (tuple[int, int, int]): State identifier tuple.
-                    n (int): Principal quantum number.
-                    l (int): Angular momentum quantum number.
-                    k (int): Dirac quantum number kappa (0 for non-relativistic).
-                    spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
-                    f (float): Occupation number.
-                    eig_ae (float): All-electron eigenvalue (Ha).
-                    eig_ps (float, optional): Pseudoeigenvalue (Ha), if a valence state.
+            list[list[dict]]:
+                n (int): Principal quantum number.
+                l (int): Angular momentum quantum number.
+                k (int): Dirac quantum number kappa (0 for non-relativistic).
+                spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
+                f (float): Occupation number.
+                eig_ae (float): All-electron eigenvalue (Ha).
+                eig_ps (float | None): Pseudoeigenvalue (Ha), if available.
         """
-        test_configurations = []
+        test_configurations: list[list[dict]] = []
         pattern = re.compile(
             rf"\s+(?P<enn>\d)\s+(?P<ell>\d)\s+(?:(?P<kappa>-?\d)\s+)?(?P<occ>{RE_FLOAT})\s+(?P<eig_ae>{RE_FLOAT})(?:\s+(?P<eig_ps>{RE_FLOAT}))?(?:\s+(?P<diff>{RE_FLOAT}))?"
         )
@@ -919,14 +930,14 @@ class OncvpspTextParser:
                 include_start=True,
                 include_stop=True,
             )
-            test_configuration: dict[tuple[int, int, int], dict[str, float | None]] = defaultdict(dict)
+            test_configuration: list[dict] = []
             for line in test_lines:
                 if config_match := re.match(pattern, line):
                     enn = int(config_match.group("enn"))
                     ell = int(config_match.group("ell"))
                     kappa = int(config_match.group("kappa")) if config_match.group("kappa") is not None else 0
                     spin_sign = 0 if kappa == 0 else (-1 if kappa > 0 else 1)
-                    test_configuration[(ell, enn, spin_sign)] = {
+                    test_configuration.append({
                         "n": enn,
                         "l": ell,
                         "k": kappa,
@@ -936,9 +947,9 @@ class OncvpspTextParser:
                         "eig_ps": (
                             float(config_match.group("eig_ps")) if config_match.group("eig_ps") is not None else None
                         ),
-                    }
+                    })
             assert int(match.group("itest")) == len(test_configurations)
-            test_configurations.append(dict(test_configuration))
+            test_configurations.append(test_configuration)
         return test_configurations
 
     def _get_plot_blocks(self, pattern: re.Pattern[str]) -> list[list[tuple[int, re.Match[str]]]]:
@@ -1039,26 +1050,25 @@ class OncvpspTextParser:
         return {k: np.array(v) for k, v in data.items()}
 
     @cached_property
-    def wavefunctions(self) -> dict:
+    def wavefunctions(self) -> list[dict]:
         r"""Radial wavefunctions.
 
         Returns:
-            dict:
-                (l, iproj, spin_sign) (tuple[int, int, int]): State identifier tuple.
-                    r (np.ndarray): Radial grid points (a.u.).
-                    wfn_ae (np.ndarray): All-electron wavefunction values.
-                    wfn_ps (np.ndarray): Pseudowavefunction values.
-                    is_bound (bool | None): Whether the state is a bound state (True), a wellstate (False), or unknown (None).
-                    n (int | None): Principal quantum number, None if unknown.
-                    l (int): Angular momentum quantum number.
-                    iproj (int): Projector index (1-based).
-                    k (int): Dirac quantum number kappa (0 for non-relativistic).
-                    spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
-                    f (float, optional): Occupation number, if available.
-                    eig_ae (float, optional): All-electron eigenvalue (Ha), if available.
-                    eig_ps (float, optional): Pseudoeigenvalue (Ha), if available.
-                    asymptotic_potential (float, optional): Asymptotic potential (Ha), if available.
-                    half_point_radius (float, optional): Half-point radius (a.u.), if available.
+            list[dict]:
+                r (np.ndarray): Radial grid points (a.u.).
+                wfn_ae (np.ndarray): All-electron wavefunction values.
+                wfn_ps (np.ndarray): Pseudowavefunction values.
+                is_bound (bool | None): Whether the state is a bound state (True), a wellstate (False), or unknown (None).
+                n (int | None): Principal quantum number, None if unknown.
+                l (int): Angular momentum quantum number.
+                iproj (int): Projector index (1-based).
+                k (int): Dirac quantum number kappa (0 for non-relativistic).
+                spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
+                f (float, optional): Occupation number, if available.
+                eig_ae (float, optional): All-electron eigenvalue (Ha), if available.
+                eig_ps (float, optional): Pseudoeigenvalue (Ha), if available.
+                asymptotic_potential (float, optional): Asymptotic potential (Ha), if available.
+                half_point_radius (float, optional): Half-point radius (a.u.), if available.
         """
         data_pattern = re.compile(
             rf"&\s+(?P<spin_sign>[\s-])(?P<iproj>\d)?(?P<ell>\d)\s+(?P<r>{RE_FLOAT})\s+(?P<wfn_ae>{RE_FLOAT})\s+(?P<wfn_ps>{RE_FLOAT})"
@@ -1066,7 +1076,11 @@ class OncvpspTextParser:
         header_pattern = re.compile(r"n=\s*(?P<enn>\d+),\s+l=\s*(?P<ell>\d)")
         v4_scattering_header_pattern = re.compile(r"scattering, iprj=\s*(?P<iproj>\d+),\s+l=\s*(?P<ell>\d)")
         blocks = self._get_plot_blocks(data_pattern)
-        data = {}
+        # Used to augment state data with metadata from  reference configuration
+        test_config = {(cfg["n"], cfg["l"], cfg["spin_sign"]): cfg for cfg in self.test_configurations[0]} if self.test_configurations else {}
+        ref_config = {(cfg["n"], cfg["l"], cfg["spin_sign"]): cfg for cfg in self.reference_configuration}
+        wellstates = {(well["n"], well["l"], well["spin_sign"]): well for well in self.wellstate_metadata}
+        data: list[dict] = []
         for block in blocks:
             block_data: dict[str, Any] = defaultdict(list)
             # Parse the block data
@@ -1113,53 +1127,49 @@ class OncvpspTextParser:
             # Order the state keys at this ell and kappa: first boundstates (sorted by enn), then wellstates (ditto)
             state_keys = sorted(
                 [k for k in self.valence_quantum_numbers if k[0] == ell and k[2] == spin_sign]
-            ) + sorted([k for k in self.wellstate_metadata if k[0] == ell and k[2] == spin_sign])
+            ) + sorted([k for k in wellstates if k[0] == ell and k[2] == spin_sign])
             state_key = state_keys[iproj - 1] if (iproj - 1 < len(state_keys)) else None
             state_metadata = {}  # Default empty metadata
             if state_key in self.valence_quantum_numbers and not block_data["is_bound"] is False:
                 # If we're sure this is not a wellstate, get a boundstate
-                if self.test_configurations:
-                    state_metadata = self.test_configurations[0][state_key]  # has pseudo-eigenvalue
-                    state_metadata.update(
-                        self.reference_configuration[state_key]
-                    )  # has other, overlapping but higher-precision info
-                else:
-                    state_metadata = self.reference_configuration[state_key]
+                state_metadata = test_config.get(state_key, {})
+                state_metadata.update(ref_config[state_key])
                 state_metadata["is_bound"] = True
-            if state_key in self.wellstate_metadata and not block_data["is_bound"] is True:
+            if state_key in wellstates and not block_data["is_bound"] is True:
                 # If we're sure this is not a boundstate, get a wellstate
-                state_metadata = self.wellstate_metadata[state_key]
+                state_metadata = wellstates[state_key]
                 state_metadata["is_bound"] = False
                 state_metadata["f"] = 0.0
-            # Finalize block data
             block_data.update(state_metadata)
+            # Finalize block data
             block_data["l"] = ell
             block_data["iproj"] = iproj
             block_data["spin_sign"] = spin_sign
-            data[(ell, iproj, spin_sign)] = block_data
+            data.append(block_data)
         return data
 
     @cached_property
-    def vkb_projectors(self) -> dict:
+    def vkb_projectors(self) -> list[dict]:
         """Vanderbilt-Kleinman-Bylander projectors.
 
         Returns:
-            dict:
-                (l, iproj, spin_sign) (tuple[int, int, int]): State identifier tuple.
-                    r (np.ndarray): Radial grid points (a.u.).
-                    proj (np.ndarray): VKB projector values.
-                    coeff (float | None): VKB coefficient Dii, if available.
-                    l (int): Angular momentum quantum number.
-                    iproj (int): Projector index (1-based).
-                    spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
+            list[dict]:
+                r (np.ndarray): Radial grid points (a.u.).
+                proj (np.ndarray): VKB projector values.
+                coeff (float | None): VKB coefficient Dii, if available.
+                l (int): Angular momentum quantum number.
+                iproj (int): Projector index (1-based).
+                spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
         """
         max_nproj: int = max(self.input["vkb_projectors"]["nproj"])
         pattern = re.compile(
             rf"(?:@|!J)\s+(?P<spin_sign>[\s-])(?P<ell>\d)\s+(?P<r>{RE_FLOAT})\s+(?P<proj_1>{RE_FLOAT})"
             + "".join(rf"(?:\s+(?P<proj_{i}>{RE_FLOAT}))?" for i in range(2, max_nproj + 1))
         )
+        # Used to look up VKB coefficients
+        coeffs = {(c['ell'], c['iproj'], c['spin_sign']): c['coefficient'] for c in self.vkb_projector_coefficients}
         blocks = self._get_plot_blocks(pattern)
-        data = {}
+        data: list[dict] = []
         for block in blocks:
             _, first_match = block[0]
             ell: int = int(first_match.group("ell"))
@@ -1177,18 +1187,21 @@ class OncvpspTextParser:
             for iproj in range(1, max_nproj + 1):
                 proj_key = f"proj_{iproj}"
                 if proj_key in block_data:
-                    data[(ell, iproj, spin_sign)] = {
+                    jay = ell + spin_sign * 1 / 2
+                    kappa = int((ell - jay) * (2 * jay + 1))
+                    data.append({
                         "l": ell,
                         "iproj": iproj,
+                        "k": kappa,
                         "spin_sign": spin_sign,
                         "r": block_data["r"],
                         "proj": block_data[proj_key],
-                        "coeff": self.vkb_projector_coefficients.get((ell, iproj, spin_sign), None),
-                    }
+                        "coeff": coeffs.get((ell, iproj, spin_sign), None),
+                    })
         return data
 
     @property
-    def _plot_convergence_profiles(self) -> dict[tuple[int, int, int], dict[str, np.ndarray]]:
+    def _plot_convergence_profiles(self) -> list[dict]:
         pattern = re.compile(rf"!C\s+(?P<ell>\d)\s+(?P<ecut>{RE_FLOAT})\s+(?P<eresid>{RE_FLOAT})")
         block = self.findall(pattern)
         data: dict[tuple[int, int, int], dict[str, list]] = defaultdict(lambda: defaultdict(list))
@@ -1197,31 +1210,34 @@ class OncvpspTextParser:
             ell = int(match.group("ell"))
             data[(ell, 1, spin_sign)]["ecut"].append(float(match.group("ecut")))
             data[(ell, 1, spin_sign)]["eresid"].append(float(match.group("eresid")))
-        return {key: {k: np.array(v) for k, v in value.items()} for key, value in data.items()}
+        return [{**{"l": key[0], "iproj": key[1], "spin_sign": key[2]}, **{k: np.array(v) for k, v in value.items()}} for key, value in data.items()]
 
     @cached_property
-    def convergence_profiles(self) -> dict[tuple[int, int, int], dict[str, np.ndarray]]:
+    def convergence_profiles(self) -> list[dict]:
         """Convergence behavior of the VKB projectors w.r.t. Ecut.
 
         Returns:
-            dict[tuple[int, int, int], dict[str, np.ndarray]]:
-                (l, iproj, spin_sign) (tuple[int, int, int]): State identifier tuple.
-                    ecut (np.ndarray): Cutoff energies (Ha).
-                    eresid (np.ndarray): Kinetic energy residual L1 errors of the VKB projectors.
+            list[dict]:
+                l (int): Angular momentum quantum number.
+                iproj (int): Projector index (1-based).
+                spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
+                ecut (np.ndarray): Cutoff energies (Ha).
+                eresid (np.ndarray): Kinetic energy residual L1 errors of the VKB projectors.
         """
-        return {**self._optimize_convergence_profiles, **self._plot_convergence_profiles}
+        return self._optimize_convergence_profiles + self._plot_convergence_profiles
 
     @cached_property
-    def log_derivatives(self) -> dict[tuple[int, int], dict[str, Any]]:
+    def log_derivatives(self) -> list[dict]:
         """Phase-shift-like AE/PS logarithmic derivatives.
 
         Returns:
-            dict[tuple[int, int], dict[str, Any]]:
-                (l, spin_sign) (tuple[int, int]): State identifier tuple.
-                    rxpsh (float): Radius for logarithmic derivative evaluation (a.u.).
-                    e (np.ndarray): Energies (Ha).
-                    log_deriv_ae (np.ndarray): All-electron logarithmic derivative.
-                    log_deriv_ps (np.ndarray): Pseudopotential logarithmic derivative.
+            list[dict]:
+                l (int): Angular momentum quantum number.
+                spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
+                rxpsh (float): Radius for logarithmic derivative evaluation (a.u.).
+                e (np.ndarray): Energies (Ha).
+                log_deriv_ae (np.ndarray): All-electron logarithmic derivative.
+                log_deriv_ps (np.ndarray): Pseudopotential logarithmic derivative.
         """
         pattern = re.compile(
             rf"!\s+(?P<spin_sign>[\s-])(?P<ell>\d)\s+(?P<e>{RE_FLOAT})\s+(?P<log_deriv_ae>{RE_FLOAT})\s+(?P<log_deriv_ps>{RE_FLOAT})"
@@ -1243,9 +1259,10 @@ class OncvpspTextParser:
                 data[(ell, spin_sign)]["e"].append(float(match.group("e")))
                 data[(ell, spin_sign)]["log_deriv_ae"].append(float(match.group("log_deriv_ae")))
                 data[(ell, spin_sign)]["log_deriv_ps"].append(float(match.group("log_deriv_ps")))
-        return {
-            key: {k: np.array(v) if isinstance(v, list) else v for k, v in value.items()} for key, value in data.items()
-        }
+        return [
+            {**{"l": key[0], "spin_sign": key[1]}, **{k: np.array(v) for k, v in value.items()}}
+            for key, value in data.items()
+        ]
 
     @cached_property
     def plot_data(self) -> dict:
@@ -1299,12 +1316,21 @@ class OncvpspTextParser:
     def output(self) -> dict:
         """Parsed output as a dictionary."""
         output: dict[str, Any] = {}
+        output["completed"] = self.completed
+        output["errors"] = self.errors
+        output["warnings"] = self.warnings
         output["program_information"] = self.program_information
         output["input"] = self.input
         output["wellstate_metadata"] = self.wellstate_metadata
         output["vkb_hermiticity_errors"] = self.vkb_hermiticity_errors
         output["vkb_scalar_projector_coefficients"] = self.vkb_scalar_projector_coefficients
         output["vkb_spin_orbit_projector_coefficients"] = self.vkb_spin_orbit_projector_coefficients
+        output["d2exc"] = self.d2exc
+        output["d2exc_rmse"] = self.d2exc_rmse
+        output["teter_parameters"] = self.teter_parameters
+        output["teter_coarse_grid"] = self.teter_coarse_grid
+        output["diagnostic_tests_semilocal"] = self.diagnostic_tests_semilocal
+        output["diagnostic_tests_vkb"] = self.diagnostic_tests_vkb
         output["ghosts"] = self.ghosts
         output["test_configurations"] = self.test_configurations
         output["plot_data"] = self.plot_data
@@ -1312,6 +1338,18 @@ class OncvpspTextParser:
         output["upf"] = self.upf_string
         output["psp8"] = self.psp8_string
         return output
+
+    def to_dict(self) -> dict:
+        """Parsed output as a serializable dictionary."""
+        def serialize(value: Any) -> Any:
+            if isinstance(value, np.ndarray):
+                return value.tolist()
+            if isinstance(value, dict):
+                return {k: serialize(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [serialize(v) for v in value]
+            return value
+        return serialize(self.output)
 
     def parse(self, check: bool = True, werror: bool = False) -> dict:
         """Parse the output file.
