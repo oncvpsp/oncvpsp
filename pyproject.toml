@@ -1,0 +1,52 @@
+[project]
+name = "pyoncvpsp"
+version = "4.0.1"
+description = "Python utilities for the ONCVPSP code"
+readme = "README.md"
+authors = [
+    { name = "D. R. Hamann" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.3.0",
+    "pydantic>=2.12.4",
+    "pydantic-numpy>=8.0.1",
+    "toml>=0.10.2",
+]
+
+[project.scripts]
+pyoncvpsp = "pyoncvpsp.cli:cli"
+
+[build-system]
+requires = ["uv_build>=0.9.7,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "black>=25.11.0",
+    "isort>=7.0.0",
+    "mkdocs==1.6.1",
+    "mkdocs-material==9.5.42",
+    "pylint>=4.0.3",
+    "pymdown-extensions==10.12",
+    "pytest>=9.0.1",
+    "pytest-xdist>=3.8.0",
+    "python-markdown-math==0.8",
+]
+
+[tool.flynt]
+line-length = 120
+fail-on-change = true
+
+[tool.isort]
+profile = "black"
+force_sort_within_sections = true
+include_trailing_comma = true
+line_length = 120
+multi_line_output = 3
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.black]
+line-length = 120
