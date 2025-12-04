@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "click>=8.1.0",
     "pydantic>=2.12.4",
-    "pydantic-numpy>=8.0.1",
+    "pydantic-numpy>=7.0",
     "toml>=0.10.2",
 ]
 

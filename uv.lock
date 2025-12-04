@@ -714,7 +714,7 @@ dev = [
 requires-dist = [
     { name = "click", specifier = ">=8.1.0" },
     { name = "pydantic", specifier = ">=2.12.4" },
-    { name = "pydantic-numpy", specifier = ">=8.0.1" },
+    { name = "pydantic-numpy", specifier = ">=7.0" },
     { name = "toml", specifier = ">=0.10.2" },
 ]
 
