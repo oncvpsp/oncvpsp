@@ -163,6 +163,16 @@ ERRORS = [
 ]
 
 
+def _kappa(ell: int, jay: int | None=None, ess: int | None=None, spin_sign: int | None=None) -> int:
+    sources = iter(x is not None for x in [jay, ess, spin_sign])
+    assert any(sources) and not any(sources), "Exactly one input source must be provided."
+    if spin_sign is not None:
+        ess = spin_sign * 1 / 2
+    if ess is not None:
+        jay = ell + ess
+    return int((ell - jay) * (2 * jay + 1))
+
+
 class OncvpspOutputError(Exception):
 
     line_numbers: list[int]
@@ -970,6 +980,26 @@ class OncvpspTextParser:
         return blocks
 
     @cached_property
+    def unscreened_semilocal_potentials(self) -> list[dict]:
+        r"""Unscreened semilocal pseudopotential radial functions.
+
+        Returns:
+            list[dict]:
+                l (int): Angular momentum quantum number.
+                r (np.ndarray): Radial grid points (a.u.).
+                v_sl (np.ndarray): Unscreened semilocal potential values (Ha).
+        """
+        pattern = re.compile(rf"!p\s+(?P<r>{RE_FLOAT})\s+(?P<rho_val>{RE_FLOAT})" + "".join(rf"\s+(?P<v_sl_{l}>{RE_FLOAT})" for l in range(self.input["oncvpsp"]["lmax"] + 1)))
+        block = self.findall(pattern)
+        data: dict[int, dict[str, list]] = defaultdict(lambda: defaultdict(list))
+        for _, match in block:
+            r = (float(match.group("r")))
+            for ell in range(self.input["oncvpsp"]["lmax"] + 1):
+                data[ell]["r"].append(r)
+                data[ell]["v_sl"].append(float(match.group(f"v_sl_{ell}")))
+        return [{"l": ell, **{k: np.array(v) for k, v in values.items()}} for ell, values in data.items()]
+
+    @cached_property
     def local_potential(self) -> dict:
         """Local potential radial function, if `lloc = 4`.
 
@@ -1233,6 +1263,7 @@ class OncvpspTextParser:
         Returns:
             list[dict]:
                 l (int): Angular momentum quantum number.
+                k (int): Dirac quantum number kappa (0 for non-relativistic).
                 spin_sign (int): Spin sign (+1 for j=l+1/2, -1 for j=l-1/2, 0 for non-relativistic).
                 rxpsh (float): Radius for logarithmic derivative evaluation (a.u.).
                 e (np.ndarray): Energies (Ha).
@@ -1260,7 +1291,7 @@ class OncvpspTextParser:
                 data[(ell, spin_sign)]["log_deriv_ae"].append(float(match.group("log_deriv_ae")))
                 data[(ell, spin_sign)]["log_deriv_ps"].append(float(match.group("log_deriv_ps")))
         return [
-            {**{"l": key[0], "spin_sign": key[1]}, **{k: np.array(v) for k, v in value.items()}}
+            {**{"l": key[0], "spin_sign": key[1], "k": _kappa(l=key[0], spin_sign=key[1])}, **{k: np.array(v) for k, v in value.items()}}
             for key, value in data.items()
         ]
 
