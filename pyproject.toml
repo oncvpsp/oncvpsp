@@ -6,10 +6,10 @@ readme = "README.md"
 authors = [
     { name = "D. R. Hamann" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "click>=8.1.0",
-    "numpy>=1.2,<3",
+    "numpy>=1.21,<3",
     "pydantic>=2.12.4",
     "pydantic-numpy",
     "toml>=0.10.2",

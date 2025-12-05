@@ -163,13 +163,13 @@ ERRORS = [
 ]
 
 
-def _kappa(ell: int, jay: int | None=None, ess: int | None=None, spin_sign: int | None=None) -> int:
+def _kappa(ell: int, jay: float | None = None, ess: float | None = None, spin_sign: int | None = None) -> int:
     sources = iter(x is not None for x in [jay, ess, spin_sign])
     assert any(sources) and not any(sources), "Exactly one input source must be provided."
     if spin_sign is not None:
-        ess = spin_sign * 1 / 2
+        ess: float = spin_sign * 1 / 2
     if ess is not None:
-        jay = ell + ess
+        jay: float = ell + ess
     return int((ell - jay) * (2 * jay + 1))
 
 
@@ -347,7 +347,7 @@ class OncvpspTextParser:
         """
         return self._parse_errors(ERRORS)
 
-    def check(self, doraise: bool=True, werror: bool = False) -> list[OncvpspOutputError]:
+    def check(self, doraise: bool = True, werror: bool = False) -> list[OncvpspOutputError]:
         """Check the output for errors and warnings (if `werror`).
         Raise an `ExceptionGroup` containing `OncvpspOutputError`s, if found.
 
@@ -523,13 +523,15 @@ class OncvpspTextParser:
                 if ell > 0:
                     eigs[-1] = fort_float(match.group("eig_dw"))
             for spin_sign, eig in eigs.items():
-                data.append({
-                    "n": enn,
-                    "l": ell,
-                    "f": occ,
-                    "spin_sign": spin_sign,
-                    "eig_ae": eig,
-                })
+                data.append(
+                    {
+                        "n": enn,
+                        "l": ell,
+                        "f": occ,
+                        "spin_sign": spin_sign,
+                        "eig_ae": eig,
+                    }
+                )
                 if self.program_information["program"] == "METAPSP":
                     data[-1]["eig_pbe"] = fort_float(match.group("eig_pbe"))
         return data
@@ -565,16 +567,18 @@ class OncvpspTextParser:
             kappa = int(match.group("kappa")) if match.group("kappa") is not None else 0
             iproj = enn - ell if self.program_information["version"].startswith("3") else 0
             spin_sign = 0 if kappa == 0 else (-1 if kappa > 0 else 1)
-            wellstate_metadata.append({
-                "n": enn,
-                "l": ell,
-                "iproj": iproj,
-                "k": kappa,
-                "spin_sign": spin_sign,
-                "eig_ae": float(eig_match.group("eig")) if eig_match else None,
-                "asymptotic_potential": (float(ap_match.group("ap")) if ap_match else None),
-                "half_point_radius": (float(hpr_match.group("hpr")) if hpr_match else None),
-            })
+            wellstate_metadata.append(
+                {
+                    "n": enn,
+                    "l": ell,
+                    "iproj": iproj,
+                    "k": kappa,
+                    "spin_sign": spin_sign,
+                    "eig_ae": float(eig_match.group("eig")) if eig_match else None,
+                    "asymptotic_potential": (float(ap_match.group("ap")) if ap_match else None),
+                    "half_point_radius": (float(hpr_match.group("hpr")) if hpr_match else None),
+                }
+            )
         return wellstate_metadata
 
     @cached_property
@@ -628,7 +632,10 @@ class OncvpspTextParser:
                 ):
                     data[(ell, iproj, spin_sign)]["eresid"].append(float(match.group("eresid")))
                     data[(ell, iproj, spin_sign)]["ecut"].append(float(match.group("ecut")))
-        return [{**{'ell': key[0], 'iproj': key[1], 'spin_sign': key[2]}, **{k: np.array(v) for k, v in value.items()}} for key, value in data.items()]
+        return [
+            {**{"l": key[0], "iproj": key[1], "spin_sign": key[2]}, **{k: np.array(v) for k, v in value.items()}}
+            for key, value in data.items()
+        ]
 
     @cached_property
     def _run_vkb_indices(self) -> list[tuple[int, int, int, int]]:
@@ -662,7 +669,7 @@ class OncvpspTextParser:
         coefficients: list[dict] = []
         for ell, spin_sign, _, stop in self._run_vkb_indices:
             for iproj, value in enumerate(self.lines[stop].split()[3:], start=1):
-                coefficients.append({'ell': ell, 'iproj': iproj, 'spin_sign': spin_sign, 'coefficient': value})
+                coefficients.append({"l": ell, "iproj": iproj, "spin_sign": spin_sign, "coefficient": value})
         return coefficients
 
     @cached_property
@@ -670,10 +677,12 @@ class OncvpspTextParser:
         coefficients: list[dict] = []
         for i, match in self.findall(r" Orthonormal scalar projector coefficients, l =\s+(?P<ell>\d)"):
             ell = int(match.group("ell"))
-            coefficients.append({
-                'ell': ell,
-                'coefficients': np.array([float(c) for c in self.lines[i + 1].split()]),
-            })
+            coefficients.append(
+                {
+                    "l": ell,
+                    "coefficients": np.array([float(c) for c in self.lines[i + 1].split()]),
+                }
+            )
         return coefficients
 
     @cached_property
@@ -681,10 +690,12 @@ class OncvpspTextParser:
         coefficients: list[dict] = []
         for i, match in self.findall(r" Orthonormal spin-orbit projector coefficients, l =\s+(?P<ell>\d)"):
             ell = int(match.group("ell"))
-            coefficients.append({
-                'ell': ell,
-                'coefficients': np.array([float(c) for c in self.lines[i + 1].split()]),
-            })
+            coefficients.append(
+                {
+                    "l": ell,
+                    "coefficients": np.array([float(c) for c in self.lines[i + 1].split()]),
+                }
+            )
         return coefficients
 
     @cached_property
@@ -696,23 +707,27 @@ class OncvpspTextParser:
         for ell, spin_sign, start, stop in self._run_vkb_indices:
             # Parse hermiticity errors
             if herm_err_match := re.match(v3_herm_err_pattern, self.lines[start + 1]):
-                hermiticity_errors.append({
-                    'ell': ell,
-                    'spin_sign': spin_sign,
-                    "i": 1,
-                    "j": 2,
-                    "hermiticity_error": fort_float(herm_err_match.group("herm_err")),
-                })
+                hermiticity_errors.append(
+                    {
+                        "l": ell,
+                        "spin_sign": spin_sign,
+                        "i": 1,
+                        "j": 2,
+                        "hermiticity_error": fort_float(herm_err_match.group("herm_err")),
+                    }
+                )
             else:
                 herm_err_matches = self.findall(v4_herm_err_pattern, start=start, stop=stop)
                 for _, herm_err_match in herm_err_matches:
-                    hermiticity_errors.append({
-                        'ell': ell,
-                        'spin_sign': spin_sign,
-                        "i": int(herm_err_match.group("i")),
-                        "j": int(herm_err_match.group("j")),
-                        "hermiticity_error": fort_float(herm_err_match.group("herm_err")),
-                    })
+                    hermiticity_errors.append(
+                        {
+                            "l": ell,
+                            "spin_sign": spin_sign,
+                            "i": int(herm_err_match.group("i")),
+                            "j": int(herm_err_match.group("j")),
+                            "hermiticity_error": fort_float(herm_err_match.group("herm_err")),
+                        }
+                    )
         return hermiticity_errors
 
     @cached_property
@@ -947,17 +962,21 @@ class OncvpspTextParser:
                     ell = int(config_match.group("ell"))
                     kappa = int(config_match.group("kappa")) if config_match.group("kappa") is not None else 0
                     spin_sign = 0 if kappa == 0 else (-1 if kappa > 0 else 1)
-                    test_configuration.append({
-                        "n": enn,
-                        "l": ell,
-                        "k": kappa,
-                        "spin_sign": spin_sign,
-                        "f": float(config_match.group("occ")),
-                        "eig_ae": float(config_match.group("eig_ae")),
-                        "eig_ps": (
-                            float(config_match.group("eig_ps")) if config_match.group("eig_ps") is not None else None
-                        ),
-                    })
+                    test_configuration.append(
+                        {
+                            "n": enn,
+                            "l": ell,
+                            "k": kappa,
+                            "spin_sign": spin_sign,
+                            "f": float(config_match.group("occ")),
+                            "eig_ae": float(config_match.group("eig_ae")),
+                            "eig_ps": (
+                                float(config_match.group("eig_ps"))
+                                if config_match.group("eig_ps") is not None
+                                else None
+                            ),
+                        }
+                    )
             assert int(match.group("itest")) == len(test_configurations)
             test_configurations.append(test_configuration)
         return test_configurations
@@ -989,12 +1008,15 @@ class OncvpspTextParser:
                 r (np.ndarray): Radial grid points (a.u.).
                 v_sl (np.ndarray): Unscreened semilocal potential values (Ha).
         """
-        pattern = re.compile(rf"!p\s+(?P<r>{RE_FLOAT})\s+(?P<rho_val>{RE_FLOAT})" + "".join(rf"\s+(?P<v_sl_{l}>{RE_FLOAT})" for l in range(self.input["oncvpsp"]["lmax"] + 1)))
+        pattern = re.compile(
+            rf"!p\s+(?P<r>{RE_FLOAT})\s+(?P<rho_val>{RE_FLOAT})"
+            + "".join(rf"\s+(?P<v_sl_{l}>{RE_FLOAT})" for l in range(self.input["pseudopotentials"]["lmax"] + 1))
+        )
         block = self.findall(pattern)
         data: dict[int, dict[str, list]] = defaultdict(lambda: defaultdict(list))
         for _, match in block:
-            r = (float(match.group("r")))
-            for ell in range(self.input["oncvpsp"]["lmax"] + 1):
+            r = float(match.group("r"))
+            for ell in range(self.input["pseudopotentials"]["lmax"] + 1):
                 data[ell]["r"].append(r)
                 data[ell]["v_sl"].append(float(match.group(f"v_sl_{ell}")))
         return [{"l": ell, **{k: np.array(v) for k, v in values.items()}} for ell, values in data.items()]
@@ -1107,7 +1129,11 @@ class OncvpspTextParser:
         v4_scattering_header_pattern = re.compile(r"scattering, iprj=\s*(?P<iproj>\d+),\s+l=\s*(?P<ell>\d)")
         blocks = self._get_plot_blocks(data_pattern)
         # Used to augment state data with metadata from  reference configuration
-        test_config = {(cfg["n"], cfg["l"], cfg["spin_sign"]): cfg for cfg in self.test_configurations[0]} if self.test_configurations else {}
+        test_config = (
+            {(cfg["n"], cfg["l"], cfg["spin_sign"]): cfg for cfg in self.test_configurations[0]}
+            if self.test_configurations
+            else {}
+        )
         ref_config = {(cfg["n"], cfg["l"], cfg["spin_sign"]): cfg for cfg in self.reference_configuration}
         wellstates = {(well["n"], well["l"], well["spin_sign"]): well for well in self.wellstate_metadata}
         data: list[dict] = []
@@ -1156,18 +1182,27 @@ class OncvpspTextParser:
             # Add additional information about the state from the wellstate metadata or reference configuration
             # Order the state keys at this ell and kappa: first boundstates (sorted by enn), then wellstates (ditto)
             state_keys = sorted(
-                [k for k in self.valence_quantum_numbers if k[0] == ell and k[2] == spin_sign]
-            ) + sorted([k for k in wellstates if k[0] == ell and k[2] == spin_sign])
+                [k for k in self.valence_quantum_numbers if k[1] == ell and k[2] == spin_sign]
+            ) + sorted([k for k in wellstates if k[1] == ell and k[2] == spin_sign])
             state_key = state_keys[iproj - 1] if (iproj - 1 < len(state_keys)) else None
-            state_metadata = {}  # Default empty metadata
-            if state_key in self.valence_quantum_numbers and not block_data["is_bound"] is False:
+            state_metadata = {
+                "is_bound": None,
+                "n": 0,
+                "f": np.nan,
+                "eig_ae": np.nan,
+                "eig_ps": np.nan,
+                "asymptotic_potential": np.nan,
+                "half_point_radius": np.nan,
+                "r_rc": np.nan,
+            }  # Default empty metadata
+            if not block_data["is_bound"] is False and state_key in self.valence_quantum_numbers:
                 # If we're sure this is not a wellstate, get a boundstate
-                state_metadata = test_config.get(state_key, {})
+                state_metadata.update(test_config.get(state_key, {}))
                 state_metadata.update(ref_config[state_key])
                 state_metadata["is_bound"] = True
-            if state_key in wellstates and not block_data["is_bound"] is True:
+            if not block_data["is_bound"] is True and state_key in wellstates:
                 # If we're sure this is not a boundstate, get a wellstate
-                state_metadata = wellstates[state_key]
+                state_metadata.update(wellstates[state_key])
                 state_metadata["is_bound"] = False
                 state_metadata["f"] = 0.0
             block_data.update(state_metadata)
@@ -1197,7 +1232,7 @@ class OncvpspTextParser:
             + "".join(rf"(?:\s+(?P<proj_{i}>{RE_FLOAT}))?" for i in range(2, max_nproj + 1))
         )
         # Used to look up VKB coefficients
-        coeffs = {(c['ell'], c['iproj'], c['spin_sign']): c['coefficient'] for c in self.vkb_projector_coefficients}
+        coeffs = {(c["l"], c["iproj"], c["spin_sign"]): c["coefficient"] for c in self.vkb_projector_coefficients}
         blocks = self._get_plot_blocks(pattern)
         data: list[dict] = []
         for block in blocks:
@@ -1219,15 +1254,17 @@ class OncvpspTextParser:
                 if proj_key in block_data:
                     jay = ell + spin_sign * 1 / 2
                     kappa = int((ell - jay) * (2 * jay + 1))
-                    data.append({
-                        "l": ell,
-                        "iproj": iproj,
-                        "k": kappa,
-                        "spin_sign": spin_sign,
-                        "r": block_data["r"],
-                        "proj": block_data[proj_key],
-                        "coeff": coeffs.get((ell, iproj, spin_sign), None),
-                    })
+                    data.append(
+                        {
+                            "l": ell,
+                            "iproj": iproj,
+                            "k": kappa,
+                            "spin_sign": spin_sign,
+                            "r": block_data["r"],
+                            "proj": block_data[proj_key],
+                            "coeff": coeffs.get((ell, iproj, spin_sign), None),
+                        }
+                    )
         return data
 
     @property
@@ -1240,7 +1277,10 @@ class OncvpspTextParser:
             ell = int(match.group("ell"))
             data[(ell, 1, spin_sign)]["ecut"].append(float(match.group("ecut")))
             data[(ell, 1, spin_sign)]["eresid"].append(float(match.group("eresid")))
-        return [{**{"l": key[0], "iproj": key[1], "spin_sign": key[2]}, **{k: np.array(v) for k, v in value.items()}} for key, value in data.items()]
+        return [
+            {**{"l": key[0], "iproj": key[1], "spin_sign": key[2]}, **{k: np.array(v) for k, v in value.items()}}
+            for key, value in data.items()
+        ]
 
     @cached_property
     def convergence_profiles(self) -> list[dict]:
@@ -1255,6 +1295,20 @@ class OncvpspTextParser:
                 eresid (np.ndarray): Kinetic energy residual L1 errors of the VKB projectors.
         """
         return self._optimize_convergence_profiles + self._plot_convergence_profiles
+
+    @cached_property
+    def ecut_recommended(self) -> float:
+        ecut = -np.inf
+        for prof in self.convergence_profiles:
+            if prof["iproj"] != 1:
+                continue
+            mask = np.isclose(prof["eresid"], 1e-5, atol=1e-10)
+            if np.sum(mask) == 0 or not np.any(mask):
+                continue
+            ecut_proj = prof["ecut"][mask][0]
+            if ecut_proj > ecut:
+                ecut = ecut_proj
+        return ecut
 
     @cached_property
     def log_derivatives(self) -> list[dict]:
@@ -1291,7 +1345,10 @@ class OncvpspTextParser:
                 data[(ell, spin_sign)]["log_deriv_ae"].append(float(match.group("log_deriv_ae")))
                 data[(ell, spin_sign)]["log_deriv_ps"].append(float(match.group("log_deriv_ps")))
         return [
-            {**{"l": key[0], "spin_sign": key[1], "k": _kappa(l=key[0], spin_sign=key[1])}, **{k: np.array(v) for k, v in value.items()}}
+            {
+                **{"l": key[0], "spin_sign": key[1], "k": _kappa(ell=key[0], spin_sign=key[1])},
+                **{k: np.array(v) for k, v in value.items()},
+            }
             for key, value in data.items()
         ]
 
@@ -1372,6 +1429,7 @@ class OncvpspTextParser:
 
     def to_dict(self) -> dict:
         """Parsed output as a serializable dictionary."""
+
         def serialize(value: Any) -> Any:
             if isinstance(value, np.ndarray):
                 return value.tolist()
@@ -1380,6 +1438,7 @@ class OncvpspTextParser:
             if isinstance(value, list):
                 return [serialize(v) for v in value]
             return value
+
         return serialize(self.output)
 
     def parse(self, check: bool = True, werror: bool = False) -> dict:
