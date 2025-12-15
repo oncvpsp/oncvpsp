@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -18,7 +18,7 @@
 !
 ! calculates residual energy operator matrix elements as a function of q
 
- subroutine eresid(ll,irc,nnull,nbas,mmax,rr,drdum,dqdum,qmax,qroot, &
+ subroutine eresid(ll,irc,nnull,nbas,mmax,rr,dr,dq,qmax,qroot, &
 &                  uu,pswf0_sb,pswfnull_sb, nqout,qout, &
 &                  eresid0,eresiddot,eresidmat)
 
@@ -54,8 +54,7 @@
  integer :: irc,ll,nnull,nbas,mmax,nqout
  real(dp) :: rr(mmax),uu(mmax),pswf0_sb(nbas),pswfnull_sb(nbas,nnull)
  real(dp) :: qroot(nbas)
-!real(dp) :: dr,dq,qmax
- real(dp) :: drdum,dqdum,qmax
+ real(dp) :: dr,dq,qmax
 
 !Output variables
  real(dp) :: eresid0(nqout),eresiddot(nnull,nqout)
@@ -73,32 +72,15 @@
  real(dp), allocatable :: work(:),wmat(:,:),wev(:),wvec(:)
  real(dp) :: sb_out(5)
  real(dp) :: ac0,rc,ps0q,tps0,xx,qq,qq4,sn,tn,td
- real(dp) :: dr,dq
 
  integer :: nrlin,nq,irclin,mmaxlin
  integer :: ii,info,iq,jj,kk,ll1
-
-
-! new calculations of dq, dr
-! larger denominators yield better convergence at the cost of more time
-! dq=2.0d0*pi/(300.0d0*rr(irc))
-  dq=2.0d0*pi/(150.0d0*rr(irc))
-! dq=2.0d0*pi/(75.0d0*rr(irc))
-! dr=2.0d0*pi/(150.0d0*qmax)
-  dr=2.0d0*pi/(75.0d0*qmax)
 
 !set up linear radial mesh
  rc=rr(irc)
  irclin=rc/dr + 1.5d0
  dr=rc/(irclin-1)
-
- do ii=mmax,1,-1
-   if(abs(uu(ii))>1.0d-10) then
-     mmaxlin=rr(ii)/dr - 2.0d0
-     exit
-    end if
- end do
-!mmaxlin=rr(mmax)/dr - 1.5d0 !leave non-zero room for cubic interpolation
+ mmaxlin=rr(mmax)/dr - 1.5 !leave non-zero room for cubic interpolation
 
  allocate(rlin(mmaxlin),uulin(mmaxlin),ps0(mmaxlin))
  allocate(psnull(irclin,nnull),tpsnull(nnull),psnullq(nnull))
@@ -114,7 +96,7 @@
 !interpolate all-electron wave function onto linear mesh, even though we
 !will only use the tail region
 
- call dpnint(rr,uu,mmax,rlin,uulin,mmaxlin)
+ call dp3int(rr,uu,mmax,rlin,uulin,mmaxlin)
 
  do ii=irclin,mmaxlin
   ps0(ii)=uulin(ii)

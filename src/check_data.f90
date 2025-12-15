@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -16,8 +16,7 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
- subroutine check_data(atsym,zz,fcfact,rcfact,epsh1,epsh2,depsh,rlmax,drl, &
-&                      fa,facnf, &
+ subroutine check_data(atsym,zz,fcfact,epsh1,epsh2,depsh,rlmax,drl,fa,facnf, &
 &                      rc,ep,qcut,debl,nc,nv,iexc,lmax,lloc,lpopt,icmod, &
 &                      ncnf,na,la,nvcnf,nacnf,lacnf,ncon,nbas,nproj,psfile)
 
@@ -33,7 +32,7 @@
  character*2 :: atsym
  character*4 :: psfile
 
- real(dp) :: zz,fcfact,rcfact,epsh1,epsh2,depsh,rlmax,drl
+ real(dp) :: zz,fcfact,epsh1,epsh2,depsh,rlmax,drl
  real(dp) :: fa(30),facnf(30,5),rc(6),ep(6),qcut(6),cfloc(5),debl(5)
 
  integer :: nc,nv,iexc,lmax,lloc,lpopt,icmod,ncnf
@@ -54,9 +53,8 @@
   ierr=ierr+1
  end if
 
- if(trim(psfile)/='psp8' .and. trim(psfile)/='upf' &
-&   .and. trim(psfile)/='both') then
-  write(6,'(a)') 'test_data: psfile must == psp8 or upf or both'
+ if(trim(psfile)/='psp8' .and. trim(psfile)/='upf') then
+  write(6,'(a)') 'test_data: psfile must == psp8 or upf'
   ierr=ierr+1
  end if
 
@@ -70,9 +68,8 @@
   ierr=ierr+1
  end if
 
- if(iexc==0 .or. iexc>4) then
-  write(6,'(a)') 'test_data: must have iexc <=4, iexc /= 0.'
-  write(6,'(a)') '  negative values for libxc'
+ if(iexc<1 .or. iexc>4) then
+  write(6,'(a)') 'test_data: must have 1 <= iexc <=4'
   ierr=ierr+1
  end if
 
@@ -170,9 +167,8 @@
  do l1=1,lmax+1
   if(nproj(l1)==0 .and. (lloc==4 .or. lloc==l1-1)) then
    cycle
-  else if(nproj(l1)<1 .or. nproj(l1)>5) then
-   write(6,'(a,i4,a)') 'test_data: must have nproj in [1,5] (0 OK lloc=4 or', &
-&        l1-1,')'
+  else if(nproj(l1)<1 .or. nproj(l1)>2) then
+   write(6,'(a,i4)') 'test_data: must have nproj=1 or 2 (=0 OK iflloc=4)',l1-1
    ierr=ierr+1
   end if
   if(debl(l1)<0.0d0) then
@@ -181,18 +177,13 @@
   end if
  end do
 
- if(icmod<0 .or. icmod>4) then
-  write(6,'(a)') 'test_data: must have 0<= icmod <=4'
+ if(icmod<0 .or. icmod>1) then
+  write(6,'(a)') 'test_data: must have 0<= icmod <=1'
   ierr=ierr+1
  end if
 
- if((icmod==1 .or. icmod==3) .and. fcfact<=0.0d0) then
-  write(6,'(a)') 'test_data: must have fcfact>0.0 for icmod= 1 or 3'
-  ierr=ierr+1
- end if
-
- if((icmod==3) .and. rcfact<=0.0d0) then
-  write(6,'(a)') 'test_data: must have rcfact>0.0 for icmod= 3'
+ if((icmod==1) .and. fcfact<=0.0d0) then
+  write(6,'(a)') 'test_data: must have fcfact>0.0 for icmod= 1'
   ierr=ierr+1
  end if
 
@@ -241,8 +232,8 @@
 &     ' test configuration',jj-1, ' line',ii-nc
      ierr=ierr+1
     end if
-    if(facnf(ii,jj)<0.0d0) then
-     write(6,'(a,a,i4,a,i4)') 'test_data: f < 0.0,', &
+    if(facnf(ii,jj)<=0.0d0) then
+     write(6,'(a,a,i4,a,i4)') 'test_data: f <= 0.0,', &
 &     ' test configuration',jj-1, ' line',ii-nc
      ierr=ierr+1
     end if
@@ -256,7 +247,7 @@
  end if
  
  if(ierr>0) then
-  write(6,'(a,i4,a)') 'ERROR: test_data found',ierr,' ERROR; stopping'
+  write(6,'(a,i4,a)') 'ERROR: test_data found',ierr,' errors; stopping'
   stop
  end if
 

@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 

@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -46,7 +46,6 @@
  integer node
 
 !Local variables
-real(dp) :: rc,rn
  real(dp), allocatable ::  phi(:,:),phip(:,:),phi0(:),phi0p(:)
  real(dp), allocatable ::  gg0(:),gg(:,:)
  integer, allocatable :: ipiv(:)
@@ -59,15 +58,7 @@ real(dp) :: rc,rn
 ! homogeneous solution
  call lschps(ll+1,ll,ierr,ep,rr,vloc,uu,up,mmax,mch)
 
- rc=0.0d0
  if(nvkb/=0) then
-! find cutoff radius for projectors
-  do ii=mmax,1,-1
-    if(abs(vkb(ii,1))>0.0d0) then
-      rc=rr(ii)
-      exit
-    end if
-  end do
 
   allocate(phi(mmax,nvkb),phip(mmax,nvkb))
   allocate(gg(nvkb,nvkb),gg0(nvkb))
@@ -101,7 +92,7 @@ real(dp) :: rc,rn
 
    call dgesv(nvkb, 1, gg, nvkb, ipiv, gg0, nvkb, info)
    if(info/=0) then
-    write(6,'(/a,i4)') 'vkbout: dgesv ERROR, stopping info =',info
+    write(6,'(/a,i4)') 'vkbout: dgesv error, stopping info =',info
     stop
    end if
 
@@ -117,16 +108,9 @@ real(dp) :: rc,rn
  end if
 
 ! lower cutoff for node counting to avoid small-r noise
- rn=dmax1(0.10d0*rc, 0.05d0)
-
  node=0
  do ii=6,mch
-! note historic evolution!
-!  if(rr(ii)>0.5d0 .and. uu(ii-1)*uu(ii)<0.0d0) then
-!  if(rr(ii)>0.25d0 .and. uu(ii-1)*uu(ii)<0.0d0) then
-!  if(rr(ii)>0.10d0 .and. uu(ii-1)*uu(ii)<0.0d0) then
-!  if(rr(ii)>0.07d0 .and. uu(ii-1)*uu(ii)<0.0d0) then
-   if(rr(ii)>rn .and. uu(ii-1)*uu(ii)<0.0d0) then
+   if(rr(ii)>0.5d0 .and. uu(ii-1)*uu(ii)<0.0d0) then
     node=node+1
    end if
  end do

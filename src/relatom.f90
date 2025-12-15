@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-201r by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -133,10 +133,11 @@
      call ldiracfb(na(ii),ll,kap,ierr,et, &
 &                rr,zz,vi,uu,up,mmax,mch)
 
-     if(ierr .ne. 0) then
-       write(6,'(/2a,5i4)') 'relatom: ldiracfb convergence ERROR', &
-&           ' n,l,kap,iter,ierr=',na(ii),ll,kap,it,ierr
-       stop
+     if(ierr>0) then
+       write(6,'(/2a,4i4)') 'relatom: ldiracfb convergence error', &
+&           ' n,l,kap,iter=', &
+&       na(ii),ll,kap,it
+       exit
      end if
 
 ! overall convergence criterion based on eps within lschfb

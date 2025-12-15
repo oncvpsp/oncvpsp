@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -16,21 +16,24 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
- subroutine run_diag(lmax,npa,epa,lloc,irc, &
-&                    vkb,evkb,nproj,rr,vfull,vp,zz,mmax,mxprj,srel)
+ subroutine run_diag(lmax,np,fp,ep,debl,lloc,irc,npx,lpx,fpx,epx,nxtra, &
+&                    vkb,evkb,nproj,rr,vfull,vp,zz,mmax,srel)
 
 !diagnostics for semi-local and Vanderbilt-Kleinman-bylander pseudopotentials
-!checks bound-state energies, norms, and slopes, and pseudo-bound state
-!quantities for positive-energy projectors by matching all-electron
-!log derivatives at rc.
-!Should test as essentially exact for non-relativitic calculations
-!Error for relativistic is B matrix Hermiticity error
 
 !lmax  maximum angular momentum
-!npa  principal quantum number for corresponding all-electron state
-!epa  bound-state or scattering state reference energies for vkb potentials
+!np  principal quantum number for corresponding all-electron state
+!fp  occupancy
+!ep  bound-state or scattering state reference energies for vkb potentials
+!debl  energy shift for second projector
 !lloc  l for local potential
 !irc  core radii indices
+!npx  principal quantum number for corresponding all-electron state
+!lpx  l's for extra valence states
+!fpx  occupancies for extra valence states
+!epx  energies for extra valence states
+!debl  energy shift for 2nd projector
+!nxtra  number of extra valence states
 !vkb  VKB projectors
 !evkb  coefficients of VKB projectors
 !nproj  number of vkb projectors for each l
@@ -39,25 +42,23 @@
 !vp  semi-local pseudopotentials (vp(:,5) is local potential if linear comb.)
 !zz  atomic number
 !mmax  size of radial grid
-!mxprj  dimension of number of projectors
 !srel .true. for scalar-relativistic, .false. for non-relativistic
 
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
- integer :: lmax,lloc,mmax,mxprj,nlim
- integer :: npa(mxprj,6),irc(6),nproj(6)
+ integer :: lmax,lloc,mmax,nlim,nxtra
+ integer :: np(6),npx(6),lpx(6),irc(6),nproj(6)
  real(dp) :: zz
- real(dp) :: rr(mmax),vp(mmax,5),vfull(mmax),vkb(mmax,mxprj,4)
- real(dp):: epa(mxprj,6),evkb(mxprj,4)
+ real(dp) :: rr(mmax),vp(mmax,5),vfull(mmax),vkb(mmax,2,4)
+ real(dp):: ep(6),debl(6),fp(6),epx(6),fpx(6),evkb(2,4)
  logical :: srel
 
 !Output variables - printing only
 
 !Local variables
  integer :: ll,l1,ii,jj,ierr,mch,mchf
- integer :: iprj,nnae,nnp,npr
  real(dp) :: al,emax,emin,etest,sls,umch,upmch,uldf,gam,gpr
  real(dp), allocatable :: uu(:),up(:)
 
@@ -65,88 +66,211 @@
 
  al = 0.01d0 * dlog(rr(101)/rr(1))
 
+! loop for diagnostic output
+
+ write(6,'(/a)') 'Diagnostic tests using semi-local pseudopotentials'
+ write(6,'(/2a)')'   l    rcore       rmatch      e in        ', &
+&   'e test    norm test  slope test'
+!
+ do l1 = 1, lmax + 1
+   ll = l1 - 1
+   mchf=max(irc(l1),irc(lloc))+5
+   if(fp(l1)/=0.0d0) then
+     etest=ep(l1)
+     call lschfb(np(l1),ll,ierr,etest, &
+&              rr,vfull,uu,up,zz,mmax,mch,srel)
+   else
+     call lschfs(ll,ierr,ep(l1), &
+&              rr,vfull,uu,up,zz,mmax,mchf,srel)
+   end if
+   umch=uu(mchf)
+   upmch=up(mchf)
+   uldf=upmch/umch
+   if(fp(l1)/=0.0d0) then
+     call lschpb(ll+1,ll,ierr,etest, &
+&                rr,vp(1,l1),uu,up,mmax,mch)
+     if(ierr/=0) write(6,*) 'l1,ierr,etest',l1,ierr,etest
+   else
+     etest=ep(l1)
+     call lschpse(ll+1,ll,ierr,etest,uldf, &
+&                 rr,vp(1,l1),uu,up,mmax,mchf)
+     if(ierr/=0) write(6,*) 'l1,ierr,etest',l1,ierr,etest
+   end if
+   gam=dabs(umch/uu(mchf))
+   gpr=dabs(upmch/up(mchf))
+!
+   write(6,'(i4,6f12.7)') ll,rr(irc(l1)),rr(mchf),ep(l1),etest,gam,gpr
+
+ end do
+!
+! diagnostic output for extra valence states in the presence of
+! shallow core treated as valence
+!
+ if(nxtra .gt. 0) then
+   write(6,'(a)') ''
+   do jj = 1, nxtra
+     ll = lpx(jj)
+     l1 = ll + 1
+     mchf=max(irc(l1),irc(lloc))+5
+     call lschfb(npx(jj),ll,ierr,etest, &
+&              rr,vfull,uu,up,zz,mmax,mch,srel)
+     umch=uu(mchf)
+     upmch=up(mchf)
+     call lschpb(ll+2,ll,ierr,etest, &
+&                rr,vp(1,l1),uu,up,mmax,mch)
+     gam=dabs(umch/uu(mchf))
+     gpr=dabs(upmch/up(mchf))
+!
+     write(6,'(i4,6f12.7)') ll,rr(irc(l1)),rr(mchf),epx(jj),etest,gam,gpr
+   end do
+ end if
+!
 ! loop for diagnostic output using Vanderbilt Kleinman-Bylander projectors
 !
  write(6,'(/a/a)') &
 & 'Diagnostic tests using Vanderbilt-Kleinman-Bylander pseudopotentials',&
-& '  1 or more projectors used as specified by nproj input data'
+& '  1 or 2 projectors used as specified by nproj input data'
  write(6,'(/2a)')'   l    rcore       rmatch      e in        ', &
-&   'delta e   norm test  slope test'
+&   'e test    norm test  slope test'
 !
  do l1 = 1, lmax + 1
-  write(6,'(a)') ''
   ll = l1 - 1
-  nnp=l1
-  do iprj=1,max(1,nproj(l1))
-    npr=nproj(l1)
+  if(ll/=lloc) then
+! find cutoff radius for projectors
+   mchf=max(irc(l1),irc(lloc))+5
+   if(fp(l1)/=0.0d0 .or. ep(l1)<0.0d0) then
+     call lschfb(np(l1),ll,ierr,etest, &
+&              rr,vfull,uu,up,zz,mmax,mch,srel)
+   else
+     call lschfs(ll,ierr,ep(l1), &
+&              rr,vfull,uu,up,zz,mmax,mchf,srel)
+   end if
+   umch=uu(mchf)
+   upmch=up(mchf)
+   uldf=upmch/umch
+   if(fp(l1)/=0.0d0 .or. ep(l1)<0.0d0) then
+     sls=(l1-1)*l1
+     emax=vp(mmax,l1)+0.5d0*sls/rr(mmax)**2
+     emin=emax
+     do jj=1,mmax
+       emin=dmin1(emin,vp(jj,l1)+0.5d0*sls/rr(jj)**2)
+     end do
+     call lschvkbb(ll+1,ll,nproj(l1),ierr,etest,emin,emax, &
+&                  rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
+&                  uu,up,mmax,mch)
 
-!   find cutoff radius for projectors
-    mchf=max(irc(l1),irc(lloc+1))+5
+     if(ierr/=0) write(6,*) 'l1,ierr,etest',l1,ierr,etest
+   else
+     etest=ep(l1)
+     if(ep(l1)>0.0d0) then
+      emin=0.0d0
+      emax=2.d0*ep(l1)
+     else
+      emin=2.d0*ep(l1)
+      emax=0.0d0
+     end if
+     call lschvkbbe(ll+1,ll,nproj(l1),ierr,etest,uldf,emin,emax, &
+&                  rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
+&                  uu,up,mmax,mchf)
+     if(ierr/=0) write(6,*) 'l1,ierr,etest',l1,ierr,etest
+   end if
+   gam=dabs(umch/uu(mchf))
+   gpr=dabs(upmch/up(mchf))
+!
+   write(6,'(i4,6f12.7)') ll,rr(irc(l1)),rr(mchf),ep(l1),etest,gam,gpr
 
-    etest=epa(iprj,l1)
-    if(etest<0.0d0) then
-      call lschfb(npa(iprj,l1),ll,ierr,etest, &
-&                rr,vfull,uu,up,zz,mmax,mch,srel)
-      if(ierr .ne. 0) then
-         write(6,'(/a,3i4)') 'run_diag: lschfb convergence ERROR n,l,ierr=', &
-&        npa(iprj,l1),ll,ierr
-        stop
-      end if
+  end if
+ end do
+!
+! diagnostic output for extra valence states in the presence of
+! shallow core treated as valence
+!
+ if(nxtra > 0) then
+   write(6,'(a)') ''
+   do jj = 1, nxtra
+    ll = lpx(jj)
+    l1 = ll + 1
+    if(ll/=lloc .and. nproj(l1)==1) then
+     sls=(l1-1)*l1
+     emax=vp(mmax,l1)+0.5d0*sls/rr(mmax)**2
+     emin=emax
+     do ii=1,mmax
+       emin=dmin1(emin,vp(ii,l1)+0.5d0*sls/rr(ii)**2)
+     end do
+     mchf=max(irc(l1),irc(lloc))+5
+     call lschfb(npx(jj),ll,ierr,etest, &
+&              rr,vfull,uu,up,zz,mmax,mch,srel)
+     umch=uu(mchf)
+     upmch=up(mchf)
+     call lschvkbb(ll+2,ll,nproj(l1),ierr,etest,emin,emax, &
+&                  rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
+&                  uu,up,mmax,mch)
+     gam=dabs(umch/uu(mchf))
+     gpr=dabs(uu(mchf)*upmch/(up(mchf)*umch))
+!
+     write(6,'(i4,6f12.7)') ll,rr(irc(l1)),rr(mchf),epx(jj),etest,gam,gpr
+    end if !lloc, npro==1
+   end do
+ end if
+!
+! diagnostic output for 2nd projectors based on bound or scattering states
+!
+ write(6,'(a)') ''
+ do l1 = 1, lmax + 1
+  ll = l1 - 1
+  if(ll==lloc) cycle
+  if(nproj(l1)==2) then
+! find cutoff radius for projectors
+   mchf=max(irc(l1),irc(lloc))+5
+   etest=ep(l1)+debl(l1)
+   if(etest<0.0d0) then
+     call lschfb(np(l1)+1,ll,ierr,etest, &
+&              rr,vfull,uu,up,zz,mmax,mch,srel)
+   else
+     call lschfs(ll,ierr,etest, &
+&              rr,vfull,uu,up,zz,mmax,mchf,srel)
+   end if
 
-    else
-      call lschfs(nnae,ll,ierr,etest, &
-&               rr,vfull,uu,up,zz,mmax,mchf,srel)
-    end if
+   umch=uu(mchf)
+   upmch=up(mchf)
+   uldf=upmch/umch
+   etest=ep(l1)+debl(l1)
+   if(etest<0.0d0) then
+     sls=(l1-1)*l1
+     emax=vp(mmax,l1)+0.5d0*sls/rr(mmax)**2
+     emin=emax
+     do jj=1,mmax
+       emin=dmin1(emin,vp(jj,l1)+0.5d0*sls/rr(jj)**2)
+     end do
+     call lschvkbb(ll+2,ll,nproj(l1),ierr,etest,emin,emax, &
+&                  rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
+&                  uu,up,mmax,mch)
 
-    umch=uu(mchf)
-    upmch=up(mchf)
-    uldf=upmch/umch
-    etest=epa(iprj,l1)
-
-    if(l1==lloc+1) npr=0
-
-    etest=epa(iprj,l1)
-    emax=etest+0.1d0*dabs(etest)+0.05d0
-    emin=etest-0.1d0*dabs(etest)-0.05d0
-
-
-    if(epa(iprj,l1)<0.0d0) then
-      sls=(l1-1)*l1
-
-      emax=dmin1(emax,0.0d0)
-
-      call lschvkbb(ll+iprj,ll,npr,ierr,etest,emin,emax, &
-&                   rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
-&                   uu,up,mmax,mch)
-      if(ierr/=0) then
-        write(6,'(a,3i4,1p,2e16.8)') 'run_diag: lschvkbb ERROR', &
-&             iprj,ll,ierr,epa(iprj,l1),etest
-      end if
-
-      nnp=nnp+1
-    else
-!     calculate effective pseudo wave function principal quantum number 
-!     from all-electron node count
-      nnp=nnae-npa(1,l1)+ll+1
-      call lschvkbbe(nnp,ll,npr,ierr,etest,uldf,emin,emax, &
+     if(ierr/=0) write(6,*) 'l1,ierr,etest',l1,ierr,etest
+   else
+     etest=ep(l1)+debl(l1)
+     emin=0.0d0
+     emax=2.d0*etest
+     call lschvkbbe(ll+2,ll,nproj(l1),ierr,etest,uldf,emin,emax, &
+&                  rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
+&                  uu,up,mmax,mchf)
+     if(ierr/=0) then
+     etest=ep(l1)+debl(l1)
+     emin=0.0d0
+     emax=2.d0*etest
+      call lschvkbbe(ll+1,ll,nproj(l1),ierr,etest,uldf,emin,emax, &
 &                   rr,vp(1,lloc+1),vkb(1,1,l1),evkb(1,l1), &
 &                   uu,up,mmax,mchf)
+      if(ierr/=0) write(6,*) 'l1,ierr,etest',l1,ierr,etest
+     end if
+   end if !bound or scattering
+   gam=dabs(umch/uu(mchf))
+   gpr=dabs(upmch/up(mchf))
 
-      if(ierr/=0) then
-        write(6,'(a,4i4,1p,2e16.8)') 'run_diag: lschvkbbe ERROR', &
-&             iprj,nnp,ll,ierr,epa(iprj,l1),etest
-
-      end if
-    end if !epa<0 (bound or not)
-
-    gam=dabs(umch/uu(mchf))
-    gpr=dabs(upmch/up(mchf))
-!  
-    write(6,'(i4,6f12.7)') ll,rr(irc(l1)),rr(mchf),epa(iprj,l1), &
-&         etest-epa(iprj,l1),gam,gpr
-
-  end do  !iprj
- end do !l1
+   write(6,'(i4,6f12.7)') ll,rr(irc(l1)),rr(mchf),ep(l1)+debl(l1),&
+&        etest,gam,gpr
+  end if !nproj(l1)==2
+ end do  !l1
 
  deallocate(uu,up)
  return

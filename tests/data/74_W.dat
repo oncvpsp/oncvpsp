@@ -30,22 +30,18 @@
 #
 # LOCAL POTENTIAL
 # lloc, lpopt, rc(5), dvloc0
-    4    3    2.5    0.0 
+    4    3    2.5    0.0
 #
 # VANDERBILT-KLEINMAN-BYLANDER PROJECTORs
 # l, nproj, debl  (lmax+1 lines, l's in order)
-    0    3    5.00
-    1    3    5.00
-    2    3    5.00
+    0    2    5.00
+    1    2    5.00
+    2    2    5.00
     3    2    3.00
 #
 # MODEL CORE CHARGE
 # icmod, fcfact
-#   0  0.0
-#   1  0.25
-#   2  0.25
-#   3  5.0  1.4
-    4  0.0
+   1  0.25
 #
 # LOG DERIVATIVE ANALYSIS
 # epsh1, epsh2, depsh

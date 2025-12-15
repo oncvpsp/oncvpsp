@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -16,127 +16,81 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! Creates monotonic polynomial model core charge matching all-electron
-! core charge and 4 derivatives at "crossover" radius.
-! Polynomial is 8th-order with no linear term.
+! creates monotonic polynomial model core charge matching all-electron
+! core charge and 4 derivatives at "crossover" radius
+! polynomial is 8th-order with no linear term
 
-! Performs analysis and based on "hardness" criterion described in 
-! Teter, Phys. Rev. B 48, 5031 (1993) , Appendix, as 
+ subroutine modcore(rho,rhoc,rhomod,fcfact,ircc,mmax,rr)
 
- subroutine modcore(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
-&                   fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
-
-!icmod  3 coefficient optimizaion, 4 for specivied fcfact and rfact
-!rhops  state-by-state pseudocharge density
-!rhotps  total pseudocharge density
+!rho  pseudocharge density
 !rhoc  core-charge density
-!rhoae  state-by-state all-electron valence charge density
-!rhotae  total all-electron valence charge density
 !rhomod  model core density and 4 derivatives
-!fcfact  prefactor for model amplitude (multiplies crossover value)
-!rcfact  prefactor for model scale (multiplies crossover radius)
-!irps  rr index of maximum rc
+!fcfact  modeling begins inside radius at which rhoc>fcfact*rho
+!ircc  index of above radius
 !mmax  dimension of log grid
 !rr log radial grid
-!nc  number of core states
-!nv  number of valence states
-!la  angular-momenta
-!zion  ion charge
-!iexc  exchange-correlation function to be used
 
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
-!Input variables
- integer :: icmod,nv,nc,iexc,irps,mmax
- integer :: la(30)
- real(dp) :: rhoae(mmax,nv),rhops(mmax,nv),rhotae(mmax)
- real(dp) :: rhotps(mmax),rhoc(mmax),rr(mmax)
- real(dp) :: zion,fcfact,rcfact
- logical :: srel
+
+!Inpput variables
+ integer :: mmax
+ real(dp) :: rho(mmax),rhoc(mmax),rr(mmax)
+ real(dp) :: fcfact
 
 !Output variables
  real(dp) :: rhomod(mmax,5)
+ integer :: ircc
 
-!convergence criterion
- real(dp), parameter :: eps=1.0d-7
+!derivative convergence criterion
+ real(dp), parameter :: eps=1.0d-6
 
 !Local variables
- real(dp) :: a0,al,et,yy,gg,a0min,a0max,dermax,psum,sf,eeel,eexc
- real(dp) :: d2mdiff,rmatch,rhocmatch
- real(dp) :: emin,emax,sls,ss,hh,rgg,xx
+ real(dp) :: a0,al,dermax,xx,a0min,a0max,psum
  real(dp) :: aco(5),polym(5,5),work(5,5),constm(5,5),xpow(9),fmatch(5)
- real(dp), allocatable :: vxcae(:),vxcpsp(:),vo(:),d2excae(:,:),d2excps(:,:)
- real(dp), allocatable :: dvxcae(:,:),dvxcps(:,:),vxct(:)
- integer :: ii,ierr,ircc,irmod,iter,jj,kk,ll,l1,mch
- integer :: ipvt(5),nodes(4)
-
-
- allocate(vxcae(mmax),vxcpsp(mmax),vo(mmax))
- allocate(dvxcae(mmax,nv),dvxcps(mmax,nv),vxct(mmax))
- allocate(d2excae(nv,nv),d2excps(nv,nv))
-
- d2excae(:,:)=0.0d0
- d2excps(:,:)=0.0d0
- ircc = 0
+ integer :: ii,iter,jj,kk
+ integer :: ipvt(5)
  
- do ii = mmax,1,-1
-   if(rhoc(ii) .gt. fcfact*rhotps(ii)) then
-     ircc=ii
-     exit
-   end if
- end do
- 
- if(ircc .eq. 0) then
-   write(6,'(/a)') 'rhomod: ERROR ircc (core-valence charge crossover) &
-&        not found'
-   stop
+! set model charge to zero and return if indicated by fcfact
+ rhomod(:,:)=0.0d0
+ if(fcfact==0.0d0) then
+   return
  end if
-
-!set limit for d2Exc calculation to radius beyond which rhomod=rhoc
-   irmod=max(irps,ircc)
-
- write(6,'(/a/a)') 'Model core correction analysis',&
-&                  '  based on d2Exc/dn_idn_j'
-
-
-! get derivatives of all-electron xc energy
-
- call der2exc(rhotae,rhoc,rhoae,rr,d2excae,d2excps,d2mdiff, &
-&                   zion,iexc,nc,nv,la,irmod,mmax)
-
- write(6,'(/a/)') 'd2excae - all-electron derivatives'
- do kk=1,nv
-   write(6,'(1p,4d16.6)') (d2excae(kk,jj),jj=1,nv)
- end do
-
  
-! set model charge to zero
- rhomod(:,:)=0.0d0
-
-! compute d2excps with no core correction
- rhomod(:,:)=0.0d0
-
- call der2exc(rhotps,rhomod(1,1),rhops,rr,d2excps,d2excae,d2mdiff, &
-&                   zion,iexc,nc,nv,la,irmod,mmax)
-
- write(6,'(/a/)') 'd2excps - pseudofunction derivatives with no core correction'
- do kk=1,nv
-   write(6,'(1p,4d16.6)') (d2excps(kk,jj),jj=1,nv)
- end do
- write(6,'(/a,1p,e16.6)') 'rms 2nd derivative error',d2mdiff
+! rhomod=a0+aco(1)*r^3+aco(2)*r^4+aco(3)*r^5+aco(4)*r^6+aco(5)*r^7
 
  al = 0.01d0 * dlog(rr(101) / rr(1))
 
 ! core charge density for Louie-Froyen-Cohen correction
 
  rhomod(:,1)= rhoc(:)
+ 
+ ircc = 0
+ 
+ do ii = mmax,1,-1
+   if(rhoc(ii) .gt. fcfact*rho(ii)) then
+     ircc=ii
+     exit
+   end if
+ end do
+ 
+ if(ircc .eq. 0) then
+   write(6,'(/a)') 'rhomod: ircc (core-valence charge crossover) not found'
+   stop
+ end if
 
  xx=rr(ircc)
  fmatch(1)=rhoc(ircc)
 
 ! core charge derivatives
  do jj=2,5
+
+!5-point numerical first derivatives applied successively
+!  do ii=ircc-18+2*jj,mmax-2
+!     rhomod(ii,jj)=(2.d0*rhomod(ii-2,jj-1)-16.d0*rhomod(ii-1,jj-1)&
+!&     +16.d0*rhomod(ii+1,jj-1)-2.d0*rhomod(ii+2,jj-1))&
+!&     /(24.d0*al*rr(ii))
 
 !7-point numerical first derivatives applied successively
   do ii=ircc-25+3*jj,mmax-3
@@ -147,6 +101,15 @@
   end do
   fmatch(jj)=rhomod(ircc,jj)
  end do
+
+!do jj=2,5
+!  do ii=ircc-20+2*jj,mmax
+!     rhomod(ii,jj)=(2.d0*rhomod(ii-2,jj-1)-16.d0*rhomod(ii-1,jj-1) &
+!&      +16.d0*rhomod(ii+1,jj-1)-2.d0*rhomod(ii+2,jj-1)) &
+!&      /(24.d0*al*rr(ii))
+!  end do
+!  fmatch(jj)=rhomod(ircc,jj)
+!end do
 
 ! constants for polynomial matrix
  do jj=1,5
@@ -198,9 +161,9 @@
    call dgesv(5,1,work,5,ipvt,aco,5,kk)
    if(kk/= 0) then
      if(kk>0) write(6,'(a,i4)') &
-&      'modcore:ERROR stop - singular polym matrix',kk
+&      'modcore:stop - singular polym matrix',kk
      if(kk<0) write(6,'(a,i4)') &
-&      'modcore:ERROR stop - dgesv input error',kk
+&      'modcore:stop - dgesv input error',kk
      stop
    end if
 
@@ -237,9 +200,8 @@
      a0=0.5d0*(a0max+a0min)
    end if
 
- end do !iterr
+ end do
  if(iter>50) write(6,'(/a/)') 'WARNING - modcore not conveged'
-
 
 ! fill in model and derivatives with fitted polynomial
  do kk=1,ircc-1
@@ -259,22 +221,5 @@
    end do
  end do
 
-
-!test model
- call der2exc(rhotps,rhomod(1,1),rhops,rr,d2excps,d2excae,d2mdiff, &
-&                   zion,iexc,nc,nv,la,irmod,mmax)
- 
- write(6,'(/a/)') 'Polynomial model core charge'
- write(6,'(/a/)') 'd2excps - pseudofunction derivatives with core correction'
-
- do kk=1,nv
-   write(6,'(1p,4d16.6)') (d2excps(kk,jj),jj=1,nv)
- end do
- write(6,'(/a,1p,e16.6)') 'rms 2nd derivative error',d2mdiff
-
- deallocate(vxcae,vxcpsp,vo)
- deallocate(dvxcae,dvxcps)
- deallocate(d2excae,d2excps)
-
  return
-end subroutine modcore
+ end subroutine modcore

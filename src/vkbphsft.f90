@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -82,70 +82,67 @@
 ! Shift for continuity and to avoid false jumps suggesting ghost states
 
 ! -2 pi jump is harmless cycling from pi to -pi
-   if(ii>1) then
-      if(pshp(ii)<pshp(ii-1)-4.0d0) then
-        pshoff = pshoff+pi2
-        pshp(ii) = pshp(ii)+pi2
-   ! +/- pi jump can be actual bound semi-core state, ghost state, or spurious
-   ! jump from sudden change of sign of both uu and up with no real change
-   ! of shape.
-      else if(abs(pshp(ii)-pshp(ii-1))>2.0d0) then
-        shift=sign(pi,pshp(ii)-pshp(ii-1))
+   if((ii>1) .and. (pshp(ii)<pshp(ii-1)-4.0d0)) then
+     pshoff = pshoff+pi2
+     pshp(ii) = pshp(ii)+pi2
+! +/- pi jump can be actual bound semi-core state, ghost state, or spurious
+! jump from sudden change of sign of both uu and up with no real change
+! of shape.
+   else if((ii>1) .and. (abs(pshp(ii)-pshp(ii-1))>2.0d0)) then
+     shift=sign(pi,pshp(ii)-pshp(ii-1))
 
-   ! interval-halving search to determine if this is a discontinuous pi jump
-   ! or varies continuously on some scale, indicating a real or ghost
-   ! bound state / resonance
-        jump=.true.
-        emin=epsh
-        emax=epsh+depsh
-        psmin=pshp(ii)
-        psmax=pshp(ii-1)
-!       if((psmax-psmin)>pi) psmin=psmin+pi2
-        if((psmax-psmin)>2.9d0) psmin=psmin+pi2
+! interval-halving search to determine if this is a discontinuous pi jump
+! or varies continuously on some scale, indicating a real or ghost
+! bound state / resonance
+     jump=.true.
+     emin=epsh
+     emax=epsh+depsh
+     psmin=pshp(ii)
+     psmax=pshp(ii-1)
+     if((psmax-psmin)>pi) psmin=psmin+pi2
 
-        do jj=1,25
+     do jj=1,25
 
-          if(.not. jump) cycle
-          et=0.5d0*(emin+emax)
-          shift2=0.0d0
+       if(.not. jump) cycle
+       et=0.5d0*(emin+emax)
+       shift2=0.0d0
 
-          call vkboutwf(ll,ivkb,et,vkb,evkb,rr,vloc,uu,up,node,mmax,mch)
-          phi = uu(mch)/rr(mch)
-          phip = (up(mch)-al*uu(mch))/(al*rr(mch)**2)
-          pst = atan2(rr(mch)*phip,phi) + pshoff
-          if((psmax-pst)>2.9d0) then
-            pst=pst+pi2
-            shift2=pi2
-          end if
+       call vkboutwf(ll,ivkb,et,vkb,evkb,rr,vloc,uu,up,node,mmax,mch)
+       phi = uu(mch)/rr(mch)
+       phip = (up(mch)-al*uu(mch))/(al*rr(mch)**2)
+       pst = atan2(rr(mch)*phip,phi) + pshoff
+       if((psmax-pst)>pi) then
+         pst=pst+pi2
+         shift2=pi2
+       end if
 
-          dmin=abs(pst-psmin)
-          dmax=abs(psmax-pst)
+       dmin=abs(pst-psmin)
+       dmax=abs(psmax-pst)
 
-          if(dmin>dmax) then
-            emax=et
-            psmax=pst
-          else
-            emin=et
-            psmin=pst
-          end if
+       if(dmin>dmax) then
+         emax=et
+         psmax=pst
+       else
+         emin=et
+         psmin=pst
+       end if
 
-   ! this is the test to see if an interval of change less than pi had been
-   ! reached
-          if(dmax<0.5d0 .and. dmin<0.5d0) jump=.false.
+! this is the test to see if an interval of change less than pi had been
+! reached
+       if(dmax<0.5d0 .and. dmin<0.5d0) jump=.false.
 
-        end do
+     end do
 
-   ! if this is a spurious abrupt jump, restore +/- pi
-        if(jump) then
-          pshoff = pshoff-shift
-          pshp(ii) = pshp(ii)-shift
-   ! if this is a real continuous transition, check for 2 pi issue and fix
-        else if(pshp(ii)<pshp(ii-1)-2.5d0) then
-          pshoff = pshoff+pi2
-          pshp(ii) = pshp(ii)+pi2
-        end if
+! if this is a spurious abrupt jump, restore +/- pi
+     if(jump) then
+       pshoff = pshoff-shift
+       pshp(ii) = pshp(ii)-shift
+! if this is a real continuous transition, check for 2 pi issue and fix
+     else if(pshp(ii)<pshp(ii-1)-pi) then
+       pshoff = pshoff+pi2
+       pshp(ii) = pshp(ii)+pi2
+     end if
 
-      end if
    end if
 
 ! calculate shift to align with all-electron results

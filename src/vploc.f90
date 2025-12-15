@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -48,6 +48,8 @@
  integer :: ii
  real(dp) :: aco,al,bco,cco,dco,cl,d3vv,fnp,x
 
+!integer, parameter :: meshd=2500
+!real(dp) :: dvv(meshd),d2vv(meshd)
  real(dp), allocatable :: dvv(:),d2vv(:)
 
  allocate(dvv(mmax),d2vv(mmax))

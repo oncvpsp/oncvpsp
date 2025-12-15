@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -51,7 +51,7 @@
 
 !Local variables
  real(dp) :: al,epsh,phi,phip,pshoff
- integer :: ii,ierr,nn
+ integer :: ii,ierr
 
  real(dp), allocatable :: uu(:),up(:)
 
@@ -66,16 +66,14 @@
  do ii = 1,npsh
    epsh = epsh2-(ii-1)*depsh
 
-   call lschfs(nn,ll,ierr,epsh,rr,vv,uu,up,zz,mmax,mch,srel)
+   call lschfs(ll,ierr,epsh,rr,vv,uu,up,zz,mmax,mch,srel)
 
    phi = uu(mch)/rr(mch)
    phip = (up(mch)-al*uu(mch))/(al*rr(mch)**2)
    pshf(ii) = atan2(rr(mch)*phip,phi) + pshoff
-   if(ii>1) then
-      if(pshf(ii)<pshf(ii-1)) then
-         pshoff = pshoff+pi2
-         pshf(ii) = pshf(ii)+pi2
-      end if
+   if((ii>1) .and. (pshf(ii)<pshf(ii-1))) then
+     pshoff = pshoff+pi2
+     pshf(ii) = pshf(ii)+pi2
    end if
  end do
 

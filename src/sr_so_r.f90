@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -16,7 +16,7 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
- subroutine sr_so_r(lmax,irc,nproj,rr,mmax,mxprj,evkb,vkb, &
+ subroutine sr_so_r(lmax,irc,nproj,rr,mmax,evkb,vkb, &
 &                       vsr,esr,vso,eso)
 
 ! reformulates non-local potentials based on j = l +/- 1/2 to scalar-
@@ -29,8 +29,6 @@
 !nproj  number of projectors for each l
 !rr  log radial grid
 !mmax  size of radial grid
-!mmax  dimension of log grid
-!mxprj  dimension of number of projectors
 !vkb  vkb projectors
 !evkb  coefficients of BKB projectors
 !vsr  normalized scalar projectors
@@ -42,26 +40,25 @@
  integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
- integer :: lmax,lloc,lpopt,mmax,mxprj
+ integer :: lmax,lloc,lpopt,mmax
  integer :: irc(6),nproj(6)
- real(dp) :: rr(mmax),vkb(mmax,mxprj,4,2),evkb(mxprj,4,2)
+ real(dp) :: rr(mmax),vkb(mmax,2,4,2),evkb(2,4,2)
 
 !Output variables
- real(dp) :: vsr(mmax,2*mxprj,4),esr(2*mxprj,4)
- real(dp) :: vso(mmax,2*mxprj,4),eso(2*mxprj,4)
+ real(dp) :: vsr(mmax,4,4),esr(4,4),vso(mmax,4,4),eso(4,4)
 
 !Local variables
- integer :: ii,jj,kk,ierr,ik1,ik2,ip1,ip2,ipk,ll,l1,info,nn
- real(dp) :: apk,sn,tt,qq1mxprj
- real(dp) :: sovl(2*mxprj,2*mxprj),sovlev(2*mxprj),ascl(2*mxprj,2*mxprj),aso(2*mxprj,2*mxprj)
- real(dp) :: asclst(2*mxprj,2*mxprj),wsclst(2*mxprj),asost(2*mxprj,2*mxprj),wsost(2*mxprj)
- real(dp) :: asclt(2*mxprj,2*mxprj),asot(2*mxprj,2*mxprj)
- real(dp) :: sphalf(2*mxprj,2*mxprj),smhalf(2*mxprj,2*mxprj)
- real(dp) :: fscl(mxprj),fso(mxprj),work(10*mxprj)
+ integer :: ii,jj,kk,ierr,ik1,ik2,ip1,ip2,ll,l1,info,nn
+ real(dp) :: sn,tt,qq12
+ real(dp) :: sovl(4,4),sovlev(4),ascl(4,4),aso(4,4)
+ real(dp) :: asclst(4,4),wsclst(4),asost(4,4),wsost(4)
+ real(dp) :: asclt(4,4),asot(4,4)
+ real(dp) :: sphalf(4,4),smhalf(4,4)
+ real(dp) :: fscl(2),fso(2),work(20)
  real(dp), allocatable :: vkbt(:,:),vkbst(:,:)
  logical :: sorted
 
- allocate(vkbt(mmax,2*mxprj),vkbst(mmax,2*mxprj))
+ allocate(vkbt(mmax,4),vkbst(mmax,4))
 
  do l1=1,lmax+1
   ll=l1-1
@@ -115,12 +112,7 @@
     end do
    end do
 
-   call dsyev( 'V', 'U', nn, sovl, 2*mxprj, sovlev, work, 10*mxprj, info )
-
-   if(info .ne. 0) then
-    write(6,'(a,i4)') 'sr_so_r: S matrix eigenvalue ERROR, info=',info
-    stop
-   end if
+   call dsyev( 'V', 'U', nn, sovl, 4, sovlev, work, 20, info )
 
 ! construct S^(-1/2) AND s^(1/2)
 
@@ -171,18 +163,13 @@
 
 !      SUBROUTINE DSYEV( JOBZ, UPLO, N, A, LDA, W, WORK, LWORK, INFO )
 
-     call dsyev( 'V', 'U', nn, asclst, 2*mxprj, wsclst, work, 10*mxprj, info )
+     call dsyev( 'V', 'U', nn, asclst, 4, wsclst, work, 20, info )
 
-     if(info .ne. 0) then
-      write(6,'(a,i4)') 'sr_so_r: A* matrix eigenvalue ERROR, info=',info
-      stop
-     end if
-
-     call dsyev( 'V', 'U', nn,  asost, 2*mxprj,  wsost, work, 10*mxprj, info )
+     call dsyev( 'V', 'U', nn,  asost, 4,  wsost, work, 20, info )
 
 
      if(info .ne. 0) then
-      write(6,'(a,i4)') 'sr_so_r: A* matrix eigenvalue ERROR, info=',info
+      write(6,'(a,i4)') 'sr_so_r: A* matrix eigenvalue error, info=',info
       stop
      end if
 
@@ -237,38 +224,12 @@
       if(sorted) exit
      end do
 
-     write(6,'(/a,i2)') &
-&         ' Orthonormal scalar projector coefficients, l = ',ll
-     write(6,'(1p,6e12.4)') (esr(jj,l1),jj=1,nn)
-     write(6,'(/a,i2)') &
-&         ' Orthonormal spin-orbit projector coefficients, l = ',ll
-     write(6,'(1p,6e12.4)') (eso(jj,l1),jj=1,nn)
-
-! Set sign of projectors (physically irrelevant) so that they are positive
-! at their peak (needed for compaisons apparently)
-
-     do jj=1,nn
-       apk=0.0d0
-       do ii=1,mmax
-         if(abs(vso(ii,jj,l1))>apk) then
-           apk=abs(vso(ii,jj,l1))
-           ipk=ii
-         end if
-       end do
-       if(vso(ipk,jj,l1)<0.0d0) then
-         vso(:,jj,l1)=-vso(:,jj,l1)
-       end if
-       apk=0.0d0
-       do ii=1,mmax
-         if(abs(vsr(ii,jj,l1))>apk) then
-           apk=abs(vsr(ii,jj,l1))
-           ipk=ii
-         end if
-       end do
-       if(vsr(ipk,jj,l1)<0.0d0) then
-         vsr(:,jj,l1)=-vsr(:,jj,l1)
-       end if
-     end do
+     write(6,'(/a,i2/1p,4e12.4)') &
+&         ' Orthonormal scalar projector coefficients, l = ',ll, &
+&        (esr(jj,l1),jj=1,nn)
+     write(6,'(/a,i2/1p,4e12.4)') &
+&         ' Orthonormal spin-orbit projector coefficients, l = ',ll, &
+&        (eso(jj,l1),jj=1,nn)
 
  end do ! l1
 

@@ -1,6 +1,6 @@
 # ATOM AND REFERENCE CONFIGURATION
 # atsym, z, nc, nv, iexc   psfile
-    Bi  83.0  12   3 -101130   psp8
+    Bi  83.0  12   3 4   psp8
 #
 # n, l, f  (nc+nv lines)
     1    0    2.0
@@ -31,7 +31,7 @@
 #
 # LOCAL POTENTIAL
 # lloc, lpopt, rc(5), dvloc0
-    4    3    2.5    0.0 
+    4    3    2.5    0.0
 #
 # VANDERBILT-KLEINMAN-BYLANDER PROJECTORs
 # l, nproj, debl  (lmax+1 lines, l's in order)

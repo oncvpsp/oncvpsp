@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -60,7 +60,7 @@
  real(dp) :: sls,sn,uout,upin,upout
  real(dp) :: amesh,al,als
  real(dp) :: rc,xkap
- integer :: ii,it,jj,nin,nint,node
+ integer :: ii,it,nin,nint,node
 
  real(dp), allocatable :: upp(:),cf(:)
  allocate(upp(mmax),cf(mmax))
@@ -72,9 +72,8 @@
 ! convergence factor for solution of schroedinger eq.  if calculated
 ! correction to eigenvalue is smaller in magnitude than eps times
 ! the magnitude of the current guess, the current guess is not changed.
-!eps=1.0d-10
- eps=1.0d-8
- ierr = 100
+ eps=1.0d-10
+ ierr = 60
 
  sls=ll*(ll+1)
 
@@ -89,10 +88,9 @@
  upp(:)=0.0d0
 
  als=al**2
-
 ! return point for bound state convergence
- do nint=1,100
-
+ do nint=1,60
+ 
 ! coefficient array for u in differential eq.
    do ii=1,mmax
      cf(ii)=als*sls + 2.0d0*als*(vloc(ii)-ee)*rr(ii)**2
@@ -108,10 +106,10 @@
    end do
 
    if(mch==1 .and. nvkb==0) then
-    write(6,'(/a)') 'lschvkbb: ERROR no classical turning point'
-    write(6,'(a,i2,a,i6)') 'lschvkbb: ERROR nvkb=',nvkb,'mch=',mch
-    write(6,'(a,i2,a,f8.4,a)') 'lschvkbb: ERROR l=',ll,'  e=',ee
-!   stop
+    write(6,'(/a)') 'lschvkbb: no classical turning point'
+    write(6,'(a,i2,a,i6)') 'nvkb=',nvkb,'mch=',mch
+    write(6,'(a,i2,a,f8.4,a)') 'l=',ll,'  e=',ee
+    stop
    end if
 
    if(nvkb>0) then
@@ -141,7 +139,7 @@
   
    uout=uu(mch)
    upout=up(mch)
-
+  
    if(node-nn+ll+1==0) then
   
 ! start inward integration at 10*classical turning
@@ -220,34 +218,25 @@
      end if
   
      if(de>0.0d0) then 
-!      emin=ee
-       emin=0.5d0*(emin+ee)
+       emin=ee
      else
-!      emax=ee
-       emax=0.5d0*(emax+ee)
+       emax=ee
      end if
      ee=ee+de
      if(ee>emax .or. ee<emin) ee=0.5d0*(emax+emin)
   
    else if(node-nn+ll+1<0) then
 ! too few nodes
-!    emin=ee
-     emin=0.5d0*(emin+ee)
+     emin=ee
      ee=0.5d0*(emin+emax)
   
    else
 ! too many nodes
-!    emax=ee
-     emax=0.5d0*(emax+ee)
+     emax=ee
      ee=0.5d0*(emin+emax)
    end if
   
  end do
-!fix sign to be positive at rr->oo
- if(uu(mch)<0.0d0) then
-   uu(:)=-uu(:)
-   up(:)=-up(:)
- end if
 
  deallocate(upp,cf)
  return

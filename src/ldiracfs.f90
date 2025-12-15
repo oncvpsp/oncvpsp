@@ -16,11 +16,10 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
- subroutine ldiracfs(nn,ll,kap,ierr,ee,rr,zz,vv,uu,up,mmax,mch)
+ subroutine ldiracfs(ll,kap,ierr,ee,rr,zz,vv,uu,up,mmax,mch)
 
 ! Finds relativistic scattering states of an al-electron potential
 
-!nn  effective principal quantum number based on nodes inside mch (output)
 !ll  angular-momentum quantum number
 !kap =l, -(l+1) for j=l -/+ 1/2
 !ierr  non-zero return if error
@@ -44,7 +43,7 @@
 !Output variables
  real(dp) :: uu(mmax,2),up(mmax,2)
  real(dp) :: ee
- integer :: ierr,mch,nn
+ integer :: ierr,mch
 
 !Local Variables
 
@@ -56,7 +55,7 @@
  real(dp) :: eps,ro,sc
  real(dp) :: sls,sn,cn,uout,upout,xkap
  real(dp) :: amesh,al,als
- integer :: ii,kk,nint,nin,node
+ integer :: ii,kk,nint,nin
 
  cc=137.036d0
  cci=1.0d0/cc
@@ -72,12 +71,12 @@
 
 ! check arguments
  if(kap/=ll .and. kap/=-(ll+1)) then
-  write(6,'(/a,i4,a,i4)') 'ldiracfs: ERROR kap =',kap,' ll =',ll
+  write(6,'(/a,i4,a,i4)') 'ldiracfb: error kap =',kap,' ll =',ll
   ierr=2
   return
  end if
  if(zz<1.0d0) then
-  write(6,'(/a,f12.8)') 'ldiracfs: ERROR zz =',zz
+  write(6,'(/a,f12.8)') 'ldiracfb: error zz =',zz
   ierr=3
   return
  end if
@@ -87,7 +86,6 @@
 ! null arrays
  gu(:)=0.0d0; fu(:)=0.0d0; gup(:)=0.0d0; fup(:)=0.0d0; cf(:)=0.0d0
 
- node=0
  ierr=0
 
  gam=sqrt(kap**2-(zz*cci)**2)
@@ -123,7 +121,6 @@
    fu(ii+1)=fu(ii)+aio(fup,ii)
    gu(ii+1)=gu(ii)+aio(gup,ii)
   end do
-  if(gu(ii+1)*gu(ii) .le. 0.0d0) node=node+1
  end do
 
  uout=gu(mch)
@@ -165,10 +162,6 @@
  up(:,1)=gup(:)
  uu(:,2)=fu(:)
  up(:,2)=fup(:)
-
-!calculate effective principal quantum number as if this were a bound
-!state with a barrier at mch
- nn=node+ll+1
 
  deallocate(gu,fu,gup,fup)
  deallocate(cf)

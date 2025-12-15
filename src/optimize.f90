@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -62,16 +62,16 @@
  real(dp) :: eres(nqout)
 
 !Local variables
- real(dp) :: yy,tt,emin,rtsgn,sn
- real(dp) :: emin0,emin1,x1,x1min,x1max
+ real(dp) :: dpso,yy,tt,emin,rtsgn,sn
+ real(dp) :: eropt(2)
  real(dp), allocatable :: work(:),wmat(:,:),wev(:),wvec(:)
  real(dp), allocatable :: eresidevec_nu(:,:)
- real(dp), allocatable :: pswfopt(:),pswfopt_nu(:)
+ real(dp), allocatable :: pswfopt(:),pswfomin(:),pswfopt_nu(:)
  real(dp), allocatable :: eresiddot_ev(:),eresideval(:)
- real(dp), parameter :: eps=1.d-10
+ real(dp), parameter :: eps=1.d-6
  integer :: ii,iter,jj,kk,ll,nn,info
- integer, parameter :: niter=100
- logical :: converged
+ integer, parameter :: nopt=20,niter=5
+
 
 !find eigenvalues and eigenvectors of saved E_resid matrix for qout(1)
 !which is meant to be the cutoff used for optimization
@@ -86,7 +86,7 @@
 
  call dsyev( 'V', 'U', nnull, wmat, nnull, wev, work, 5*nnull, info )
  if(info .ne. 0) then
-  write(6,'(a,i4)') 'optimize: residual-energy eigenvalue ERROR, info=',info
+  write(6,'(a,i4)') 'optimize: redisual-energy eigenvalue error, info=',info
   stop
  end if
 
@@ -117,79 +117,183 @@
 !consisting of a constant plus as sum of linear and quadratic terms in each of
 !these coefficients
 
- allocate(pswfopt(nnull),pswfopt_nu(nnull))
- pswfopt(:)=0.d0
- pswfopt_nu(:)=0.d0
+ allocate(pswfopt(nnull),pswfomin(nnull),pswfopt_nu(nnull))
 
-!write(6,'(/a,1p,3d16.6)') 'initial emin, final, diff',emin0,emin,emin0-emin
-
-! Interval-halving search to minimize E*r
-
-! This is all based on Eqs. (14) - (16) in my paper as correccted in the
-! erratum.  It is obvious from Eq.(14) that to minimize E^r, the signs of x_i
-! must be the opposite of those of f_i.  Eq.(16) is derived by treating
-! x_1 as depenent upon x_2...x_N-M through Eq.(15).  We can then turn
-! around and treat those x's as functions all dependent on x_1.  Since the
-! signs of x_1 and f_1 must be opposite at the minimum, and since e_1
-! is the smallest eigenvalue, the denominator of Eq.(16) is always positive,
-! and the magnitudes of the x_i are all monotonically increasing functions
-! of x_1.  The limits of |x_1| are zero and D_norm (yy here), so a simple
-! interval-halving search varying |x_1| to satisfy the norm constraint
-! (Eq.(15)) should be robust.
-
-! Translations between the notation in the paper and here are as follows:
-!   pswfopt(ii) = x_i
-!   eresiddot_ev(ii) = f_i
-!   eresideval(ii) = e_i
-!   D_norm == yy
-!   E^r_00 = eresid0(1)
-!   N-M = nnull
-
-
- rtsgn=-sign(1.0d0, eresiddot_ev(1))
- if(ps0norm>uunorm) then
-   write(6,'(/a)') 'optimize: ERROR ps0norm > uunorm, code will stop'
-   stop
- end if
+!Search a coarse grid of values allowed by the norm constraint for
+!coefficients 2,...,nnull, calculating coefficient 1 from the norm
+!constraint.  1 corresponds to the smallest eigenvalue, so it is
+!appropriate to make it "dependent."
+ emin=1.0d5
  yy=sqrt((uunorm-ps0norm))
-
- x1min=0.0d0
- x1max=yy
- converged=.false.
-  
- do iter=1,niter
-
-  x1=0.5d0*(x1max+x1min)
-
-  tt=x1**2-yy**2
-  do ii=2,nnull
-   pswfopt(ii)=-eresiddot_ev(ii)/(eresideval(ii)-eresideval(1) &
-&               +abs(eresiddot_ev(1))/x1)
-   tt=tt+pswfopt(ii)**2 
+ dpso=yy/nopt
+ if(nnull==2) then
+  do kk=-nopt,nopt
+   pswfopt(2)=dpso*kk
+   pswfopt(1)=sqrt(yy**2-pswfopt(2)**2)
+   eropt(1)=eresid0(1)
+   do ii=1,nnull
+    eropt(1)=eropt(1)+(2.0d0*eresiddot_ev(ii)*pswfopt(ii) &
+&                +eresideval(ii)*pswfopt(ii)**2)
+   end do
+   if(eropt(1)<emin) then
+    rtsgn=1.0d0
+    emin=eropt(1)
+    pswfomin(:)=pswfopt(:)
+   end if
+   pswfopt(1)=-sqrt(yy**2-pswfopt(2)**2)
+   eropt(2)=eresid0(1)
+   do ii=1,nnull
+    eropt(2)=eropt(2)+(2.0d0*eresiddot_ev(ii)*pswfopt(ii) &
+&                +eresideval(ii)*pswfopt(ii)**2)
+   end do
+   if(eropt(2)<emin) then
+    rtsgn=-1.0d0
+    emin=eropt(2)
+    pswfomin(:)=pswfopt(:)
+   end if
   end do
-
-  if(x1max-x1min<eps) then
-   pswfopt(1)=rtsgn*x1
-   converged=.true.
-   exit
-  end if
-
-  if(tt<0.0d0) then
-   x1min=x1
-  else
-   x1max=x1
-  end if
- end do
-
- if(converged .eqv. .false.) then
-  write(6,'(/a)') 'optimize: ERROR interval-halving search not converged'
+  pswfopt(:)=pswfomin(:)
+ else if(nnull==3) then
+  do kk=-nopt,nopt
+   pswfopt(2)=dpso*kk
+   do jj=-nopt,nopt
+    pswfopt(3)=dpso*jj
+    tt=yy**2-pswfopt(2)**2-pswfopt(3)**2
+    if(tt>0.0d0) then
+     pswfopt(1)=sqrt(tt)
+     eropt(1)=eresid0(1)
+     do ii=1,nnull
+      eropt(1)=eropt(1)+(2.0d0*eresiddot_ev(ii)*pswfopt(ii) &
+&                  +eresideval(ii)*pswfopt(ii)**2)
+     end do
+     if(eropt(1)<emin) then
+      rtsgn=1.0d0
+      emin=eropt(1)
+      pswfomin(:)=pswfopt(:)
+     end if
+     pswfopt(1)=-sqrt(tt)
+     eropt(2)=eresid0(1)
+      do ii=1,nnull
+      eropt(2)=eropt(2)+(2.0d0*eresiddot_ev(ii)*pswfopt(ii) &
+&                  +eresideval(ii)*pswfopt(ii)**2)
+      end do
+      if(eropt(2)<emin) then
+       rtsgn=-1.0d0
+       emin=eropt(2)
+       pswfomin(:)=pswfopt(:)
+      end if
+    end if
+   end do
+  end do
+  pswfopt(:)=pswfomin(:)
+ else if(nnull==4) then
+  do kk=-nopt,nopt
+   pswfopt(2)=dpso*kk
+   do jj=-nopt,nopt
+    pswfopt(3)=dpso*jj
+    do nn=-nopt,nopt
+     pswfopt(4)=dpso*nn
+     tt=yy**2-pswfopt(2)**2-pswfopt(3)**2-pswfopt(4)**2
+     if(tt>0.0d0) then
+      pswfopt(1)=sqrt(tt)
+      eropt(1)=eresid0(1)
+      do ii=1,nnull
+       eropt(1)=eropt(1)+(2.0d0*eresiddot_ev(ii)*pswfopt(ii) &
+&                   +eresideval(ii)*pswfopt(ii)**2)
+      end do
+      if(eropt(1)<emin) then
+       rtsgn=1.0d0
+       emin=eropt(1)
+       pswfomin(:)=pswfopt(:)
+      end if
+      pswfopt(1)=-sqrt(tt)
+      eropt(2)=eresid0(1)
+       do ii=1,nnull
+       eropt(2)=eropt(2)+(2.0d0*eresiddot_ev(ii)*pswfopt(ii) &
+&                   +eresideval(ii)*pswfopt(ii)**2)
+       end do
+       if(eropt(2)<emin) then
+        rtsgn=-1.0d0
+        emin=eropt(2)
+        pswfomin(:)=pswfopt(:)
+       end if
+     end if
+    end do
+   end do
+  end do
+  pswfopt(:)=pswfomin(:)
+ else if(nnull==5) then
+  do kk=-nopt,nopt
+   pswfopt(2)=dpso*kk
+   do jj=-nopt,nopt
+    pswfopt(3)=dpso*jj
+    do ll=-nopt,nopt
+     pswfopt(4)=dpso*ll
+     do nn=-nopt,nopt
+      pswfopt(5)=dpso*nn
+      tt=yy**2-pswfopt(2)**2-pswfopt(3)**2-pswfopt(4)**2-pswfopt(5)**2
+      if(tt>0.0d0) then
+       pswfopt(1)=sqrt(tt)
+       eropt(1)=eresid0(1)
+       do ii=1,nnull
+        eropt(1)=eropt(1)+(2.0d0*eresiddot_ev(ii)*pswfopt(ii) &
+&                    +eresideval(ii)*pswfopt(ii)**2)
+       end do
+       if(eropt(1)<emin) then
+        rtsgn=1.0d0
+        emin=eropt(1)
+        pswfomin(:)=pswfopt(:)
+       end if
+       pswfopt(1)=-sqrt(tt)
+       eropt(2)=eresid0(1)
+        do ii=1,nnull
+        eropt(2)=eropt(2)+(2.0d0*eresiddot_ev(ii)*pswfopt(ii) &
+&                    +eresideval(ii)*pswfopt(ii)**2)
+        end do
+        if(eropt(2)<emin) then
+         rtsgn=-1.0d0
+         emin=eropt(2)
+         pswfomin(:)=pswfopt(:)
+        end if
+      end if
+     end do
+    end do
+   end do
+  end do
+  pswfopt(:)=pswfomin(:)
+ else
+  write(6,'(/a,a)') 'optimize: only set up  for E_resid optimization on', &
+&  ' <=5  variables'
+  write(6,'(a,i3)') 'nnull=',nnull
   stop
  end if
 
- emin=eresid0(1)
- do ii=1,nnull
-  emin=emin+(2.0d0*eresiddot_ev(ii)*pswfopt(ii) &
-&            +eresideval(ii)*pswfopt(ii)**2)
+!Iterative refinement exploiting the typical small value of eigenvalue 1.
+!Treating coefficient 1 as a constant, dE_resid/d(coeff.) = 0 for 2-nnull
+!is solved analytically.  Coeff. 1 is then updated from the norm condition.
+!This converges very rapidly.  It is necessary that the proper sign for
+!the square root is found first from the coarse search.
+
+!write(6,'(/a,d18.8)') 'initial sweep result emin=',emin
+
+ do iter=1,niter
+  tt=yy**2
+  do ii=2,nnull
+   pswfopt(ii)=-eresiddot_ev(ii)/(eresideval(ii)+eresideval(1) &
+&             -0.5d0*rtsgn*eresiddot_ev(1)/pswfopt(1))
+   tt=tt-pswfopt(ii)**2 
+   if(tt<0.0d0) then 
+    write(6,'(/a)') 'optimize: norm constraint violated (line 260)'
+    stop
+   end if
+   pswfopt(1)=rtsgn*sqrt(tt)
+  end do
+
+  emin=eresid0(1)
+  do ii=1,nnull
+   emin=emin+(2.0d0*eresiddot_ev(ii)*pswfopt(ii) &
+&             +eresideval(ii)*pswfopt(ii)**2)
+  end do
  end do
  eresidmin=emin
 
@@ -227,7 +331,7 @@
   pswfopt_or(:)=pswfopt_or(:)+pswfopt_nu(ii)*pswfnull_or(:,ii)
  end do
 
- deallocate(pswfopt,pswfopt_nu)
+ deallocate(pswfopt,pswfomin,pswfopt_nu)
  return
  end subroutine optimize
 

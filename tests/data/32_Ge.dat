@@ -1,6 +1,6 @@
 # ATOM AND REFERENCE CONFIGURATION
 # atsym  z    nc    nv    iexc   psfile
-  Ge 32.00     5     3     3      both
+  Ge 32.00     5     3     3      psp8
 #
 #   n    l    f        energy (Ha)
     1    0    2.00    -4.0208135D+02

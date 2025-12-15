@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -70,13 +70,6 @@
  eps=1.0d-10
  ierr = 60
 
-! check arguments
- if(ll>nn-1) then
-  write(6,'(/a,i4,a,i4)') 'lschfb: ERROR ll =',ll,' > nn =',nn
-  ierr=1
-  return
- end if
-
 ! relativistic - non-relativistic switch
  if(srel) then
   fss=(1.0d0/137.036d0)**2
@@ -91,17 +84,12 @@
  sls=ll*(ll+1)
 
  emax=vv(mmax)+0.5d0*sls/rr(mmax)**2
- emin=emax
+ emin=0.0d0
  do ii=1,mmax
-   if(ll==0) then
-! ad-hock step to eliminate probelms from absurd emin for ll=0
-     emin=dmin1(emin,vv(ii)+0.25d0/rr(ii)**2)
-   else
-     emin=dmin1(emin,vv(ii)+0.5d0*sls/rr(ii)**2)
-   end if
+   emin=dmin1(emin,vv(ii)+0.5d0*sls/rr(ii)**2)
  end do
- if(ee==0.0d0) ee=0.5d0*(emax+emin)
- if(ee<emin) ee=0.5d0*(emax+emin)
+ if(ee>emax) ee=1.25d0*emax
+ if(ee<emin) ee=0.75d0*emin
  if(ee>emax) ee=0.5d0*(emax+emin)
 
 ! null arrays to remove leftover garbage
@@ -151,7 +139,7 @@
 
    if(mch==0) then
     ierr=-1
-    return
+    exit
    end if
   
 ! start wavefunction with series

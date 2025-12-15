@@ -109,20 +109,14 @@
 ! solve for bound states in turn
    eeig=0.0d0
    do ii=1,ncv
-
-! skip unoccupied states
-     if(fa(ii)==0.0d0) then
-       ea(ii)=0.0d0
-       cycle
-     end if
      et=ea(ii)
      ierr = 0
      call lschfb(na(ii),la(ii),ierr,et, &
 &                rr,vi,u,up,zz,mmax,mch,srel)
-     if(ierr .ne. 0) then
-       write(6,'(/a,3i4)') 'sratom123: lschfb convergence ERROR n,l,iter=', &
+     if(ierr>0) then
+       write(6,'(/a,3i4)') 'sratom: lschfb convergence error n,l,iter=', &
 &       na(ii),la(ii),it
-       stop
+       exit
      end if
 
 ! overall convergence criterion based on eps within lschfb
@@ -155,8 +149,6 @@
 ! output potential
    call vout(0,rho,rhoc,vo,vxc,sf-zz,eeel,eexc, &
 &            rr,mmax,iexc)
-
-  etot =  eeig + eexc - 0.5d0*eeel
 
 ! generate next iteration using d. g. anderson''s
 ! method
@@ -202,7 +194,6 @@
 &          rr,mmax,iexc)
 
  etot =  eeig + eexc - 0.5d0*eeel
-
 
  deallocate(u,up)
  deallocate(vo,vi1,vo1,vxc)

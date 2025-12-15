@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -40,7 +40,7 @@
  integer :: ii,ll
 
  if(llin>5) then
-  write(6,'(a,i4,a)') 'sbf_rc_der: argument ERROR, llin = ',llin,&
+  write(6,'(a,i4,a)') 'sbf_rc_der: argument error, llin = ',llin,&
 &  ' >5'
   stop
  end if

@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -16,14 +16,13 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
- subroutine lschfs(nn,ll,ierr,ee,rr,vv,uu,up,zz,mmax,mch,srel)
+ subroutine lschfs(ll,ierr,ee,rr,vv,uu,up,zz,mmax,mch,srel)
 
 ! integrates radial Pauli-type scalar-relativistic equation
 ! on a logarithmic mesh
 ! modified routine to be used in finding norm-conserving
 ! pseudopotential
 
-!nn  effective principal quantum number based on nodes inside mch (output)
 !ll  angular-momentum quantum number
 !ierr  non-zero return if error
 !ee  bound-state energy, input guess and output calculated value
@@ -43,13 +42,13 @@
  integer :: mmax
  real(dp) :: rr(mmax),vv(mmax)
  real(dp) :: zz
- integer :: ll,mch
+ integer :: ll
  logical :: srel
  
 !Output variables
  real(dp) :: uu(mmax),up(mmax)
  real(dp) :: ee
- integer :: ierr,nn
+ integer :: ierr,mch
 
 
 !Local variables
@@ -57,7 +56,7 @@
  real(dp) :: aeo, aio, als, cn
  real(dp) :: fss, tfss, gamma, ro, xx
  real(dp) :: sls, sn, uout, upout
- integer :: ii, it,node
+ integer :: ii, it
 
  real(dp), allocatable :: upp(:),cf(:),dv(:),fr(:),frp(:)
  
@@ -88,8 +87,6 @@
  up(:)=0.0d0
  upp(:)=0.0d0
 
- node=0
-
  als=al**2
 
 ! coefficient array for u in differential eq.
@@ -98,14 +95,12 @@
  end do
 
 ! calculate dv/dr for darwin correction
- dv(:)=0.0d0
- 
  dv(1)=(-50.d0*vv(1)+96.d0*vv(2)-72.d0*vv(3)+32.d0*vv(4) &
 &       -6.d0*vv(5))/(24.d0*al*rr(1))
  dv(2)=(-6.d0*vv(1)-20.d0*vv(2)+36.d0*vv(3)-12.d0*vv(4) &
 &       +2.d0*vv(5))/(24.d0*al*rr(2))
 
- do ii=3,mmax-2
+ do ii=3,mmax
    dv(ii)=(2.d0*vv(ii-2)-16.d0*vv(ii-1)+16.d0*vv(ii+1) &
 &         -2.d0*vv(ii+2))/(24.d0*al*rr(ii))
  end do
@@ -137,7 +132,6 @@
      up(ii+1)=up(ii)+aio(upp,ii)
      uu(ii+1)=uu(ii)+aio(up,ii)
    end do
-   if(uu(ii+1)*uu(ii) .le. 0.0d0) node=node+1
  end do
 
  uout=uu(mch)
@@ -169,10 +163,6 @@
  do ii=mch+1,mmax
    uu(ii)=0.0d0
  end do
-
-!calculate effective principal quantum number as if this were a bound
-!state with a barrier at mch
- nn=node+ll+1
 
  deallocate(upp,cf,dv,fr,frp)
 

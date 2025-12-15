@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -40,7 +40,7 @@
 
 !input variables
  integer :: ncon,nbas
- real(dp) :: orbasis(nbas,nbas),orbasis_der(ncon,nbas),cons(ncon)
+ real(dp) :: orbasis(nbas,nbas),orbasis_der(6,nbas),cons(6)
 
 !Output variables
  real(dp) :: pswf0_or(nbas),pswfnull_or(nbas,nbas-ncon)
@@ -48,7 +48,7 @@
  real(dp) :: ps0norm
 
 !Local variables
- real(dp) :: usvd(10,10),ss(10),work(100),con_tst(10)
+ real(dp) :: usvd(6,6),ss(6),work(36),con_tst(6)
  real(dp), allocatable :: amat(:,:),vt(:,:)
  real(dp) :: sn
  real(dp), parameter :: eps=1.d-8
@@ -57,18 +57,17 @@
 
 !DGESVD( JOBU, JOBVT, M, N, A, LDA, S, U, LDU, VT, LDVT,
 !     $                   WORK, LWORK, INFO )
- allocate(amat(10,nbas),vt(nbas,nbas))
+ allocate(amat(6,nbas),vt(nbas,nbas))
 
 !save orbasis_der from overwrite
- amat(:,:)=0.0d0
- amat(1:ncon,:)=orbasis_der(1:ncon,:) 
+ amat(:,:)=orbasis_der(:,:) 
 
 !singular value decomposition of constraint matrix
- call dgesvd('A','A',ncon,nbas,amat,10,ss,usvd,10,vt,nbas, &
-&             work,64,info)
+ call dgesvd('A','A',ncon,nbas,amat,6,ss,usvd,6,vt,nbas, &
+&             work,36,info)
 
  if(info /= 0) then
-  write(6,'(/a,i4)') 'const_basis: ERTOR const_basis: dgesvd info = ',info
+  write(6,'(/a,i4)') 'const_basis: dgesvd info = ',info
   stop
  end if
 
@@ -93,7 +92,7 @@
   end do
  end do
 
-!scale work with inverse transpose of singular value "matrix" ss
+!scale work with inverse transpost of singular value "matrix" ss
  do ii=1,ncon
   if(abs(ss(ii))>eps) then
    work(ii)=work(ii)/ss(ii)

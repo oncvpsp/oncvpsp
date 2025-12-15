@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -116,7 +116,7 @@
      rhot(ii) = rho(ii) + rhoc(ii)
    end do
  else
-   write(6,'(/a,i4)') 'vout: ERROR bad input mode =',mode
+   write(6,'(/a,i4)') 'vout: bad input mode =',mode
    stop
  end if
 
@@ -127,13 +127,11 @@
  else if(iexc .eq. 2) then
    call exchdl(rhot,vxc,exca,mmax)
  else if(iexc .eq. 3) then
-   call excpzca(rhot,vxc,exca,mmax)
+   call excpwca(rhot,vxc,exca,mmax)
  else if(iexc .eq. 4) then
    call excggc(rhot,vxc,exca,rr,mmax)
- else if (iexc < 0) then
-   call exc_libxc(iexc,al,rhot,vxc,exca,rr,mmax)
  else
-   write(6,'(/a,i4)') 'vout: ERROR bad input iexc =',iexc
+   write(6,'(/a,i4)') 'vout: bad input iexc =',iexc
    stop
  end if
 
@@ -159,16 +157,13 @@
    else if(iexc .eq. 2) then
      call exchdl(rhoc,vxcd,excca,mmax)
    else if(iexc .eq. 3) then
-     call excpzca(rhoc,vxcd,excca,mmax)
+     call excpwca(rhoc,vxcd,excca,mmax)
    else if(iexc .eq. 4) then
      call excggc(rhoc,vxcd,excca,rr,mmax)
-   else if (iexc < 0) then
-     call exc_libxc(iexc,al,rhoc,vxcd,excca,rr,mmax)
    else
-     write(6,'(/a,i4)') 'vout: ERROR bad input iexc =',iexc
+     write(6,'(/a,i4)') 'vout: bad input iexc =',iexc
      stop
    end if
-
    do ii=1,mmax
     foutfc(ii)=rhoc(ii)*(exca(ii) - excca(ii))*rr(ii)**3
    end do

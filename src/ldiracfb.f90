@@ -72,17 +72,17 @@
 
 ! check arguments
  if(ll>nn-1) then
-  write(6,'(/a,i4,a,i4)') 'ldiracfb: ERROR ll =',ll,' > nn =',nn
+  write(6,'(/a,i4,a,i4)') 'ldiracfb: error ll =',ll,' > nn =',nn
   ierr=1
   return
  end if
  if(kap/=ll .and. kap/=-(ll+1)) then
-  write(6,'(/a,i4,a,i4)') 'ldiracfb: ERROR kap =',kap,' ll =',ll
+  write(6,'(/a,i4,a,i4)') 'ldiracfb: error kap =',kap,' ll =',ll
   ierr=2
   return
  end if
  if(zz<1.0d0) then
-  write(6,'(/a,f12.8)') 'ldiracfb: ERROR zz =',zz
+  write(6,'(/a,f12.8)') 'ldiracfb: error zz =',zz
   ierr=3
   return
  end if
@@ -91,13 +91,13 @@
 
 ! usual limits from non-relativistic Schroedinger eq. should be OK
  emax=vv(mmax)+0.5d0*sls/rr(mmax)**2
- emin=emax
+ emin=0.0d0
  do ii=1,mmax
    emin=dmin1(emin,vv(ii)+0.5d0*sls/rr(ii)**2)
  end do
  emin=dmax1(emin,-zz**2/nn**2)
- if(ee>emax) ee=0.5d0*(emax+emin)
- if(ee<emin) ee=0.5d0*(emax+emin)
+ if(ee>emax) ee=1.25d0*emax
+ if(ee<emin) ee=0.75d0*emin
  if(ee>emax) ee=0.5d0*(emax+emin)
 
  allocate(gu(mmax),fu(mmax),gup(mmax),fup(mmax),cf(mmax))
@@ -125,10 +125,9 @@
        exit
      end if
    end do
-
    if(mch==0) then
-    ierr=-1
-    return
+    write(6,'(/a)') 'lschpb: no classical turning point'
+    stop
    end if
   
 ! start wavefunctions with series

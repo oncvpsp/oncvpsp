@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -91,7 +91,7 @@
     end do
     found_root=.true.
     if(.not. found_root) then
-      write(6,'(a)') 'qroots: ERROR - failed to find root'
+      write(6,'(a)') 'qroots: failed to  find root'
       stop
     end if
   end if
@@ -99,7 +99,7 @@
   dlgd_last=dlgd
  end do
  if(.not. found_root) then
-   write(6,'(a)') 'qroots: ERROR - failed to find nroot roots'
+   write(6,'(a)') 'qroots: failed to  find nroot roots'
    stop
  end if
 

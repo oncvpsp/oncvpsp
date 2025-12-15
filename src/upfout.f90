@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 !
@@ -20,10 +20,10 @@
 ! for PWSCF input using the UPF file format
 
  subroutine upfout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
-&                  zz,zion,mmax,mxprj,iexc,icmod,nrl,drl,atsym,epstot, &
+&                  zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
 &                  na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
-&                  fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact, &
-&                  epsh1,epsh2,depsh,rlmax,psfile,uupsa,ea)
+&                  fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
+&                  epsh1,epsh2,depsh,rlmax,psfile)
 
 
 !lmax  maximum angular momentum
@@ -40,7 +40,6 @@
 !zz  atomic number
 !zion  at this point, total valence charge (becomes psuedoion charge)
 !mmax  size of log radial grid
-!mxprj  dimension of number of projectors
 !iexc  type of exchange-correlation
 !icmod  1 if model core charge is used, otherwise 0
 !nrl size of linear radial grid
@@ -48,12 +47,6 @@
 !atsym  atomic symbol
 !epstot  pseudoatom total energy
 !psfile  should be 'upf'
-!remaining input variables to be echoed:
-!  na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf
-!  fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact,rcfact
-!  epsh1,epsh2,depsh,rlmax,psfile
-!uupsa  pseudo-atomic orbital array
-!ea  psuedo-orbital eigenvalues
 
  implicit none
  integer, parameter :: dp=kind(1.0d0)
@@ -61,21 +54,20 @@
  real(dp), parameter :: pi=3.141592653589793238462643383279502884197_dp
 
 !Input variables
- integer :: lmax,lloc,iexc,mmax,mxprj,nrl,icmod
+ integer :: lmax,lloc,iexc,mmax,nrl,icmod
  integer :: nproj(6)
- real(dp) :: drl,fcfact,rcfact,zz,zion,epstot
- real(dp) :: rr(mmax),vpuns(mmax,5),rho(mmax),vkb(mmax,mxprj,4)
+ real(dp) :: drl,fcfact,zz,zion,epstot
+ real(dp) :: rr(mmax),vpuns(mmax,5),rho(mmax),vkb(mmax,2,4)
  real(dp) :: rhomod(mmax,5)
- real(dp):: rc(6),evkb(mxprj,4)
+ real(dp):: rc(6),evkb(2,4)
  character*2 :: atsym
- real(dp) :: uupsa(mmax,nv)
 
 !additional input for upf output to echo input file, all as defined
 ! in the main progam
  integer :: na(30),la(30),ncon(6),nbas(6)
  integer :: nvcnf(5),nacnf(30,5),lacnf(30,5)
  integer :: nc,nv,lpopt,ncnf
- real(dp) :: fa(30),rc0(6),ep(6),qcut(6),debl(6),facnf(30,5),ea(30)
+ real(dp) :: fa(30),rc0(6),ep(6),qcut(6),debl(6),facnf(30,5)
  real(dp) :: dvloc0,epsh1,epsh2,depsh,rlmax
  character*4 :: psfile
 
@@ -84,62 +76,73 @@
 !Local variables
  integer :: ii,jj,ll,l1,iproj,ntotproj,nrlproj
  integer :: dtime(8)
- real(dp) :: al,nrmsum,uurcut
- real(dp), allocatable :: rhomodl(:,:),dmat(:,:)
- real(dp),allocatable :: rhol(:),rl(:),vkbl(:,:,:),vpl(:,:),uual(:,:)
- character*5 :: lnames
+ real(dp) :: dmat(8,8)
+ real(dp), allocatable :: rhomodl(:,:)
+ real(dp),allocatable :: rhol(:),rl(:),vkbl(:,:,:),vpl(:,:)
+ real(dp), allocatable :: vkborl(:,:,:)
  character*2 :: pspd(3)
 
- lnames = "SPDFG"
 
-! adjust nrl to properly accomodate atomic orbitals
- al = dlog(rr(2)/rr(1))
- uurcut = 0.d0
- do ii=1,nv
-   nrmsum = 0.d0
-   do jj=mmax-1,1,-1
-     nrmsum = nrmsum + (uupsa(jj,ii)**2) * rr(jj)*al
-     if (nrmsum > 1.d-6) then
-       exit  ! Cutoff radius such that uu norm accurate to 10^-6
-     end if
-   end do
-   if (rr(jj) > uurcut) uurcut = rr(jj)
+ allocate(rhol(nrl),rl(nrl),vkbl(nrl,2,4),vpl(nrl,5),rhomodl(nrl,5))
+ allocate(vkborl(mmax,2,4))
+
+! divide Kleinman-Bylander / Vanderbilt potentials by their r -> 0 dependence
+
+ do l1 = 1, lmax + 1
+   ll = l1 - 1
+   if (ll .ne. lloc) then
+     vkborl(:,1,l1)=vkb(:,1,l1)/rr(:)**(ll+1)
+     vkborl(:,2,l1)=vkb(:,2,l1)/rr(:)**(ll+1)
+   end if
  end do
- if (uurcut > drl*dble(nrl-1)) then
-   nrl = 1 + uurcut/drl
-   if(mod(nrl,2)/=0) nrl=nrl+1
-   write(6,'(a,i5,a,f10.5)') "Updating nrl = ", nrl, " for uurcut = ", uurcut
- end if
-
- allocate(rhol(nrl),rl(nrl),vkbl(nrl,mxprj,4),vpl(nrl,5),rhomodl(nrl,5),uual(nrl,nv))
-
+!
 ! interpolation of everything onto linear output mesh
-
+! cubic extrapolation to zero from nearest 4 points of linear mesh
+!
  do  ii=1,nrl
    rl(ii)=drl*dble(ii-1)
  end do
 !
  do l1=1,max(lmax+1,lloc+1)
-   call dpnint(rr,vpuns(1,l1),mmax,rl,vpl(1,l1),nrl)
-! override dpnint extrapolation to zero for vpl
-   vpl(1,l1)=vpuns(1,l1)
+   call dp3int(rr,vpuns(1,l1),mmax,rl,vpl(1,l1),nrl)
+   vpl(1,l1)=4.0d0*vpl(2,l1)-6.0d0*vpl(3,l1)  &
+&           +4.0d0*vpl(4,l1)-      vpl(5,l1)
    if(l1 .ne. lloc + 1) then
 
-     call dpnint(rr,vkb(1,1,l1),mmax,rl,vkbl(1,1,l1),nrl)
-     call dpnint(rr,vkb(1,2,l1),mmax,rl,vkbl(1,2,l1),nrl)
+     call dp3int(rr,vkborl(1,1,l1),mmax,rl,vkbl(1,1,l1),nrl)
+     call dp3int(rr,vkborl(1,2,l1),mmax,rl,vkbl(1,2,l1),nrl)
 
+     vkbl(1,1,l1)=4.0d0*vkbl(2,1,l1)-6.0d0*vkbl(3,1,l1)  &
+&                +4.0d0*vkbl(4,1,l1)-      vkbl(5,1,l1)
+     vkbl(1,2,l1)=4.0d0*vkbl(2,2,l1)-6.0d0*vkbl(3,2,l1)  &
+&                +4.0d0*vkbl(4,2,l1)-      vkbl(5,2,l1)
    end if
  end do
 
- call dpnint(rr,rho,mmax,rl,rhol,nrl)
+! rescale linear-mesh vkbl to restore actual r dependence
+
+ do l1=1,lmax+1
+   ll=l1-1
+   if(ll.ne.lloc)then
+     do ii = 1, nrl
+       vkbl(ii,1,l1)=vkbl(ii,1,l1)*rl(ii)**(ll+1)
+       vkbl(ii,2,l1)=vkbl(ii,2,l1)*rl(ii)**(ll+1)
+     end do
+   end if
+ end do
+
+ call dp3int(rr,rho,mmax,rl,rhol,nrl)
+
+ rhol(1)= 4.0d0*rhol(2)-6.0d0*rhol(3) &
+&        +4.0d0*rhol(4)-      rhol(5)
 
  do jj=1,5
-   call dpnint(rr,rhomod(1,jj),mmax,rl,rhomodl(1,jj),nrl)
+   call dp3int(rr,rhomod(1,jj),mmax,rl,rhomodl(1,jj),nrl)
+
+   rhomodl(1,jj)=4.0d0*rhomodl(2,jj)-6.0d0*rhomodl(3,jj) &
+&               +4.0d0*rhomodl(4,jj)-      rhomodl(5,jj)
  end do
 
- do ii=1,nv
-   call dpnint(rr,uupsa(1,ii),mmax,rl,uual(1,ii),nrl)
- end do
 
  call date_and_time(VALUES=dtime)
  ii=dtime(1)-2000
@@ -166,12 +169,12 @@
  write(6,'(/a)') 'Begin PSP_UPF'
 
  write(6,'(a,/a)') &
-&      '<UPF version="2.0.1">', &
+&      '<UPF version="2.1.2">', &
 &      '  <PP_INFO>'
  write(6,'(/t2,a/t2,a/t2,a/t2,a/t2,a/t2,a//)') &
        'This pseudopotential file has been produced using the code', &
 &      'ONCVPSP  (Optimized Norm-Conservinng Vanderbilt PSeudopotential)', &
-&      'scalar-relativistic version 4.0.1 06/20/2107 by D. R. Hamann', &
+&      'scalar-relativistic version 1.1.1, 08/28/2013 by D. R. Hamann', &
 &      'The code is available through a link at URL www.mat-simresearch.com.', &
 &      'Documentation with the package provides a full discription of the', &
 &      'input data below.'
@@ -187,8 +190,8 @@
 ! output printing (echos input data)
 
  write(6,'(a)') '# ATOM AND REFERENCE CONFIGURATION'
- write(6,'(a)') '# atsym  z   nc   nv     iexc    psfile'
- write(6,'(a,a,f6.2,2i5,i8,2a)') '  ',trim(atsym),zz,nc,nv,iexc, &
+ write(6,'(a)') '# atsym  z    nc    nv    iexc   psfile'
+ write(6,'(a,a,f6.2,3i6,2a)') '  ',trim(atsym),zz,nc,nv,iexc, &
 &      '      ',trim(psfile)
  write(6,'(a/a)') '#','#   n    l    f        energy (Ha)'
  do ii=1,nc+nv
@@ -197,25 +200,24 @@
 
  write(6,'(a/a/a)') '#','# PSEUDOPOTENTIAL AND OPTIMIZATION','# lmax'
  write(6,'(i5)')  lmax
- write(6,'(a/a)') '#','#   l,   rc,      ep,       ncon, nbas, qcut'
+ write(6,'(a/a)') '#','#   l,   rc,     ep,   ncon, nbas, qcut'
  do l1=1,lmax+1
-   write(6,'(i5,2f10.5,2i5,f10.5)') l1-1,rc0(l1),ep(l1),ncon(l1),&
-&        nbas(l1),qcut(l1)
+   write(6,'(i5,2f8.2,2i5,f8.2)') l1-1,rc(l1),ep(l1),ncon(l1),nbas(l1),qcut(l1)
  end do
 
  write(6,'(a/a/a,a)') '#','# LOCAL POTENTIAL','# lloc, lpopt,  rc(5),', &
 &      '   dvloc0'
- write(6,'(2i5,f10.5,a,f10.5)') lloc,lpopt,rc0(5),'   ',dvloc0
+ write(6,'(2i5,f10.2,a,f8.2)') lloc,lpopt,rc(5),'   ',dvloc0
 
  write(6,'(a/a/a)') '#','# VANDERBILT-KLEINMAN-BYLANDER PROJECTORs', &
 &      '# l, nproj, debl'
  do l1=1,lmax+1
-   write(6,'(2i5,f10.5)') l1-1,nproj(l1),debl(l1)
+   write(6,'(2i5,f10.4)') l1-1,nproj(l1),debl(l1)
  end do
 
  write(6,'(a/a/a)') '#','# MODEL CORE CHARGE', &
-&      '# icmod, fcfact, rcfact'
- write(6,'(i5,2f10.5)') icmod,fcfact,rcfact
+&      '# icmod, fcfact'
+ write(6,'(i5,f8.2,2i5,f8.2)') icmod,fcfact
 
  write(6,'(a/a/a)') '#','# LOG DERIVATIVE ANALYSIS', &
 &      '# epsh1, epsh2, depsh'
@@ -273,7 +275,7 @@
    write(6,'(t8,a)') &
 &        'has_gipaw="F"'
 
-   if(icmod>=1) then
+   if(icmod==1) then
      write(6,'(t8,a)') &
 &        'core_correction="T"'
    else
@@ -281,49 +283,15 @@
 &        'core_correction="F"'
    end if
 
-   if(iexc==2 .or. iexc==-000004) then
+   if(iexc==3) then
      write(6,'(t8,a)') &
-&        'functional="NOX+HL"'
-
-   else if(iexc==3 .or. iexc==-001009) then
-     write(6,'(t8,a)') &
-&        'functional="PZ"'
-
-   else if(iexc==4 .or. iexc==-101130) then
+&        'functional="LDA"'
+   else if(iexc==4) then
      write(6,'(t8,a)') &
 &        'functional="PBE"'
-
-   else if(iexc==-001012) then
-     write(6,'(t8,a)') &
-&        'functional="SLA  PW   NOGX NOGC"'
-
-   else if(iexc==-109134) then
-     write(6,'(t8,a)') &
-&        'functional="PW91"'
-
-   else if(iexc==-116133) then
-     write(6,'(t8,a)') &
-&        'functional="PBESOL"'
-
-   else if(iexc==-102130) then
-     write(6,'(t8,a)') &
-&        'functional="REVPBE"'
-
-   else if(iexc==-106132) then
-     write(6,'(t8,a)') &
-&        'functional="BP"'
-
-   else if(iexc==-106131) then
-     write(6,'(t8,a)') &
-&        'functional="BLYP"'
-
-   else if(iexc==-118130) then
-     write(6,'(t8,a)') &
-&        'functional="WC"'
-
    else
      write(6,'(t8,a)') &
-&        'upfout: ERROR iexc = ',iexc,' is presently unsupported for UPF output'
+&        'upfout:  only iexc=3 or iexc=4 are supported for UPF output'
      stop
    end if
 
@@ -331,7 +299,7 @@
 &        'z_valence="',zion,'"'
 
    write(6,'(t8,a,1p,e20.11,a)') &
-&        'total_psenergy="',2*epstot,'"'
+&        'total_psenergy="',epstot,'"'
 
    write(6,'(t8,a,1p,e20.11,a)') &
 &        'rho_cutoff="',rl(nrl),'"'
@@ -358,17 +326,13 @@
      end if
      nrlproj=max(nrlproj,4+int(rc(l1)/drl))
    end do
-
-   allocate(dmat(ntotproj,ntotproj))
-
    if(mod(nrlproj,2)/=0) nrlproj=nrlproj+1
-   if(mod(nrlproj,4)/=0) nrlproj=nrlproj+2  !make divisible by 4 to use for 0 compression below
 
    write(6,'(t8,a,i6,a)') &
 &        'mesh_size="',nrl,'"'
 
-   write(6,'(t8,a,i1,a)') &
-&        'number_of_wfc="',nv,'"'
+   write(6,'(t8,a)') &
+&        'number_of_wfc="0"'
 
    write(6,'(t8,a,i1,a)') &
 &        'number_of_proj="',ntotproj,'"/>' !end of PP_HEADER
@@ -417,13 +381,8 @@
    do jj=1,nproj(l1)
      iproj=iproj+1
      dmat(iproj,iproj)=2.0d0*evkb(jj,l1) !2 for Rydbergs
-     if(iproj<=9) then
-       write(6,'(t4,a,i1)') &
-&            '<PP_BETA.',iproj
-     else
-       write(6,'(t4,a,i2)') &
-&            '<PP_BETA.',iproj
-     end if
+     write(6,'(t4,a,i1)') &
+&          '<PP_BETA.',iproj
      write(6,'(t8,a)') &
 &          'type="real"'
      write(6,'(t8,a,i4,a)') &
@@ -442,16 +401,10 @@
      write(6,'(t8,a,1p,e20.10,a)') &
 &          'cutoff_radius="',(nrlproj-1)*drl,'" >'
 
-     write(6,'(1p,4e20.10)') (vkbl(ii,jj,l1),ii=1,nrlproj)
-     write(6,'(1p,4f3.0)') (0.d0,ii=nrlproj+1,nrl)
+     write(6,'(1p,4e20.10)') (vkbl(ii,jj,l1),ii=1,nrl)
 
-     if(iproj<=9) then
-       write(6,'(t4,a,i1,a)') &
-&            '</PP_BETA.',iproj,'>'
-     else
-       write(6,'(t4,a,i2,a)') &
-&            '</PP_BETA.',iproj,'>'
-     end if
+     write(6,'(t4,a,i1,a)') &
+&          '</PP_BETA.',iproj,'>'
    end do
  end do
 
@@ -468,52 +421,10 @@
 
  write(6,'(t2,a)') &
 &      '<PP_PSWFC>'
- do ii=1,nv
-  l1 = la(nc+ii)
-  if(ii <= 9) then
-    write(6,'(t4,a,i1)') &
-&         '<PP_CHI.',ii
-  else
-    write(6,'(t4,a,i2)') &
-&         '<PP_CHI.',ii
-  end if
-  write(6,'(t8,a)') &
-&       'type="real"'
-  write(6,'(t8,a,i4,a)') &
-&       'size="',nrl,'"'
-  write(6,'(t8,a)') &
-&       'columns="4"'
-  if (ii <= 9) then
-     write(6,'(t8,a,i1,a)') &
-&          'index="',ii,'"'
-  else
-    write(6,'(t8,a,i2,a)') &
-&         'index="',ii,'"'
-  end if
-  write(6,'(t8,a,f6.3,a)') &
-&       'occupation="',fa(nc+ii),'"'
-  write(6,'(t8,a,e20.10,a)') &
-&       'pseudo_energy="',2*ea(nc+ii),'"'
-  write(6,'(t8,a,i1,a,a)') &
-&       'label="',na(nc+ii),lnames(l1+1:l1+1),'"'
-     write(6,'(t8,a,i1,a)') &
-&          'l="',l1,'" >'
-
-  write(6,'(1p,4e20.10)') (uual(jj,ii),jj=1,nrl)
-
-  if(ii <= 9) then
-    write(6,'(t4,a,i1)') &
-&         '</PP_CHI.',ii
-  else
-    write(6,'(t4,a,i2)') &
-&         '</PP_CHI.',ii
-  end if
-
- end do
  write(6,'(t2,a)') &
 &      '</PP_PSWFC>'
 
- if(icmod>=1) then
+ if(icmod==1) then
    write(6,'(t2,a,i4,a)') &
 &        '<PP_NLCC type="real"  size="',nrl,'" columns="4">'
 
@@ -535,10 +446,8 @@
 &      '</UPF>'
 
 
- deallocate(rhol,rl,vkbl,vpl,rhomodl,dmat)
-
-! write termination flag
- write(6,'(/a)') 'END_PSP'
+ deallocate(rhol,rl,vkbl,vpl,rhomodl)
+ deallocate(vkborl)
 
  return
  end subroutine upfout

@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -16,10 +16,12 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-! self-consistent pseudoatom calculation
+! Self-consistent pseudoatom calculation for fully-relativistic
+! pseudopotentials. Orbital occupancies are always weighted with the
+! scalar-relativistic averaging factors, even for partially-occupied levels.
 
- subroutine psatom_r(na,la,ea,fat,nv,it,rhoc,rho, &
-&           rr,rcmax,mmax,mxprj,iexc,etot,nproj,vpuns,lloc,vkb,evkb,ierr)
+ subroutine psatom_r(na,la,ea,fa,nv,it,rhoc,rho, &
+&           rr,rcmax,mmax,iexc,etot,nproj,vpuns,lloc,vkb,evkb,ierr,okb)
 
 !na  principal quantum number array, dimension nv
 !la  angular-momenta
@@ -31,7 +33,6 @@
 !rr  log radial mesh
 !rcmax  maximum core radius for psp
 !mmax  size of log grid
-!mxprj  dimension of number of projectors
 !iexc  exchange-correlation function to be used
 !etot  pseudoatom total energy (output)
 !nproj  number of VKB projectora to use for each l
@@ -39,17 +40,18 @@
 !lloc  index-1 of local potential
 !vkb   Vanderbilt-Kleinman-Bylander projectors
 !evkb VKB projector coefficients
+!okb 0,use semi-local, 1 use VKB projectors
 
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
  
- integer :: mmax,mxprj,iexc,nv,lloc,okb
+ integer :: mmax,iexc,nv,lloc,okb
  integer :: na(30),la(30),nproj(5)
  real(dp) :: rcmax
- real(dp) :: fat(30,2),rr(mmax)
- real(dp) :: vpuns(mmax,5),vkb(mmax,mxprj,4,2),evkb(mxprj,4,2)
+ real(dp) :: fa(30),rr(mmax)
+ real(dp) :: vpuns(mmax,5),vkb(mmax,2,4,2),evkb(2,4,2)
 
 !Output variables
  integer :: it
@@ -60,149 +62,153 @@
 !Local variables
  integer :: nin,mch
  real(dp) :: amesh,al
- real(dp) :: dr,eeel,eexc,et,emin,emax,rl,rl1,sd,sn,sls,eeig
- real(dp) :: thl,vn,zval,dfa,fj
- real(dp) :: fa(30)
- integer :: ii,jj,l1,ierr,icx,nprj
- integer :: ikap,kap,ll,mkap
+ real(dp) :: dr,eeel,eexc,et,emin,emax,rl,rl1,sd,sn,sls,eeig,fj
+ real(dp) :: cwell,cwell0,xx
+ real(dp) :: thl,vn,zion
+ integer :: ii,jj,l1,ll,ikap,kap,mkap,ierr
  logical :: convg
 
  real(dp), allocatable :: uu(:),up(:)
  real(dp), allocatable :: vo(:),vi1(:),vo1(:),vxc(:),vp(:)
- real(dp), allocatable :: vtot(:)
-
+ real(dp), allocatable :: vtot(:),vwell(:)
 
 ! blend parameter for Anderson iterative potential mixing
  real(dp), parameter ::  bl=0.5d0
 
  allocate(uu(mmax),up(mmax))
  allocate(vo(mmax),vi1(mmax),vo1(mmax),vxc(mmax),vp(mmax))
- allocate(vtot(mmax))
+ allocate(vtot(mmax),vwell(mmax))
 
 ! this seems necessary in sratom, so I might as well do it  here too
 ! don't ask why!
  uu(:)=0.d0; up(:)=0.d0
  vo(:)=0.d0; vi1(:)=0.d0; vo1(:)=0.d0; vxc(:)=0.d0; vp(:)=0.d0
- vtot(:)=0.d0
+ vtot(:)=0.d0; vwell(:)=0.d0
  dr=0.d0; eeel=0.d0; eexc=0.d0; et=0.d0; emin=0.d0; emax=0.d0;
  rl=0.d0; rl1=0.d0; sd=0.d0; sn=0.d0; sls=0.d0; eeig=0.d0; 
- thl=0.d0; vn=0.d0; zval=0.d0; 
+ cwell=0.d0; cwell0=0.d0; xx=0.d0; thl=0.d0; vn=0.d0; zion=0.d0; 
  nin=0; mch=0 
 
  al = 0.01d0 * dlog(rr(101) / rr(1))
  amesh = dexp(al)
 
- nprj=0
- do l1=1,4
-   nprj=max(nprj,nproj(l1))
- end do
-
-! total valence charge, initial config
- zval=0.0d0
+! total valence charge
+ zion=0.0d0
  do ii=1,nv
-   fa(ii)=fat(ii,1)
-   zval=zval+fa(ii)
+   zion=zion+fa(ii)
  end do
-
-! test if new states are added 
- icx=50
 
 ! screening potential for pseudocharge
 ! input rho is assumed to be valence rho from all-electron calculation
 ! which shouldn''t be a bad approximation for a starting screened
 ! potential
 
- call vout(1,rho,rhoc,vi,vxc,zval,eeel,eexc,rr,mmax,iexc)
-
+ call vout(1,rho,rhoc,vi,vxc,zion,eeel,eexc,rr,mmax,iexc)
 
 ! big self  self-consietency loop
- do it=1,100
 
+ do it=1,100
 
 ! add well do deal with initially unbound states which may arise from
 ! discrepancy between all-electron valence charge used to initiate screening
 ! and self-consistent pseudocharge
 ! start well at 0.5 Ha at infinity and scale down with iterations
 
-! convergence is only to be considered if we are fully in  the target
-! configurtion
-  if(it>2) then
+   cwell0=0.5d0
+   vwell(:)=0.0d0
+   if(it<=10) then
+    cwell=0.05d0*cwell0*(11-it)
+    do ii=1,mmax
+     if(rr(ii)>rcmax) then
+      xx=(rr(ii)-rcmax)/rcmax
+      vwell(ii)=cwell*xx**3/(1.0d0+xx**3)
+     end if
+    end do
+   end if
+
+! iterate at least untill artificial well is gone
+   if(it>12) then
     convg=.true.
-  else
+   else
     convg=.false.
-  end if
+   end if
 
 ! solve for bound states in turn
 
    eeig=0.0d0
 
-   vtot(:)=vpuns(:,lloc+1)+vi(:)
+   vtot(:)=vpuns(:,lloc+1)+vi(:)+vwell(:)
 
    rho(:)=0.0d0
 
    do ii=1,nv
-
-     if(fa(ii)==0.0d0) then
-       cycle
-     end if
-
      ierr = 0
      l1=la(ii)+1
-     ll=la(ii)
+     ll = la(ii)
      if(ll==0) then
       mkap=1
      else
       mkap=2
      end if
+     vp(:)=vpuns(:,l1)+vi(:)+vwell(:)
 ! loop on J = ll +/- 1/2
-      do ikap=1,mkap
-        if(ikap==1) then
-          kap=-(ll+1)
-          fj=dble(ll+1)*fa(ii)/dble(2*ll+1)
-        else
-          kap=  ll
-          fj=dble(ll)*fa(ii)/dble(2*ll+1)
-        end if
-        et=ea(ii,ikap)
+     do ikap=1,mkap
+      if(ikap==1) then
+        kap=-(ll+1)
+        fj=dble(ll+1)*fa(ii)/dble(2*ll+1)
+      else
+        kap=  ll
+        fj=dble(ll)*fa(ii)/dble(2*ll+1)
+      end if
+      et=ea(ii,ikap)
 
-       emin=1.10d0*ea(ii,ikap)
-       emax=0.90d0*ea(ii,ikap)
-       call lschvkbb(na(ii),la(ii),nproj(l1),ierr,et,emin,emax, &
+! estimite bounds on eigenvalue based on semi-local pseudopotential
+      sls=(l1-1)*l1
+      emax=vtot(mmax)+0.5d0*sls/rr(mmax)**2
+      emin=emax
+      do jj=1,mmax
+        emin=dmin1(emin,vpuns(jj,l1)+vi(jj)+vwell(jj)+0.5d0*sls/rr(jj)**2)
+      end do
+
+! option for using semi-local potentials
+      if(okb==0) then
+        call lschpb(na(ii),la(ii),ierr,et, &
+&                   rr,vp,uu,up,mmax,mch)
+      else if(okb==1) then
+        call lschvkbb(na(ii),la(ii),nproj(l1),ierr,et,emin,emax, &
 &                   rr,vtot,vkb(1,1,l1,ikap),evkb(1,l1,ikap),uu,up,mmax,mch)
-       
-       if(ierr .ne. 0) then
-         write(6,'(/a,3i4)') &
-&              'psatom_r: WARNING lschvkbb convergence error n,l,kap,iter=', &
-&               na(ii),la(ii),kap,it
-         write(6,'(a,1p,4e14.6)') 'ea(ii),et,emin,emax',ea(ii,ikap),et,emin,emax
-          exit
-       end if
+      else
+        write(6,'(a,i4)') 'psatom: argument error - okb=',okb
+        stop
+      end if
 
-!   overall convergence criterion based on eps within lschf*
-       if(ea(ii,ikap)/= et) convg=.false.
-       ea(ii,ikap)=et
+      if(ierr .ne. 0) then
+       write(6,'(/a,4i4)') 'psatom: lschvkbb convergence error n,l,kap,iter=', &
+&       na(ii),la(ii),kap,it
+       exit
+      end if
+
+! overall convergence criterion based on eps within lschfb
+      if(ea(ii,ikap)/= et) convg=.false.
+      ea(ii,ikap)=et
 
 ! accumulate charge and eigenvalues
-       eeig = eeig + fj*ea(ii,ikap)
-       rho(:)=rho(:) + fj*(uu(:)/rr(:))**2
-     end do !ikap
+      eeig = eeig + fj*ea(ii,ikap)
+      rho(:)=rho(:) + fj*(uu(:)/rr(:))**2
+
+    end do !ikap
+    if(ierr/=0) exit
    end do !ii
 
    if(ierr/=0) exit
 
-! total valence charge
-   zval=0.0d0
-   do ii=1,nv
-     zval=zval+fa(ii)
-   end do
-
 ! output potential
-   call vout(1,rho,rhoc,vo,vxc,zval,eeel,eexc,rr,mmax,iexc)
+   call vout(1,rho,rhoc,vo,vxc,zion,eeel,eexc,rr,mmax,iexc)
 
 ! generate next iteration using d. g. anderson''s
 ! method
    thl=0.0d0
-   if(it>icx+1) then
+   if(it>1) then
      sn=0.0d0
      sd=0.0d0
      do ii=1,mmax
@@ -226,36 +232,24 @@
    if(convg) exit
 
    if(it==100 .and. .not. convg) then
-     write(6,'(/a)') 'psatom_r: WARNING potential failed to converge'
+     write(6,'(/a)') 'psatom: potential failed to converge'
      ierr=101
    end if
 
-! switch from reference to new configuration
-! new or increased occupancy added in second stage
-   do ii=1,nv
-     dfa=0.02d0*(fat(ii,2)-fat(ii,1))
-     if(it<=50) then
-       fa(ii)=0.02d0*(50-it)*fat(ii,1) + 0.02d0*it*fat(ii,2)
-     else 
-       fa(ii)=fat(ii,2)
-     end if
-   end do
-
-
  end do !it
- 
 
 ! total energy output
+
 ! output potential for e-e interactions
 
- call vout(1,rho,rhoc,vo,vxc,zval,eeel,eexc, &
+ call vout(1,rho,rhoc,vo,vxc,zion,eeel,eexc, &
 &          rr,mmax,iexc)
 
  etot =  eeig + eexc - 0.5d0*eeel
 
  deallocate(uu,up)
  deallocate(vo,vi1,vo1,vxc,vp)
- deallocate(vtot)
+ deallocate(vtot,vwell)
  return
 
  end subroutine psatom_r

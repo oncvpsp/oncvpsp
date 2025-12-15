@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -63,7 +63,6 @@
  integer :: ixp(4)
 
  allocate(work(mmax,5))
- work(:,:)=0.0d0
 
 
  ll1=ll+1
@@ -118,16 +117,16 @@
  ro=rr(5)/sqrt(amesh)
 
 !kinetic operator on psopt including centrifugal term
- work(:,4)=0.5d0*(ll*ll1*work(:,1)/rr(:)**2-work(:,3))
 
+ work(:,4)=0.5d0*(ll*ll1*work(:,1)/rr(:)**2-work(:,3))
 
 !pseudopotential and node test
  do ii=1,irc
   if(abs(work(ii,1))>0.0d0) then
    if(ipr<=1 .and. work(ii,1)*work(ii+1,1)<0.0d0) then
-    write(6,'(a)') ' ERROR pspot:  first pseudo wave function has node, &
+    write(6,'(a)') ' pspot: first pseudo wave function has node, &
 &         program will stop'
-    write(6,'(a)') ' ERROR pspot: try changing psp parameters for this l'
+    write(6,'(a)') ' pspot: try changing psp parameters for this l'
     stop
    end if
    vpsp(ii)=-work(ii,4)/work(ii,1) + eig
@@ -146,7 +145,7 @@
  work(:,5)=work(:,1)*work(:,4)
 
  ro=rr(5)/sqrt(amesh)
- ske=((work(5,5))/rr(5)**ixp(ll1)) * ro**ixp(ll1)/ixp(ll1)
+ ske=((work(5,5))/rr(5)**ixp(ll1)) * ro**ixp(ll1)/float(ixp(ll1))
 
  do ii=5,mmax-9
   ske=ske+al*rr(ii)*work(ii,5)

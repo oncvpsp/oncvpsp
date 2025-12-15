@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -71,7 +71,6 @@
  do ii=1,mmax
    emin=dmin1(emin,vv(ii)+0.5d0*sls/rr(ii)**2)
  end do
- emin=4.0d0*emin
  if(ee>emax) ee=1.25d0*emax
  if(ee<emin) ee=0.75d0*emin
  if(ee>emax) ee=0.5d0*(emax+emin)
@@ -100,7 +99,7 @@
      end if
    end do
    if(mch==0) then
-    write(6,'(/a)') 'lschpb: ERROR no classical turning point'
+    write(6,'(/a)') 'lschpb: no classical turning point'
     stop
    end if
   

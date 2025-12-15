@@ -1,7 +1,6 @@
 # ATOM AND REFERENCE CONFIGURATION
 # atsym  z   nc   nv     iexc    psfile
-  Nd 60.00   10    4       -101130      psp8
-# Nd 60.00   10    4       4      psp8
+  Nd 60.00   10    4       4      psp8
 #
 #   n    l    f        energy (Ha)
     1    0    2.00
@@ -58,4 +57,3 @@
     0
 # nvcnf
 #   n    l    f
-

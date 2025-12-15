@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -16,8 +16,8 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-   subroutine run_optimize(eig,ll,mmax,mxprj,rr,uua,qq,&
-&                        irc,qcut,qmsbf,ncon_in,nbas_in,npr, &
+ subroutine run_optimize(eig,eig2,ll,mmax,rr,uu,uu2,qq,&
+&                        irc,qcut,ncon_in,nbas,npr, &
 &                        psopt,vpsp,vkb,vae,cvgplt)
 
 ! calls routines to generate optimized pseudo wave function and semi-local
@@ -25,19 +25,18 @@
 ! convergence performance
 
 !eig  energy at which pseudo wave function is computed
+!eig2  energy at which 2nd pseudo wave function is computed
 !ll  angular momentum
 !mmax  dimension of log grid
-!mxprj  dimension of number of projectors
 !rr  log radial grid
 !uu  all-electron wave function for first projector
 !qq  2x2 matrix of norms and overlaps of uu and uu2
 !uu2  all-electron wave function for second projector
 !irc  index of core radius
 !qcut  q cutoff defining residual energy
-!qmsbf  maximum q in sbfs for this ll
 !ncon_in  number of constraints for matching psuedo and AE wave functions
-!nbas_in  number of basis functions for pseudo wave function
-!np_in   number of projectors = 0,1,2
+!nbas  number of basis functions fo pseudo wave function
+!npr   number of projectors = 0,1,2
 !psopt  optimized pseudo wave function(s)
 !vpsp  corresponding pseudopotential
 !vkb  Vanderbilt-Kleinman-Bylander projectors (without local v correction)
@@ -49,32 +48,31 @@
  real(dp), parameter :: Ha_eV=27.21138386d0 ! 1 Hartree, in eV
 
 !Input variables
- integer :: ll,mmax,mxprj,irc,ncon_in,nbas_in,npr
- real(dp) :: rr(mmax)
- real(dp) :: uua(mmax,mxprj),vae(mmax),qq(mxprj,mxprj)
- real(dp) :: eig(mxprj),qcut
+ integer :: ll,mmax,irc,ncon_in,nbas,npr
+ real(dp) :: rr(mmax),sbf(mmax)
+ real(dp) :: uu(mmax),uu2(mmax),vae(mmax),qq(2,2)
+ real(dp) :: eig,eig2,qcut
 
 !Output variables
- real(dp) :: qmsbf
- real(dp) :: psopt(mmax,mxprj),vpsp(mmax),vkb(mmax,mxprj)
+ real(dp) :: psopt(mmax,2),vpsp(mmax),vkb(mmax,2)
 
 !Local variables
  real(dp) :: uord(6)
  real(dp) :: al,rc,ulgd,tt
  real(dp) :: sn,ps0norm,amesh,ro
  real(dp) :: err,lerr,qerr,ehaerr,eeverr
- real(dp) :: sbf(mmax)
- real(dp) :: cons(6),cvgplt(2,7,mxprj)
+ real(dp) :: qroot(11)
+ real(dp) :: sbasis(11)
+ real(dp) :: cons(6),cvgplt(2,4,2)
  real(dp), allocatable :: orbasis(:,:)
  real(dp), allocatable :: orbasis_der(:,:),pswf0_sb(:),pswfnull_sb(:,:)
  real(dp), allocatable :: pswf0_or(:),pswfnull_or(:,:)
  real(dp), allocatable :: work(:)
- integer :: ii,iprj,jj,l1,lmax,nbas,ncon,nconmx
+ integer :: ii,jj,l1,lmax,ibas,ncon
  logical :: found_root
 
  integer :: nnull,nqout
 
- real(dp), allocatable :: qroot(:),sbasis(:)
  real(dp), allocatable :: eresid0(:),eresiddot(:,:)
  real(dp), allocatable :: eresidmat(:,:,:),pswfresid_sb(:,:)
  real(dp), allocatable :: qout(:),eresq(:),leresq(:)
@@ -89,186 +87,243 @@
  real(dp) :: dq,dr,dqout
  dq=0.02d0  !linear integration mesh spacing for above
  dr=0.02d0  !linear integration spacing for Fourier transforms
-!dr=0.002d0  !linear integration spacing for Fourier transforms
  dqout=0.5000001d0  !linear mesh spacing for final E_resid(q) interpolation
                     !increment is to avoid exact commnesurability with dq mesh
 
- al = 0.01d0 * dlog(rr(101) / rr(1))
- rc=rr(irc)
+ psopt(:,:)=0.0d0
+
+ write(6,'(//a,i4)') 'Calculating first optimized projector for l=',ll
+
  l1=ll+1
+ ncon=ncon_in
 
- nconmx=ncon_in+npr-1
+ nnull=nbas-ncon
 
+ allocate(pswfresid_sb(nbas,nnull))
+ allocate(orbasis(nbas,nbas))
+ allocate(orbasis_der(6,nbas),pswf0_sb(nbas),pswfnull_sb(nbas,nnull))
+ allocate(pswf0_or(nbas),pswfnull_or(nbas,nnull))
+ allocate(pswfopt_sb(nbas),pswfopt_or(nbas))
  allocate(work(mmax))
 
-!maximum basis size
-   nbas=nbas_in+npr-1
-   allocate(qroot(nbas))
+ al = 0.01d0 * dlog(rr(101) / rr(1))
+
+ rc=rr(irc)
 
 !calculate derivatives of all-electron wave function at r_c
-!for the first projector to set sbf wave vectors for all projectors
+ call wf_rc_der(rr,uu,al,rc,irc,mmax,uord)
 
-   call wf_rc_der(rr,uua(1,1),al,rc,irc,mmax,uord)
-   ulgd=uord(2)/uord(1)
+ ulgd=uord(2)/uord(1)
 
-   qmax=200.0d0  !very large value should always allow nbas q's to be found
+ qmax=200.0d0  !very large value should always allow nbas q's to be found
 
 !select wave vectors for spherical Bessel functions
-   call qroots(ll,rc,ulgd,nbas,dq,qmax,qroot)
+ call qroots(ll,rc,ulgd,nbas,dq,qmax,qroot)
 
-   qmsbf=qroot(nbas)
+!q considered infinity for E_resid calculation
+ qmax=dq*int(2.0d0*qroot(nbas)/dq) 
+ qmax=max(qmax,20.0d0)
+
+ nqout=2 + 0.75d0*qmax/dqout
+ allocate(qout(nqout),eresq(nqout),leresq(nqout))
+ allocate(eresid0(nqout),eresiddot(nnull,nqout),eresidmat(nnull,nnull,nqout))
+
+ qout(1)=qcut
+ do ii=nqout,2,-1
+  qout(ii)=(ii-2)*dqout
+ end do
 
 !write(6,'(/a)') 'qroots'
 !write(6,'(6f12.6)') (qroot(ii),ii=1,nbas)
 
- psopt(:,:)=0.0d0
+!calculate orthogonal basis
+ call sbf_basis(ll,rr,mmax,irc,nbas,qroot,sbasis,orbasis,orbasis_der)
 
-! loop over projectors
- do iprj=1,npr
-
-   write(6,'(/a,i4)') 'Calculating optimized projector #',iprj, &
-&        ' for l=',ll
-
-!basis size and number of constraints for this projector
-   nbas=nbas_in+iprj-1
-   ncon=ncon_in+iprj-1
-   nnull=nbas-ncon
-
-   allocate(sbasis(nbas))
-   allocate(orbasis(nbas,nbas))
-   allocate(orbasis_der(ncon,nbas))
-   allocate(pswf0_sb(nbas),pswf0_or(nbas))
-   allocate(pswfopt_sb(nbas),pswfopt_or(nbas))
-   allocate(pswfresid_sb(nbas,nnull))
-   allocate(pswfnull_sb(nbas,nnull))
-   allocate(pswfnull_or(nbas,nnull))
-
-!calculate derivatives of all-electron wave function at r_c
-!to define basis set for current projector and derivative constraints
-
-   call wf_rc_der(rr,uua(1,iprj),al,rc,irc,mmax,uord)
-
-!q considered infinity for E_resid calculation
-   qmax=dq*int(2.0d0*qroot(nbas)/dq) 
-   qmax=max(qmax,20.0d0)
-
-
-   nqout=2 + 0.75d0*qmax/dqout
-
-   allocate(qout(nqout),eresq(nqout),leresq(nqout),eresid0(nqout))
-   allocate(eresiddot(nnull,nqout),eresidmat(nnull,nnull,nqout))
-
-   qout(1)=qcut
-   do ii=nqout,2,-1
-    qout(ii)=(ii-2)*dqout
-   end do
-
-!calculate orthogonal basis and constraint matrix
-   call sbf_basis_con(ll,rr,mmax,irc,nbas,qroot,psopt,orbasis,orbasis_der, &
-&                     iprj,mxprj,ncon,ncon_in)
-
-
-!load constraint vector for value/derivative matching
-   cons(:)=0.0d0
-   do jj=1,ncon_in
-    cons(jj)=uord(jj)
-   end do
-!load overlap constraints if present
-   if(iprj>=2) then
-     do jj=1,iprj-1
-       cons(ncon_in+jj)=qq(jj,iprj)
-     end do
-   end if
+!load constraint vector
+ cons(:)=0.0d0
+ do jj=1,ncon
+  cons(jj)=uord(jj)
+ end do
 
 !calculate constrained basis for residual energy minimization
-!satisfying off-diagonal norm conservation
-   call const_basis(nbas,ncon,cons,orbasis,orbasis_der, &
-&                   pswf0_or,pswfnull_or, &
-&                   pswf0_sb,pswfnull_sb,ps0norm)
+ call const_basis(nbas,ncon,cons,orbasis,orbasis_der, &
+&                 pswf0_or,pswfnull_or, &
+&                 pswf0_sb,pswfnull_sb,ps0norm)
 
 !calculate eigenvectors, eigenvalues, and inhomogeneous terms for
 !the residual energy for a set of q lower cutoffs
 
-   write(6,'(/a,f10.6)') '    Fraction of norm inside rc',qq(iprj,iprj)
+ write(6,'(/a,f10.6)') '    Fraction of norm inside rc',qq(1,1)
 
-   call eresid(ll,irc,nnull,nbas,mmax,rr,dr,dq,qmax,qroot, &
-&                    uua(1,iprj),pswf0_sb,pswfnull_sb, nqout,qout, &
-&                    eresid0,eresiddot,eresidmat)
+ call eresid(ll,irc,nnull,nbas,mmax,rr,dr,dq,qmax,qroot, &
+&                  uu,pswf0_sb,pswfnull_sb, nqout,qout, &
+&                  eresid0,eresiddot,eresidmat)
 
-   write(6,'(a,f7.2,a,f7.2,a)') '    Optimizing pswf for qcut=',qout(1), &
-&   ' a_B^-1,  ecut=',0.5d0*qout(1)**2,' Ha'
-   write(6,'(a,f6.2,a,f7.1,a)') '    q_infinity defining residual KE=',&
-&   qmax,'  (E_inf=',0.5d0*qmax**2,' Ha)'
+ write(6,'(a,f5.2,a,f5.2,a)') '    Optimizing pswf for qcut=',qout(1), &
+& ' a_B^-1,  ecut=',0.5d0*qout(1)**2,' Ha'
+ write(6,'(a,f6.2,a,f7.1,a)') '    q_infinity defining residual KE=',&
+& qmax,'  (E_inf=',0.5d0*qmax**2,' Ha)'
+
+!calculate eigenvectors, eigenvalues, and inhomogeneous terms for
+!the residual energy for a set of q lower cutoffs
+
+ call optimize(nnull,nbas,pswf0_sb,pswf0_or,nqout,qout,&
+&              eresid0,eresiddot,eresidmat,&
+&              pswfnull_sb,pswfnull_or,qq(1,1),ps0norm,eresidmin,pswfopt_sb, &
+&              pswfopt_or,ekin_anal,eresq)
+
+ write(6,'(a,1p,d10.2,a)') '    Residual kinetic energy error=', &
+&      eresidmin,' Ha'
+
+!find the semi-local pseudopotential / Kleinman-Bylander projector
+
+ call pspot(1,ll,rr,irc,mmax,al,nbas,qroot,eig,uu,pswfopt_sb, &
+&           psopt(1,1),vae,vpsp,vkb(1,1),ekin_num)
+
+ write(6,'(/a)') '    Total kinetic energy consistency test'
+ write(6,'(a)') '      Fourier integration compared to d^2/dr^2 integral'
+ write(6,'(a,f12.8,a,f12.8,a,f12.8)') '      Fourier',ekin_anal, &
+&  '  r-space=',ekin_num,'  ratio=',ekin_anal/ekin_num
+ write(6,'(a)') '    Potential consistency test at r_c'
+ write(6,'(a,f12.8,a,f12.8,a,1p,d10.2)') '      vpsp=',vpsp(irc),'  vae=', &
+&  vae(irc),'  difference=',vae(irc)-vpsp(irc)
+ do ii=irc+1,mmax
+   vpsp(ii)=vae(ii)
+ end do
+
+!interpolate the convergence behavior of the optimized pseudo wave function
+
+ write(6,'(/a)') '    Energy error per electron        Cutoff'
+ write(6,'(a)') '         Ha          eV             Ha'
+ leresq(:)=log(eresq(:))
+ err=0.01d0
+ do jj=1,4
+  lerr=log(err)
+  do ii=3,nqout
+   if(leresq(ii-1)>lerr .and. leresq(ii)<=lerr) then
+    qerr=qout(ii)-dqout*(lerr-leresq(ii))/(leresq(ii-1)-leresq(ii))
+    cvgplt(1,jj,1)= 0.5d0*qerr**2
+    cvgplt(2,jj,1)= err
+    write(6,'(4x,2f12.5,f12.2)') err,err*Ha_eV,0.5d0*qerr**2
+   end if
+  end do
+  err=0.1d0*err
+ end do
+
+ if(npr==0 .or. npr==1) then
+  deallocate(eresid0,eresiddot,eresidmat)
+  deallocate(qout)
+  deallocate(orbasis)
+  deallocate(orbasis_der,pswf0_sb,pswfnull_sb)
+  deallocate(pswf0_or,pswfnull_or)
+  deallocate(pswfopt_sb,pswfopt_or)
+  return
+ end if
+
+! begin section for optimized second projector wavefunction
+
+ write(6,'(/a,i4)') 'Calculating second optimized projector for l=',ll
+
+ call wf_rc_der(rr,uu2,al,rc,irc,mmax,uord)
+
+! load constraint vector for value/derivative matching
+ cons(:)=0.0d0
+ do jj=1,ncon
+  cons(jj)=uord(jj)
+ end do
+
+! last constraint is off-diagonal overlap
+ ncon=ncon+1
+ nnull=nbas-ncon
+ cons(ncon)=qq(1,2)
+
+! last row of or-basis derivative matrix is loaded with optimized
+! first-projector coefficients in or basis
+ orbasis_der(ncon,:)=pswfopt_or(:)
+
+! resize arrays
+ deallocate(pswfresid_sb)
+ deallocate(pswfnull_sb)
+ deallocate(pswfnull_or)
+ deallocate(eresiddot,eresidmat)
+
+ allocate(pswfresid_sb(nbas,nnull))
+ allocate(pswfnull_sb(nbas,nnull))
+ allocate(pswfnull_or(nbas,nnull))
+ allocate(eresiddot(nnull,nqout),eresidmat(nnull,nnull,nqout))
+
+!calculate constrained basis for residual energy minimization
+!satisfying off-diagonal norm conservation
+ call const_basis(nbas,ncon,cons,orbasis,orbasis_der, &
+&                 pswf0_or,pswfnull_or, &
+&                 pswf0_sb,pswfnull_sb,ps0norm)
+
+!calculate eigenvectors, eigenvalues, and inhomogeneous terms for
+!the residual energy for a set of q lower cutoffs
+
+ write(6,'(/a,f10.6)') '    Fraction of norm inside rc',qq(2,2)
+
+ call eresid(ll,irc,nnull,nbas,mmax,rr,dr,dq,qmax,qroot, &
+&                  uu2,pswf0_sb,pswfnull_sb, nqout,qout, &
+&                  eresid0,eresiddot,eresidmat)
+
+ write(6,'(a,f5.2,a,f5.2,a)') '    Optimizing pswf for qcut=',qout(1), &
+& ' a_B^-1,  ecut=',0.5d0*qout(1)**2,' Ha'
+ write(6,'(a,f6.2,a,f7.1,a)') '    q_infinity defining residual KE=',&
+& qmax,'  (E_inf=',0.5d0*qmax**2,' Ha)'
 
 !find the null-basis coefficients which minimize the eresid while
 !satisfying diagonal norm conservation
 
-   call optimize(nnull,nbas,pswf0_sb,pswf0_or,nqout,qout,&
-&                eresid0,eresiddot,eresidmat,&
-&                pswfnull_sb,pswfnull_or,qq(iprj,iprj),ps0norm,eresidmin, &
-&                pswfopt_sb,pswfopt_or,ekin_anal,eresq)
+ call optimize(nnull,nbas,pswf0_sb,pswf0_or,nqout,qout,&
+&              eresid0,eresiddot,eresidmat,&
+&              pswfnull_sb,pswfnull_or,qq(2,2),ps0norm,eresidmin,pswfopt_sb, &
+&              pswfopt_or,ekin_anal,eresq)
 
-   write(6,'(a,1p,d10.2,a)') '    Residual kinetic energy error=', &
-&        eresidmin,' Ha'
+ write(6,'(a,1p,d10.2,a)') '    Residual kinetic energy error=', &
+&      eresidmin,' Ha'
 
-! find the Vanderbilt projectors and optimized wave functions
+! find the Vanderbilt second projector
 
-   call pspot(iprj,ll,rr,irc,mmax,al,nbas,qroot,eig(iprj),uua(1,iprj), &
-&             pswfopt_sb,psopt(1,iprj),vae,work,vkb(1,iprj),ekin_num)
+ call pspot(2,ll,rr,irc,mmax,al,nbas,qroot,eig2,uu2,pswfopt_sb, &
+&           psopt(1,2),vae,work,vkb(1,2),ekin_num)
 
-!semi-local potential
-   if(iprj==1) then
-     do ii=1,irc
-       vpsp(ii)=work(ii)
-     end do
-     do ii=irc+1,mmax
-       vpsp(ii)=vae(ii)
-     end do
-   end if
-
-   write(6,'(/a)') '    Total kinetic energy consistency test'
-   write(6,'(a)') '      Fourier integration compared to d^2/dr^2 integral'
-   write(6,'(a,f12.8,a,f12.8,a,f12.8)') '      Fourier',ekin_anal, &
-&    '  r-space=',ekin_num,'  ratio=',ekin_anal/ekin_num
-   write(6,'(a)') '    Potential consistency test at r_c'
-   write(6,'(a,f12.8,a,f12.8,a,1p,d10.2)') '    "vpsp"=',work(irc),'  vae=', &
-&    vae(irc),'  difference=',vae(irc)-work(irc)
+ write(6,'(/a)') '    Total kinetic energy consistency test'
+ write(6,'(a)') '      Fourier integration compared to d^2/dr^2 integral'
+ write(6,'(a,f12.8,a,f12.8,a,f12.8)') '      Fourier',ekin_anal, &
+&  '  r-space=',ekin_num,'  ratio=',ekin_anal/ekin_num
+ write(6,'(a)') '    Potential consistency test at r_c'
+ write(6,'(a,f12.8,a,f12.8,a,1p,d10.2)') '    "vpsp"=',work(irc),'  vae=', &
+&  vae(irc),'  difference=',vae(irc)-work(irc)
+ do ii=irc+1,mmax
+   vpsp(ii)=vae(ii)
+ end do
 
 !interpolate the convergence behavior of the optimized pseudo wave function
 
-   write(6,'(/a)') '    Energy error per electron        Cutoff'
-   write(6,'(a)') '         Ha          eV             Ha'
-   leresq(:)=log(eresq(:))
-   err=0.01d0
-   do jj=1,7
-    lerr=log(err)
-    do ii=3,nqout
-     if(leresq(ii-1)>lerr .and. leresq(ii)<=lerr) then
-      qerr=qout(ii)-dqout*(lerr-leresq(ii))/(leresq(ii-1)-leresq(ii))
-      cvgplt(1,jj,iprj)= 0.5d0*qerr**2
-      cvgplt(2,jj,iprj)= err
-      if(mod(jj,2)/=0) then
-        write(6,'(4x,2f12.5,f12.2)') err,err*Ha_eV,0.5d0*qerr**2
-      end if
-     end if
-    end do
-    err=sqrt(0.1d0)*err
-   end do
+ write(6,'(/a)') '    Energy error per electron        Cutoff'
+ write(6,'(a)') '         Ha          eV             Ha'
+ leresq(:)=log(eresq(:))
+ err=0.01d0
+ do jj=1,4
+  lerr=log(err)
+  do ii=3,nqout
+   if(leresq(ii-1)>lerr .and. leresq(ii)<=lerr) then
+    qerr=qout(ii)-dqout*(lerr-leresq(ii))/(leresq(ii-1)-leresq(ii))
+    cvgplt(1,jj,2)= 0.5d0*qerr**2
+    cvgplt(2,jj,2)= err
+    write(6,'(4x,2f12.5,f12.2)') err,err*Ha_eV,0.5d0*qerr**2
+   end if
+  end do
+  err=0.1d0*err
+ end do
 
-   deallocate(sbasis)
-   deallocate(orbasis)
-   deallocate(orbasis_der)
-   deallocate(pswf0_sb,pswf0_or)
-   deallocate(pswfopt_sb,pswfopt_or)
-   deallocate(pswfresid_sb)
-   deallocate(pswfnull_sb)
-   deallocate(pswfnull_or)
-   deallocate(eresiddot,eresidmat)
-   deallocate(qout,eresq,leresq,eresid0)
-
- end do !iprj
-
- deallocate(work,qroot)
+ deallocate(eresid0,eresiddot,eresidmat)
+ deallocate(qout)
+ deallocate(orbasis)
+ deallocate(orbasis_der,pswf0_sb,pswfnull_sb)
+ deallocate(pswfopt_sb,pswfopt_or)
+ deallocate(work)
 
  return
  end subroutine run_optimize

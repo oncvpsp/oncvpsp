@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -38,30 +38,21 @@
 
 !Local variables
  integer :: ii
- real(dp) :: conrs,convx,conex
+ real(dp) :: conrs
  real(dp) :: rs,ecp,aln,xx,rh
 
  conrs = (3.d0/(4.d0*pi))**thrd
- convx = (1.5d0/pi)**(2.0d0/3.0d0)
- conex = 0.75d0*convx
 
 ! Hedin-Lundqvist correlation
 
  do ii=1,mmax
-   if(rho(ii)>1.0d-20) then
      rh=rho(ii)*pi4i
      rs=conrs/rh**thrd
      xx=rs/21.0d0
      aln=dlog(1.0d0 + 1.0d0/xx)
-     ecp = aln+(xx**3*aln-xx*xx)+0.5d0*xx-thrd
-!    ecp = aln+(xx**3*aln-xx*xx)+xx/2-1.0d0/3.0d0
-!    exc(ii)=-0.458175d0/rs - 0.0225d0*ecp
-!    vxc(ii)=-0.6109d0/rs - 0.0225d0*aln
-     exc(ii)=-conex/rs - 0.0225d0*ecp
-     vxc(ii)=-convx/rs - 0.0225d0*aln
-   else
-     vxc(ii)=0.0d0 ; exc(ii)=0.0d0
-   end if
+     ecp = aln+(xx**3*aln-xx*xx)+xx/2-1.0d0/3.0d0
+     exc(ii)=-0.458175d0/rs - 0.0225d0*ecp
+     vxc(ii)=-0.6109d0/rs - 0.0225d0*aln
  end do
 
  return

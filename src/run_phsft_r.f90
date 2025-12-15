@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -17,7 +17,7 @@
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
  subroutine run_phsft_r(lmax,lloc,nproj,ep,epsh1,epsh2,depsh,vkb,evkb, &
-&                     rr,vfull,vp,zz,mmax,mxprj,irc)
+&                     rr,vfull,vp,zz,mmax,irphs)
 
 ! computes log derivatives, actually atan(r * ((d psi(r)/dr)/psi(r)))
 ! at rr(irphs) comparing all-electron with Vanderbilt-Kleinman-Bylander
@@ -40,45 +40,36 @@
 !vp  semi-local pseudopotentials (vp(:,5) is local potential if linear comb.)
 !zz  atomic number
 !mmax  size of radial grid
-!mxprj  dimension of number of projectors
-!irc  core radii
 !irphs  index of rr beyond which all vp==vlocal
 
  implicit none
  integer, parameter :: dp=kind(1.0d0)
 
 !Input variables
- integer :: lmax,lloc,mmax,mxprj
- integer :: nproj(6),irc(6)
+ integer :: lmax,lloc,mmax,irphs
+ integer :: nproj(6)
  real(dp) :: epsh1,epsh2,depsh,zz
  real(dp) :: rr(mmax),vp(mmax,5,2),ep(6,2)
- real(dp) :: vfull(mmax),vkb(mmax,mxprj,4,2),evkb(mxprj,4,2)
+ real(dp) :: vfull(mmax),vkb(mmax,2,4,2),evkb(2,4,2)
 
 !Output variables - printing only
 
 !Local variables
- integer :: ii,ll,l1,irphs,npsh
+ integer :: ii,ll,l1,npsh
  integer :: ikap,kap,mkap
  real(dp) :: epsh
 
  real(dp),allocatable :: pshf(:),pshp(:)
 
- npsh=int(((epsh2-epsh1)/depsh)-0.5d0)+1
+ npsh=(epsh2-epsh1)/depsh+1
 
  allocate(pshf(npsh),pshp(npsh))
 
 ! loop for phase shift calculation -- full, then local or Kleinman-
 ! Bylander / Vanderbilt
  
- do l1 = 1, 4
+ do l1 = 1, lmax+1
    ll = l1 - 1
-
-   if(ll<=lmax) then
-     irphs=irc(l1)+2
-   else
-     irphs=irc(lloc+1)
-   end if
-
   if(l1==1) then
    mkap=1
   else

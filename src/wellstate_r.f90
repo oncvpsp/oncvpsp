@@ -1,5 +1,5 @@
 !
-! Copyright (c) 1989-2019 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
+! Copyright (c) 1989-2014 by D. R. Hamann, Mat-Sim Research LLC and Rutgers
 ! University
 !
 ! 
@@ -16,11 +16,11 @@
 ! You should have received a copy of the GNU General Public License
 ! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 !
-subroutine wellstate_r(nnin,ll,kap,irc,ep,rr,vfull,vwell, &
-&                      uu,up,zz,mmax,mch,srel)
+ subroutine wellstate_r(nn,ll,kap,irc,ep,rr,vfull,uu,zz,mmax)
 
 !creates quantum well to confine positive-energy state, and calculates
 !the resulting all-electron wave function
+!Fully relativistic case using Dirac equation
 
 !nn  principal quantum number of well state
 !ll  angular momentum
@@ -29,12 +29,9 @@ subroutine wellstate_r(nnin,ll,kap,irc,ep,rr,vfull,vwell, &
 !ep  target energy for well state (>0)
 !rr  log radial mesh
 !vfull  all-electron potential
-!vwell  potential with binding well for ikap=2 calculation
 !uu  all-electron well-bound wave function
-!up  d(uu)/dr
 !zz  atomic number
 !mmax  size of log radial mesh 
-!mch matching mesh point for inward-outward integrations
 !srel .true. for scalar-relativistic, .false. for non-relativistic
  
  implicit none
@@ -44,179 +41,111 @@ subroutine wellstate_r(nnin,ll,kap,irc,ep,rr,vfull,vwell, &
 !Input variables
  real(dp) :: rr(mmax),vfull(mmax)
  real(dp) :: ep,zz
- integer :: nnin,ll,kap,irc,mmax !(nnin is actually in/out)
- logical :: srel
+ integer :: nn,ll,kap,irc,mmax,mch
 
 !Output variables
- real(dp) :: uu(mmax,2),up(mmax,2),vwell(mmax)
- integer :: mch
+ real(dp) :: uu(mmax,2)
  
 !Local variables
- real(dp) :: al,cwell,et,xx,rwell,rwmax,rwmin,rwscale,umax
+ real(dp), allocatable :: up(:,:),vwell(:)
+ real(dp) :: al,cwell,et,xx,rwell
+ real(dp) :: cwmax,cwmin
 
  real(dp),parameter :: eps=1.0d-8
- integer :: ii,iter,ierr,iumax,l1,itrwell,nn,nnloop
+ integer :: ii,iter,ierr,l1,itrwell
  logical :: convg
  
  l1=ll+1
  al = 0.01d0 * dlog(rr(101) / rr(1))
 
-!check for bound state with specified ll and nnin
+ allocate(up(mmax,2),vwell(mmax))
 
- uu(:,:)=0.0d0 ; up(:,:)=0.0d0
- et=-0.1d0
- call ldiracfb(nnin,ll,kap,ierr,et,rr,zz,vfull,uu,up,mmax,mch)
+ rwell=8.0d0*rr(irc)
 
-!if bound state is found, check its localization
- if(ierr==0) then
-   umax=0.0d0
-   do ii=mmax,1,-1
-     if(dabs(uu(ii,1))>=umax) then
-       umax=dabs(uu(ii,1))
-     else
-       iumax=ii+1
-       exit
-     end if
-   end do
+ convg=.false.
 
-!if bound state is localized compared to rc, use it and its energy
-   if(rr(iumax)<0.75d0*rr(irc)) then
-     ep=et
-     write(6,'(/a,i2,a,i2/a,f12.8/a)') &
-&          'WARNING wellstate: localized bound state found for n=', &
-&           nnin,' l=', ll,'WARNING this state with energy',ep, &
-&          'WARNING will be used for the first projector'
+ do itrwell=1,20
 
-!make sure vwell exists for ikap=2 calculation in this case
-     vwell(:)=vfull(:)
-
-     return
-
-!if moderately delocalized use very low-energy scattering state
-   else if(rr(iumax)<1.5d0*rr(irc)) then
-
-     ep=0.05d0
-     write(6,'(/a,i2,a,i2/a,f12.8/a)') &
-&          'WARNING wellstate: moderately localized bound state found for n=', &
-&          nnin,' l= ',ll,'WARNING scattering state with energy',ep, &
-&          'WARNING will be used for the first projector'
-   end if
- end if
-
-!if specified ep is retained and is negative 
- if(ep<0.0d0) then
-   ep=0.25d0
-   write(6,'(/a,i2,a,i2/a,f12.8/a)') &
-&         'WARNING wellstate: negative energy specified for n=', &
-&         nnin,' l= ',ll, &
-&         'WARNING scattering state with energy',ep, &
-&         'WARNING will be used for the first projector'
- end if
-
-
-!scale factor to decrease well width until trial energy exceeds target
- rwscale=0.8d0
-
-!asymptotic potential value to give target bound state a "binding" energy
-!of 0.5 Ha
- cwell=ep+0.5d0
-
-!loop which will increment number of nodes before well wall gets too steep
- do nnloop=0,10
-   nn=nnin+nnloop
-
-   rwell=8.0d0*rr(irc)
-   rwmax=0.0d0
-   rwmin=0.0d0
-
-   convg=.false.
-
-   do itrwell=1,100
-
+  cwmax=ep+1.0d0
+  cwmin=ep
+  
+  do iter=1,100
 
 !create well potential
-     do ii=1,mmax
-      vwell(ii)=vfull(ii)
-     end do
+   do ii=1,mmax
+    vwell(ii)=vfull(ii)
+   end do
+   cwell=0.5d0*(cwmax+cwmin)
 
-!   start outside rc to keep numerical derivatives at rc accurate
-     do ii=irc+6,mmax
-      xx=(rr(ii)-rr(irc+5))/rwell
-      vwell(ii)=vwell(ii)+cwell*xx**3/(1.0d0+xx**3)
-     end do
+! start outside rc to keep numerical derivatives at rc accurate
+   do ii=irc+6,mmax
+    xx=(rr(ii)-rr(irc+5))/rwell
+    vwell(ii)=vwell(ii)+cwell*xx**3/(1.0d0+xx**3)
+   end do
 
 !find bound state in well
-     et=ep
-     call ldiracfb(nn,ll,kap,ierr,et,rr,zz,vwell,uu,up,mmax,mch)
+   et=ep
+   call ldiracfb(nn,ll,kap,ierr,et,rr,zz,vwell,uu,up,mmax,mch)
 
-!     if(ierr < 0) then
-!       write(6,'(a,i3,a,i3,a,i3)') &
-!&            'wellstate_r: ERROR ldiracfb no classical turning point, &
-!&             n=',nn,' l=',ll,' kap=',kap 
-!       stop
-!     end if
+   if(ierr .ne. 0) then
+    write(6,'(a,i3,a,i3)') 'wellstate: lschfb convergence error, n=',nn,' l=',ll
+    stop
+   end if
 
-     if(abs(et-ep)<eps) then
-      ep=et
-      convg=.true.
-      exit
-     end if
+   if(abs(et-ep)<eps) then
+    ep=et
+    convg=.true.
+    exit
+   end if
 
-!Interval-halving search after proper rwell has been bracketed
-     if(rwmin>0.0d0 .and. rwmax>0.0d0) then
-       if(et>ep) then
-         rwmin=rwell
-       else
-         rwmax=rwell
-      end if
-      rwell=0.5d0*(rwmax+rwmin) 
-      cycle
-     end if
+   if(et<0.0d0 .and. cwell==0.0d0) then
+    ep=et
+    write(6,'(/a,i3,a/a,f12.6,a)') 'wellstate: Negative-energy state for l=', &
+&         ll,' found for maximum barrier.',  'Normal bound state at ep=',ep, &
+&        ' will be used.'
+    convg=.true.
+    exit
+   end if
 
-     if(et>ep) then
-       rwmin=rwell
-       if(rwmax>0.0d0) then
-         rwell=0.5d0*(rwmax+rwmin) 
-       else
-         rwell=rwell/rwscale
-       end if
-       cycle
-     end if
+!if a bound state is found for the highest repulsive barrier to be used,
+!set the barrier to zero and use the actual bound state
+!otherwise, interval-halve
 
-     if(et<ep) then
-       rwmax=rwell
-       if(rwmin>0.0d0) then
-         rwell=0.5d0*(rwmax+rwmin) 
-       else
-         rwell=rwell*rwscale
-         if(rwell<dmax1(1.0d0,0.5d0*rr(irc))) exit
-       end if
-       cycle
-     end if
+   if(et<0.0d0 .and. iter==1 .and. itrwell==20) then
+    cwmax=0.0d0
+    cwmin=0.0d0
+   else
+    if(et>ep) then
+     cwmax=cwell
+    else
+     cwmin=cwell
+    end if
+   end if
 
-   end do !itrwell
+  end do
+  if(convg) then
+   exit
+  end if
 
-   if(convg) exit
- end do !nnloop
+!scale rwell if well potential wasn't converged
+  rwell=0.75*rwell
+ end do
 
  if(.not. convg) then
-   write(6,'(a,a,i3,a,i3,a,i3a,f8.4)') &
-&   'ERROR wellstate_r: well potential iteration failed', &
-&   ' to converge, n=',nn,' l=',ll,' kap=', kap,' ep=',ep
+  write(6,'(/a)') 'wellstate: iteration failed to  converge'
+   write(6,'(a,a,i3,a,i3)') 'wellstate: well potential iteration failed', &
+&   ' to converge, n=',nn,' l=',ll
   stop
  end if
 
  if(cwell>0.0d0) then
   write(6,'(/a,i3,a,i3,a,i3/a,f8.4,/a,f8.4/a,f8.4)') &
-&          '   Wellstate for l =',ll,'  n =',nn,' kap=',kap, &
-&          '     eigenvalue = ',et, &
-&          '     asymptotic potential = ',cwell, &
-&          '     half-point radius =',rr(irc)+rwell
+&          '  Wellstate for l =',ll,'  n =',nn,'  kappa=',kap,  &
+&          '    eigenvalue = ',et, &
+&          '    asymptotic potential = ',cwell, &
+&          '    half-point radius =',rr(irc)+rwell
  end if
 
-!carry over node count
-
- nnin=nn
-
+ deallocate(up,vwell)
  return
  end subroutine wellstate_r
