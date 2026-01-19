@@ -904,12 +904,6 @@ class OncvpspInput(BaseModel):
 
     @model_validator(mode="after")
     def _check_reference_configuration(self) -> "OncvpspInput":
-        for i, state in enumerate(self.reference_configuration):
-            if state.l > self.pseudopotentials.lmax:
-                raise ValueError(
-                    f"State at index {i} with l={state.l} exceeds"
-                    f" l_max={self.pseudopotentials.lmax} in reference configuration"
-                )
         total_occupation = sum(state.f for state in self.reference_configuration)
         if total_occupation > self.oncvpsp.z:
             raise ValueError(
