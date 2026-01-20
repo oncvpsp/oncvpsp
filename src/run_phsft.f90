@@ -106,6 +106,12 @@
         stop
      end if
      rpsh(l1) = rxpsh
+     do ii = 1, mmax
+       if (rr(ii) .ge. rpsh(l1)) then
+         irpsh(l1) = ii
+         exit
+       end if
+     end do
    end if
 
    call fphsft(ll,epsh2,depsh,pshf(:,l1),rr,vfull,zz,mmax,irpsh(l1),npsh,srel)

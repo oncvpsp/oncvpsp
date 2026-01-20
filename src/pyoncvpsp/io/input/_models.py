@@ -21,6 +21,7 @@ class OncvpspAtomInput(BaseModel):  # pylint: disable=too-few-public-methods
         nc (int): Number of core states.
         nv (int): Number of valence states.
         iexc (int): Exchange-correlation functional. Negative values indicate Libxc; 1-4 are built-in functionals.
+        psfile (str): Pseudopotential output type.
     """
 
     atsym: Annotated[str, Field(description="Atomic symbol of the element (e.g. 'H', 'He', ...)")]
@@ -36,6 +37,7 @@ class OncvpspAtomInput(BaseModel):  # pylint: disable=too-few-public-methods
             ),
         ),
     ]
+    psfile: Annotated[str, Field(description="Pseudopotential output type.")]
 
     @model_validator(mode="after")
     def _check_atomic_symbol(self) -> "OncvpspAtomInput":
@@ -51,9 +53,19 @@ class OncvpspAtomInput(BaseModel):  # pylint: disable=too-few-public-methods
             raise ValueError("exchange_correlation_type can be negative (LibXC), 1-4 (built-in), but not 0")
         return self
 
-    def as_dat_string(self, psfile: str, with_comment: bool = False) -> str:
+    @model_validator(mode="after")
+    def _check_psp_output_format(self) -> "OncvpspAtomInput":
+        valid_formats = {"psp8", "upf", "psml", "both", "all", "none"}
+        if self.psfile not in valid_formats:
+            raise ValueError(
+                f"Invalid pseudopotential output format: {self.psfile}. "
+                f"Valid formats are: {', '.join(valid_formats)}"
+            )
+        return self
+
+    def as_dat_string(self, with_comment: bool = False) -> str:
         """String representation of the pseudopotential input in .dat file format."""
-        s: str = f"{self.atsym:>10s} {self.z:>10.5f} {self.nc:>10d} " f"{self.nv:>10d} {self.iexc:>10d} {psfile:>10s}"
+        s: str = f"{self.atsym:>10s} {self.z:>10.5f} {self.nc:>10d} " f"{self.nv:>10d} {self.iexc:>10d} {self.psfile:>10s}"
         if with_comment:
             s = f"# {'atsym':>8s} {'z':>10s} {'nc':>10s} " f"{'nv':>10s} {'iexc':>10s} {'psfile':>10s}\n" + s
         return s
@@ -281,7 +293,7 @@ class LocalPotentialInput(BaseModel):  # pylint: disable=too-few-public-methods
     lloc: Annotated[int, Field(ge=0)]
     lpopt: None | Annotated[int, Field(ge=1, le=5)] = None
     rcloc: None | Annotated[float, Field(gt=0.0)] = None
-    dvloc0: None | Annotated[float, Field(ge=0.0)] = None
+    dvloc0: None | float = None
 
     @model_validator(mode="after")
     def _check(self) -> "LocalPotentialInput":
@@ -519,32 +531,6 @@ class OutputGridInput(BaseModel):  # pylint: disable=too-few-public-methods
         return s
 
 
-class OncvpspPPOutputInput(BaseModel):  # pylint: disable=too-few-public-methods
-    """Input parameter controlling the pseudopotential file formats written as output.
-
-    Attributes:
-        psfile (str): Pseudopotential output format: 'psp8', 'upf', 'psml', 'both', 'all', or 'none'.
-            `both` writes 'psp8' and 'upf' formats.
-            `all` writes 'psp8', 'upf', and 'psml' formats.
-            `none` writes no pseudopotential files (useful for testing/ optimization runs).
-    """
-
-    psfile: Annotated[
-        str,
-        Field(description="Pseudopotential output format: 'psp8', 'upf', 'psml', 'both', 'all', or 'none'."),
-    ]
-
-    @model_validator(mode="after")
-    def _check_psp_output_format(self) -> "OncvpspPPOutputInput":
-        valid_formats = {"psp8", "upf", "psml", "both", "all", "none"}
-        if self.psfile not in valid_formats:
-            raise ValueError(
-                f"Invalid pseudopotential output format: {self.psfile}. "
-                f"Valid formats are: {', '.join(valid_formats)}"
-            )
-        return self
-
-
 class OncvpspInput(BaseModel):
     """ONCVPSP Input parameters"""
 
@@ -556,8 +542,7 @@ class OncvpspInput(BaseModel):
     model_core_charge: ModelCoreChargeInput
     log_derivative_analysis: LogDerivativeInput
     test_configurations: list[AtomicConfigurationInput] = []
-    linear_mesh: OutputGridInput
-    pp_output: OncvpspPPOutputInput
+    output_grid: OutputGridInput
 
     def merge(self, other: dict[str, Any] | None = None, **kwargs) -> "OncvpspInput":
         """Merge this set of input parameters with another set of parameters or keyword arguments.
@@ -585,7 +570,7 @@ class OncvpspInput(BaseModel):
             return "\n".join(
                 [
                     "# ATOM AND REFERENCE CONFIGURATION",
-                    self.oncvpsp.as_dat_string(psfile=self.pp_output.psfile, with_comment=with_comment),
+                    self.oncvpsp.as_dat_string(with_comment=with_comment),
                     "#",
                     self.reference_configuration.as_dat_string(with_comment=with_comment),
                     "#",
@@ -605,7 +590,7 @@ class OncvpspInput(BaseModel):
                     self.log_derivative_analysis.as_dat_string(with_comment=with_comment),
                     "#",
                     "# OUTPUT GRID",
-                    self.linear_mesh.as_dat_string(with_comment=with_comment),
+                    self.output_grid.as_dat_string(with_comment=with_comment),
                     "#",
                     "# TEST CONFIGURATIONS",
                     f"# {'ncnf':>8s}",
@@ -618,14 +603,14 @@ class OncvpspInput(BaseModel):
             )
         return "\n".join(
             [
-                self.oncvpsp.as_dat_string(psfile=self.pp_output.psfile, with_comment=with_comment),
+                self.oncvpsp.as_dat_string(with_comment=with_comment),
                 self.reference_configuration.as_dat_string(with_comment=with_comment),
                 self.pseudopotentials.as_dat_string(with_comment=with_comment),
                 self.local_potential.as_dat_string(with_comment=with_comment),
                 self.vkb_projectors.as_dat_string(with_comment=with_comment),
                 self.model_core_charge.as_dat_string(with_comment=with_comment),
                 self.log_derivative_analysis.as_dat_string(with_comment=with_comment),
-                self.linear_mesh.as_dat_string(with_comment=with_comment),
+                self.output_grid.as_dat_string(with_comment=with_comment),
                 f"{len(self.test_configurations):>10d}",
             ]
             + [
@@ -774,6 +759,7 @@ class OncvpspInput(BaseModel):
                 "nc": nc,
                 "nv": nv,
                 "iexc": iexc,
+                "psfile": psfile,
             },
             "reference_configuration": {
                 "n": na,
@@ -811,12 +797,9 @@ class OncvpspInput(BaseModel):
                 "depsh": depsh,
                 "rxpsh": rxpsh,
             },
-            "linear_mesh": {
+            "output_grid": {
                 "rlmax": rlmax,
                 "drl": drl,
-            },
-            "pp_output": {
-                "psfile": psfile,
             },
             "test_configurations": test_configurations,
         }
@@ -928,9 +911,9 @@ class OncvpspInput(BaseModel):
         rc_max: float = max(self.pseudopotentials.rc)
         if self.local_potential.lloc == 4:
             rc_max = max(rc_max, self.local_potential.rcloc)  # type: ignore
-        if self.linear_mesh.rlmax < rc_max:
+        if self.output_grid.rlmax < rc_max:
             raise ValueError(
-                f"Output grid rlmax={self.linear_mesh.rlmax} is smaller than "
+                f"Output grid rlmax={self.output_grid.rlmax} is smaller than "
                 f"maximum rc={rc_max} of pseudopotentials"
             )
         return self
