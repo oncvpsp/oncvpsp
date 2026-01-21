@@ -25,7 +25,7 @@
  subroutine run_phsft(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,rxpsh,npsh,vkb,evkb, &
 &                     rr,vfull,vp,zz,mmax,mxprj,irc,srel, &
 &                     irpsh,rpsh,epsh,pshf,pshp)
- use, intrinsic :: iso_fortran_env, only: dp => real64, stderr => error_unit
+ use, intrinsic :: iso_fortran_env, only: dp => real64, stdout => output_unit
  implicit none
 
 !Input variables
@@ -100,18 +100,18 @@
    rpsh(l1) = rr(irpsh(l1))
 
    if (rxpsh > 0.0_dp) then
-     if (rxpsh < rpsh(l1)) then
-        write(stderr, '(a,f12.5,a,i1,a,f12.5)') &
-          'ERROR: run_phsft: rxpsh=', rxpsh, ' < rc(', l1 - 1, ')=', rpsh(l1)
-        stop
-     end if
-     rpsh(l1) = rxpsh
-     do ii = 1, mmax
-       if (rr(ii) .ge. rpsh(l1)) then
-         irpsh(l1) = ii
-         exit
-       end if
-     end do
+      if (rxpsh < rpsh(l1)) then
+         write(stdout, '(a,f12.5,a,i1,a,f12.5)') &
+           'ERROR: run_phsft: rxpsh=', rxpsh, ' < rc(', l1 - 1, ')=', rpsh(l1)
+         stop
+      end if
+      do ii = 1, mmax
+         if (rr(ii) .ge. rpsh(l1)) then
+            irpsh(l1) = ii
+            rpsh(l1) = rr(ii)
+            exit
+        end if
+      end do
    end if
 
    call fphsft(ll,epsh2,depsh,pshf(:,l1),rr,vfull,zz,mmax,irpsh(l1),npsh,srel)
