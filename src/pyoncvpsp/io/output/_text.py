@@ -160,6 +160,14 @@ ERRORS = [
         "subroutine": "optimize",
         "description": "Norm of unoptimized pseudo wavefunction exceeds that of all-electron wavefunction.",
     },
+    {
+        "name": "rxpsh_too_small",
+        "pattern": rf"ERROR: run_phsft: rxpsh= (?P<rxpsh>{RE_FLOAT}) < rc\((?P<l>\d)\)= (?P<rc>{RE_FLOAT})",
+        "match_string": "ERROR: run_phsft: rxpsh=",
+        "line_count": 1,
+        "subroutine": "run_phsft",
+        "description": "Matching radius is smaller than pseudopotential core radius for given angular momentum.",
+    }
 ]
 
 

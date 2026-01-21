@@ -81,6 +81,7 @@
 
 !Local variables
  integer :: ii,ll,l1
+ logical :: error_flag
 
 ! loop for phase shift calculation -- full, then local or Kleinman-
 ! Bylander / Vanderbilt
@@ -89,6 +90,7 @@
     epsh(ii) = epsh2 - real(ii - 1, dp) * depsh
  end do
 
+ error_flag = .false.
  do l1 = 1, 4
    ll = l1 - 1
    !> index of rr beyond which all vp==vlocal
@@ -103,7 +105,7 @@
       if (rxpsh < rpsh(l1)) then
          write(stdout, '(a,f12.5,a,i1,a,f12.5)') &
            'ERROR: run_phsft: rxpsh=', rxpsh, ' < rc(', l1 - 1, ')=', rpsh(l1)
-         stop
+         error_flag = .true.
       end if
       do ii = 1, mmax
          if (rr(ii) .ge. rpsh(l1)) then
@@ -113,6 +115,7 @@
         end if
       end do
    end if
+   if (error_flag) stop
 
    call fphsft(ll,epsh2,depsh,pshf(:,l1),rr,vfull,zz,mmax,irpsh(l1),npsh,srel)
    if(ll .eq. lloc) then
