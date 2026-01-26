@@ -30,7 +30,7 @@ foreach(test_name ${oncvpspsr_tests})
                 sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP2
             perl ${CMAKE_SOURCE_DIR}/scripts/fldiff.pl -easy $TEMP1 $TEMP2 > ${diff_out}
             rm -f $TEMP1 $TEMP2
-            grep -E '^Summary  : no significant difference|^Summary  : different lines=\\s*\\d+ , max abs_diff= -?0\\.000e[\\+\\-]00 \\(.*\\), max rel_diff= -?0\\.000e[\\+\\-]00 \\(.*\\)' ${diff_out}
+            grep -E 'Summary  : no significant difference|Summary  : different lines=\\s*[0-9]+ , max abs_diff= -?0\\.000e[\\+\\-]00 \\(.*\\), max rel_diff= -?0\\.000e[\\+\\-]00 \\(.*\\)' ${diff_out}
             success=\$?
             cat ${diff_out}
             exit \$success
@@ -65,7 +65,7 @@ foreach(test_name ${oncvpspr_tests})
                 sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP2
             perl ${CMAKE_SOURCE_DIR}/scripts/fldiff.pl -easy $TEMP1 $TEMP2 > ${diff_out}
             rm -f $TEMP1 $TEMP2
-            grep -E '^Summary  : no significant difference|^Summary  : different lines=\\s*[0-9]+ , max abs_diff= -?0\\.000e[\\+\\-]00 \\(.*\\), max rel_diff= -?0\\.000e[\\+\\-]00 \\(.*\\)' ${diff_out}
+            grep -E 'Summary  : no significant difference|Summary  : different lines=\\s*[0-9]+ , max abs_diff= -?0\\.000e[\\+\\-]00 \\(.*\\), max rel_diff= -?0\\.000e[\\+\\-]00 \\(.*\\)' ${diff_out}
             success=\$?
             cat ${diff_out}
             exit \$success
