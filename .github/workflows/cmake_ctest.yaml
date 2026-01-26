@@ -1,0 +1,25 @@
+name: CMake+CTest
+
+on:
+    push:
+        branches: [ "master", "dev" ]
+    pull_request:
+        branches: [ "master" ]
+
+jobs:
+    build-test-oncvpsp:
+        name: Build and test ONCVPSP with CMake and CTest
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+            - name: Install dependencies
+              run: |
+                sudo apt update
+                sudo apt install -y build-essential gfortran liblapack-dev libxc-dev
+            - name: Build
+              uses: threeal/cmake-action@v2
+            - name: Test
+              uses: threeal/ctest-action@v1
+              with:
+                args: "-j"
