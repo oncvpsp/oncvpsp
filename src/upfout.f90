@@ -502,11 +502,11 @@
   write(6,'(1p,4e20.10)') (uual(jj,ii),jj=1,nrl)
 
   if(ii <= 9) then
-    write(6,'(t4,a,i1)') &
-&         '</PP_CHI.',ii
+    write(6,'(t4,a,i1,a)') &
+&         '</PP_CHI.',ii,'>'
   else
-    write(6,'(t4,a,i2)') &
-&         '</PP_CHI.',ii
+    write(6,'(t4,a,i2,a)') &
+&         '</PP_CHI.',ii,'>'
   end if
 
  end do
