@@ -28,6 +28,7 @@ option(ONCVPSP_WITH_TOML "Enable TOML input support" ON)
 # Include CMake modules
 ###########################################################
 include(cmake/CPM.cmake)
+include(CTest)
 
 ##########################################################
 # Build types
@@ -174,6 +175,7 @@ endif()
 # Subdirectories
 ###########################################################
 add_subdirectory(src)
+add_subdirectory(tests)
 
 ###########################################################
 # Installation

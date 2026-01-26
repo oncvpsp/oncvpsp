@@ -1,0 +1,26 @@
+name: Build and test
+
+on:
+    push:
+        branches: [ "master", "dev" ]
+    pull_request:
+        branches: [ "master" ]
+
+jobs:
+    all:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+            - name: Install dependencies
+              run: |
+                sudo apt update
+                sudo apt install -y build-essential gfortran liblapack-dev libxc-dev
+            - name: Build
+              uses: threeal/cmake-action@v2
+              with:
+                build-args: "-j"
+            - name: Test
+              uses: threeal/ctest-action@v1
+              with:
+                args: "-j"
