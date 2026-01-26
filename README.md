@@ -9,18 +9,16 @@ optimized norm-conserving Vanderbilt pseudopotentials.
 
 ### With CMake
 
-1. Make a `build` directory in the root of the repository like `/path/to/oncvpsp/build`
-2. `cd` into the `build` directory
-3. Run `cmake ..` from the `build` directory
-    - To enable Libxc, pass the flag `-DLibxc_ROOT=/path/to/libxc`
-    - To provide a path to LAPACK/BLAS, pass the flag(s) `-DLAPACK_ROOT=/path/to/lapack`, `-DBLAS_ROOT=/path/to/blas`
-        - The path for BLAS may be the same as LAPACK!
-    - To change the build type (debug vs. release), pass the flag `-DCMAKE_BUILD_TYPE="Debug"` or `-DCMAKE_BUILD_TYPE="Release"`
-    - To set the installation directory, pass the flag `-DCMAKE_INSTALL_PREFIX=/path/to/installation`
-4. Run `make all >& make.log` (builds the executable targets `oncvpsp`, `oncvpsp_nr`, and `oncvpsp_r`)
-5. `cd ..` to go back to the root of the repository
-6. In the root of the repository run `set_path` to set up the test scripts
-7. `cd tests/data && ./TEST.sh` to run the tests
+```bash
+# Configure the build (example flags in brackets)
+cmake -S . -B build [-DLibxc_ROOT=<path>] [-DLAPACK_ROOT=<path>] [-DCMAKE_INSTALL_PREFIX=<path>]
+# Compile ONCVPSP
+cmake --build build --parallel
+# Run the test suite (-j for parallel execution)
+ctest --test-dir build --progress --parallel
+# Install ONCVPSP
+cmake --build build -t install
+```
 
 ### With make
 
