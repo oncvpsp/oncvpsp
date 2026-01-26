@@ -124,10 +124,9 @@
 ! override dpnint extrapolation to zero for vpl
    vpl(1,l1)=vpuns(1,l1)
    if(l1 .ne. lloc + 1) then
-
-     call dpnint(rr,vkb(1,1,l1),mmax,rl,vkbl(1,1,l1),nrl)
-     call dpnint(rr,vkb(1,2,l1),mmax,rl,vkbl(1,2,l1),nrl)
-
+      do iproj=1,nproj(l1)
+        call dpnint(rr,vkb(1,iproj,l1),mmax,rl,vkbl(1,iproj,l1),nrl)
+      end do
    end if
  end do
 
