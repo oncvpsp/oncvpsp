@@ -14,7 +14,7 @@ optimized norm-conserving Vanderbilt pseudopotentials.
 cmake -S . -B build [-DLibxc_ROOT=<path>] [-DLAPACK_ROOT=<path>] [-DCMAKE_INSTALL_PREFIX=<path>]
 # Compile ONCVPSP
 cmake --build build --parallel
-# Run the test suite (-j for parallel execution)
+# Run the test suite
 ctest --test-dir build --progress --parallel
 # Install ONCVPSP
 cmake --build build -t install
