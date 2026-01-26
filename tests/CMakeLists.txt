@@ -31,6 +31,11 @@ foreach(test_name ${oncvpspsr_tests})
             perl ${CMAKE_SOURCE_DIR}/scripts/fldiff.pl -easy $TEMP1 $TEMP2 > ${diff_out}
             rm -f $TEMP1 $TEMP2
             grep -E '^Summary  : no significant difference|^Summary  : different lines=\\s*\\d+ , max abs_diff= -?0\\.000e[\\+\\-]00 \\(.*\\), max rel_diff= -?0\\.000e[\\+\\-]00 \\(.*\\)' ${diff_out}
+            success=\$?
+            if [ \$success -ne 0 ]; then
+                cat ${diff_out}
+            fi
+            exit \$success
         "
     )
     set_property(TEST ${test_name} PROPERTY LABEL "sr")
@@ -63,6 +68,11 @@ foreach(test_name ${oncvpspr_tests})
             perl ${CMAKE_SOURCE_DIR}/scripts/fldiff.pl -easy $TEMP1 $TEMP2 > ${diff_out}
             rm -f $TEMP1 $TEMP2
             grep -E '^Summary  : no significant difference|^Summary  : different lines=\\s*\\d+ , max abs_diff= -?0\\.000e[\\+\\-]00 \\(.*\\), max rel_diff= -?0\\.000e[\\+\\-]00 \\(.*\\)' ${diff_out}
+            success=\$?
+            if [ \$success -ne 0 ]; then
+                cat ${diff_out}
+            fi
+            exit \$success
         "
     )
     set_property(TEST ${test_name} PROPERTY LABEL "r")
