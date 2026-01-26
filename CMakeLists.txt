@@ -162,7 +162,7 @@ endif()
 ###########################################################
 if(ONCVPSP_WITH_TOML)
     CPMAddPackage(
-        URI "gh:toml-f/toml-f@0.4.2"
+        URI "gh:toml-f/toml-f@0.4.3"
         OPTIONS "BUILD_TESTING=OFF"
     )
     list(APPEND ONCVPSP_DEPENDENCY_LIBRARIES toml-f-lib)
