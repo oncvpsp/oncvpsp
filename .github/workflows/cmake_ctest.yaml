@@ -1,4 +1,4 @@
-name: CMake+CTest
+name: Build and test
 
 on:
     push:
@@ -8,7 +8,6 @@ on:
 
 jobs:
     build-test-oncvpsp:
-        name: Build and test ONCVPSP with CMake and CTest
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
