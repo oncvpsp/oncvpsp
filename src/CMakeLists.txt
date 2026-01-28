@@ -116,9 +116,6 @@ set_target_properties(oncvpspsr
 if (ONCVPSP_WITH_TOML)
     target_compile_definitions(oncvpspsr PRIVATE WITH_TOML)
 endif ()
-if (HDF5_FOUND AND ONCVPSP_WITH_HDF5)
-    target_compile_definitions(oncvpspsr PRIVATE WITH_HDF5)
-endif ()
 
 ##########################################################
 # oncvpspnr.x (non-relativistic)
@@ -134,9 +131,6 @@ set_target_properties(oncvpspnr
 if (ONCVPSP_WITH_TOML)
     target_compile_definitions(oncvpspnr PRIVATE WITH_TOML)
 endif ()
-if (HDF5_FOUND AND ONCVPSP_WITH_HDF5)
-    target_compile_definitions(oncvpspnr PRIVATE WITH_HDF5)
-endif ()
 
 ##########################################################
 # oncvpspr.x (fully-relativistic)
@@ -151,9 +145,6 @@ set_target_properties(oncvpspr
 )
 if (ONCVPSP_WITH_TOML)
     target_compile_definitions(oncvpspr PRIVATE WITH_TOML)
-endif ()
-if (HDF5_FOUND AND ONCVPSP_WITH_HDF5)
-    target_compile_definitions(oncvpspr PRIVATE WITH_HDF5)
 endif ()
 
 ###########################################################
