@@ -7,7 +7,7 @@
 include ../make.inc
 
 OBJS_ALL =	aeo.o check_data.o const_basis.o dpnint.o eresid.o exchdl.o \
-		exc_off_pbe.o excpzca.o excwig.o ldiracfb.o ldiracfs.o \
+		exc_off_pbe.o excpzca.o excwig.o input_text_m.o ldiracfb.o ldiracfs.o \
 		lschfb.o lschfs.o lschkb.o lschpb.o lschpse.o lschps.o \
 		lschvkbbe.o lschvkbb.o lschvkbs.o modcore.o optimize.o \
 		pspot.o qroots.o run_optimize.o sbf8.o sbf_basis.o \
@@ -58,9 +58,9 @@ oncvpspr:	$(OBJS_OPSPR)
 .SUFFIXES: 
 .SUFFIXES: .c .o .f .f90 .F90
 
+#	$(FCCPP) $(FCCPPFLAGS) $*.F90  > $*_cpp.f90
 .F90.o:
-	$(FCCPP) $(FCCPPFLAGS) $*.F90  > $*_cpp.f90
-	$(F90) $(FFLAGS) $(INC) $(INCLUDE_WXML) -o $*.o -c $*_cpp.f90
+	$(F90) $(FCCPPFLAGS) -cpp $(FFLAGS) $(INC) $(INCLUDE_WXML) -o $*.o -c $*.F90
 
 .f90.o:
 	$(F90) $(FFLAGS) $(INC) $(INCLUDE_WXML) -c $*.f90

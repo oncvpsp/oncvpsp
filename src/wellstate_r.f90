@@ -200,7 +200,7 @@ subroutine wellstate_r(nnin,ll,kap,irc,ep,rr,vfull,vwell, &
  end do !nnloop
 
  if(.not. convg) then
-   write(6,'(a,a,i3,a,i3,a,i3a,f8.4)') &
+   write(6,'(a,a,i3,a,i3,a,i3,a,f8.4)') &
 &   'ERROR wellstate_r: well potential iteration failed', &
 &   ' to converge, n=',nn,' l=',ll,' kap=', kap,' ep=',ep
   stop
