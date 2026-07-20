@@ -33,7 +33,7 @@
 !   Output format for ABINIT pspcod=8 and upf format for quantumespresso
 !
  use, intrinsic :: iso_fortran_env, only: stdin => input_unit, stdout => output_unit, stderr => error_unit
- use m_psmlout, only: psmlout
+ use m_psmlout, only: psmlout, copy_input_file_for_psml, PSML_PATCH, get_ec_hints
  use input_text_m, only: read_input_text
 #if (defined WITH_TOML)
  use input_toml_m, only: read_input_toml
@@ -45,6 +45,7 @@
  integer :: ii,ierr,iexc,iexct,ios,iprint,irps,it,icmod,lpopt
  integer :: jj,kk,ll,l1,lloc,lmax,lt,inline
  integer :: mch,mchf,mmax,n1,n2,nc,nlim,nlloc,nlmax,irpsh,nrl
+ integer :: nrl0
  integer :: nv,irct,ncnf,nvt
  integer :: iprj,mxprj
  integer,allocatable :: npa(:,:)
@@ -104,7 +105,7 @@
 
  write(6,'(a/a//)') &
 &      'ONCVPSP  (Optimized Norm-Conservinng Vanderbilt PSeudopotential)', &
-&      'scalar-relativistic version 4.0.1 03/01/2019'
+&      'scalar-relativistic version 4.0.1 03/01/2019' // " + " // PSML_PATCH
 
  write(6,'(a/a/a//)') &
 &      'While it is not required under the terms of the GNU GPL, it is',&
@@ -157,6 +158,8 @@
  ios = 0
  select case(input_mode)
     case(INPUT_STDIN)
+! read input data
+       call copy_input_file_for_psml()
        call read_input_text(stdin, inline, &
                             atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
                             lmax, rc, ep, ncon, nbas, qcut, &
@@ -169,6 +172,19 @@
                             ncnf, nvcnf, nacnf, lacnf, facnf)
     case(INPUT_TEXT)
        open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
+! echo the input file to INP_COPY, to be embedded in the PSML output
+       copy_input_text: block
+          character(len=132) :: line
+          integer :: cunit, cstat
+          open(newunit=cunit, file='INP_COPY', action='write', status='replace', form='formatted')
+          do
+             read(unit, fmt="(a)", iostat=cstat) line
+             if (cstat /= 0) exit
+             write(cunit, fmt="(a)") trim(line)
+          end do
+          close(cunit)
+          rewind(unit)
+       end block copy_input_text
        call read_input_text(unit, inline, &
                             atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
                             lmax, rc, ep, ncon, nbas, qcut, &
@@ -183,6 +199,19 @@
 #if (defined WITH_TOML)
     case(INPUT_TOML)
        open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
+! echo the input file to INP_COPY, to be embedded in the PSML output
+       copy_input_toml: block
+          character(len=132) :: line
+          integer :: cunit, cstat
+          open(newunit=cunit, file='INP_COPY', action='write', status='replace', form='formatted')
+          do
+             read(unit, fmt="(a)", iostat=cstat) line
+             if (cstat /= 0) exit
+             write(cunit, fmt="(a)") trim(line)
+          end do
+          close(cunit)
+          rewind(unit)
+       end block copy_input_toml
        call read_input_toml(unit, &
                             atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
                             lmax, rc, ep, ncon, nbas, qcut, &
@@ -229,6 +258,7 @@
 &                ncnf,na,la,nvcnf,nacnf,lacnf,ncon,nbas,nproj,psfile)
 
  nrl=int((rlmax/drl)-0.5d0)+1
+ nrl0 = nrl
 
 !PWSCF wants an even number of mesh pointe
 !if(trim(psfile)=='upf') then
@@ -470,6 +500,8 @@
 
  end do !l1
 
+ call get_ec_hints(cvgplt)
+
 ! construct Vanderbilt / Kleinman-Bylander projectors
 
  write(6,'(/a,a)') 'Construct Vanderbilt / Kleinmman-Bylander projectors'
@@ -547,15 +579,15 @@
 
  if(icmod==1) then
    call modcore(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, irct)
 
  else if(icmod==2) then
    call modcore2(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, irct)
 
  else if(icmod>=3) then
    call modcore3(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, irct)
 
  end if
 
@@ -617,7 +649,7 @@
 
 
 
- call run_phsft(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,vkb,evkb, &
+ call run_phsft(lmax,lloc,nproj,epa,epsh1,epsh2,depsh,rxpsh,vkb,evkb, &
 &               rr,vfull,vp,zz,mmax,mxprj,irc,srel)
 
  call gnu_script(epa,evkb,lmax,lloc,mxprj,nproj)
@@ -640,18 +672,15 @@
 &             epsh1,epsh2,depsh,rlmax,psfile,uupsa,ea)
  end if
 
- if(trim(psfile)=='psml' .or. trim(psfile)=='both') then
 !
 ! Write info for PSML format
 !
-   print *, 'calling psmlout'
-   call psmlout(lmax,lloc,rc,vkb,evkb,mxprj,nproj,rr,vpuns,rho,rhomod, &
+ call psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
 &             irct, srel, &
-&             zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
-&             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
-&             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
-&             epsh1,epsh2,depsh,rlmax,psfile)
- end if
+&             zz,zion,mmax,mxprj,iexc,icmod,nrl0,drl,atsym,epstot, &
+&             na,la,nc,nv, &
+&             fa,epa, &
+&             psfile,uupsa,ea)
 
  stop
  end program oncvpsp

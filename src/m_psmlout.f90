@@ -1738,7 +1738,11 @@ subroutine get_psml_options(write_wfns,check_interp,relat_output_spec)
       spec = ""
       n_opts = 0
       do
-         call getopts('wr:c',opt_name,opt_arg,n_opts,iostat)
+!        i: and t: (BE-ref's -i/-t input-file selectors) and h,v (BE-ref's
+!        -h/-v help/version flags) are accepted here purely so this scan
+!        does not treat them as unknown options; the main program's own
+!        argument parser already handles them.
+         call getopts('wr:ci:t:hv',opt_name,opt_arg,n_opts,iostat)
          if (iostat /= 0) exit
          select case(opt_name)
            case ('c')
@@ -1747,6 +1751,8 @@ subroutine get_psml_options(write_wfns,check_interp,relat_output_spec)
               write_wfns = .true.
            case ('r')
               read(opt_arg,*) spec
+           case ('i','t','h','v')
+              ! Handled by the main program; ignored here.
            case ('?',':')
              write(0,*) "Invalid option: ", opt_arg(1:1)
              write(0,*) "Usage: oncvpsp [-c -w -r spec]"

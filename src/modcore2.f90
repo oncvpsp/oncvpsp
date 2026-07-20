@@ -24,7 +24,7 @@
 ! Teter, Phys. Rev. B 48, 5031 (1993) , Appendix, as 
 
  subroutine modcore2(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
-&                   fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+&                   fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, ircc)
 
 !icmod  3 coefficient optimizaion, 4 for specivied fcfact and rfact
 !rhops  state-by-state pseudocharge density
@@ -43,6 +43,7 @@
 !la  angular-momenta
 !zion  ion charge
 !iexc  exchange-correlation function to be used
+!ircc  index of matching point
 
  implicit none
  integer, parameter :: dp=kind(1.0d0)
@@ -57,6 +58,7 @@
 
 !Output variables
  real(dp) :: rhomod(mmax,5)
+ integer  :: ircc            ! Index of matching point
 
 !convergence criterion
  real(dp), parameter :: eps=1.0d-7
@@ -70,7 +72,7 @@
  real(dp) :: drint,rtst,rint(20),fint(20) !ad-hoc smoothing variables
  real(dp), allocatable :: vxcae(:),vxcpsp(:),vo(:),d2excae(:,:),d2excps(:,:)
  real(dp), allocatable :: dvxcae(:,:),dvxcps(:,:),vxct(:)
- integer :: ii,ierr,ircc,irmod,iter,jj,kk
+ integer :: ii,ierr,irmod,iter,jj,kk
  integer :: iint !ad-hoc smoothing variables
 
  allocate(vxcae(mmax),vxcpsp(mmax),vo(mmax))

@@ -36,6 +36,7 @@ private :: xml_AddArray_integer,  xml_AddArray_real_dp, xml_AddArray_real_sp
 private :: get_unit
 private :: add_eol
 private :: write_attributes
+private :: add_escaped_to_buffer
 
 
 integer, private, parameter  :: COLUMNS = 80
@@ -349,11 +350,38 @@ do i = 1, len(xf%dict)
    call add_to_buffer(trim(key), xf%buffer)
    call add_to_buffer("=", xf%buffer)
    call add_to_buffer("""",xf%buffer)
-   call add_to_buffer(trim(value), xf%buffer)
+   call add_escaped_to_buffer(trim(value), xf%buffer)
    call add_to_buffer("""", xf%buffer)
 enddo
 
 end subroutine write_attributes
+
+!-------------------------------------------------------------
+subroutine add_escaped_to_buffer(s,buffer)
+! Escapes the XML-significant characters in an attribute value
+! (e.g. libxc functional names containing "&", such as "Perdew &
+! Zunger") before adding it to the buffer.
+character(len=*), intent(in)   :: s
+type(buffer_t), intent(inout)  :: buffer
+
+integer :: i
+
+do i = 1, len(s)
+   select case(s(i:i))
+   case ('&')
+      call add_to_buffer("&amp;", buffer)
+   case ('<')
+      call add_to_buffer("&lt;", buffer)
+   case ('>')
+      call add_to_buffer("&gt;", buffer)
+   case ('"')
+      call add_to_buffer("&quot;", buffer)
+   case default
+      call add_to_buffer(s(i:i), buffer)
+   end select
+enddo
+
+end subroutine add_escaped_to_buffer
 
 !---------------------------------------------------------------
     subroutine xml_AddArray_integer(xf,a,format)

@@ -122,7 +122,7 @@ endif ()
 ##########################################################
 # oncvpspnr.x (non-relativistic)
 ##########################################################
-add_executable(oncvpspnr oncvpsp.F90)
+add_executable(oncvpspnr oncvpsp_nr.F90)
 target_compile_definitions(oncvpspnr PUBLIC RELATIVISTIC=0)
 add_dependencies(oncvpspnr oncvpsp)
 target_link_libraries(oncvpspnr PRIVATE oncvpsp)
