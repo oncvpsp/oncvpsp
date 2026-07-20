@@ -4,8 +4,8 @@
 #_r is appended to the prefix of the output file
 #uses the fully-relativistic all-electron atom calculation
 
-PREFIX=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp
-BIN_DIR=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp/src
+PREFIX=@PROJECT_BINARY_DIR@
+BIN_DIR=@PROJECT_BINARY_DIR@/bin
 
 INFILE=$1.dat
 
@@ -17,7 +17,11 @@ PLOTFILE=$1_r.plot
 
 TEMP=$$.tmp
 
-$BIN_DIR/oncvpspr.x <$INFILE >$OUTFILE  #Edit if your executable is
+# PSML output: capture ONCVPSPPSML and rename to a per-element filename.
+# $3 $4 $5 $6 $7 pass through PSML CLI options (-w, -c, -r ...)
+PSMLFILE=$1_r.psml
+
+$BIN_DIR/oncvpspr.x $3 $4 $5 $6 $7 <$INFILE >$OUTFILE  #Edit if your executable is
                                             #in another directory
 
 awk 'BEGIN{out=0};/GNUSCRIPT/{out=0}; {if(out == 1) {print}};\
@@ -27,6 +31,8 @@ awk 'BEGIN{out=0};/END_GNU/{out=0}; {if(out == 1) {print}};\
 	/GNUSCRIPT/{out=1}' $OUTFILE >$TEMP
 
 sed -e s/t1/$PLOTFILE/ $TEMP | sed -e s/t2/$1_r/ >$GNUFILE
+
+mv ONCVPSPPSML $PSMLFILE
 
 if [ "$2" != "-np" ]
 then

@@ -8,7 +8,7 @@
 #functions can be compared (libxc produces two extra lines which 
 #stops fldiff)
 
-PREFIX=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp
+PREFIX=@PROJECT_BINARY_DIR@
 
 OUTFILE1=$PREFIX/tests/refs/$1.out
 
@@ -22,11 +22,11 @@ TEMP2=$$.tmp2
 
 awk 'BEGIN{out=0}; {if(out == 1) {print}};\
 	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE1 | \
-	sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP1
+	sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ | grep -v 'lmax,lloc,mxprj' >$TEMP1
 
 awk 'BEGIN{out=0}; {if(out == 1) {print}};\
 	/ATOM AND REFERENCE CONFIGURATION/{out=1}' $OUTFILE2 | \
-	sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP2
+	sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ | grep -v 'lmax,lloc,mxprj' >$TEMP2
 
  $PREFIX/scripts/fldiff.pl -easy $TEMP1 $TEMP2 >& $DIFFFILE
 #$PREFIX/scripts/fldiff.pl -medium $TEMP1 $TEMP2 >& $DIFFFILE

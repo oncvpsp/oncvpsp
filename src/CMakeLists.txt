@@ -88,7 +88,7 @@ set(src_oncvpsp
 )
 # Append Libxc interface or stub
 if (Libxc_FOUND AND ONCVPSP_WITH_Libxc)
-    list(APPEND src_oncvpsp functionals.F90 exc_libxc.f90)
+    list(APPEND src_oncvpsp functionals.F90 exc_libxc.F90)
 else ()
     list(APPEND src_oncvpsp exc_libxc_stub.f90)
 endif ()
