@@ -94,13 +94,37 @@ call add_to_buffer("-->", xf%buffer)
 end subroutine xml_AddComment
 
 !-------------------------------------------------------------------
-subroutine xml_AddCdataSection(xf,cdata)
+subroutine xml_AddCdataSection(xf,cdata,line_feed)
 type(xmlf_t), intent(inout)   :: xf
 character(len=*), intent(in)  :: cdata
+logical, intent(in), optional :: line_feed
+
+logical :: advance_line
+integer :: n, i, jmax
+integer, parameter :: chunk_size = 128
+
+advance_line = .false.
+if (present(line_feed)) then
+   advance_line = line_feed
+endif
 
 call close_start_tag(xf,">")
+if (advance_line) call add_eol(xf)
 call add_to_buffer("<![CDATA[", xf%buffer)
-call add_to_buffer(cdata, xf%buffer)
+if (len(xf%buffer) > 0) call dump_buffer(xf,lf=.false.)
+
+! Bypass the fixed-size buffer for the bulk of the CDATA payload,
+! which can be arbitrarily long (e.g. an embedded input file), to
+! avoid overflowing MAX_BUFF_SIZE in m_wxml_buffer.
+n = len(cdata)
+i = 1
+do
+   jmax = min(i+chunk_size-1,n)
+   write(unit=xf%lun,fmt="(a)",advance="no") cdata(i:jmax)
+   if (jmax == n) exit
+   i = jmax + 1
+enddo
+
 call add_to_buffer("]]>", xf%buffer)
 end subroutine xml_AddCdataSection
 
