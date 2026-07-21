@@ -534,7 +534,7 @@ end subroutine psmlout
 ! Fully relativistic version
 ! Output depends on setting of 'psfile': [upf |  psp8 | both]
 !
- subroutine psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
+ subroutine psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,vpuns_sr,rho,rhomod, &
 &                  irct, &
 &                  vsr,esr,vso,eso, &
 &                  zz,zion,mmax,mxprj,iexc,icmod,nrl0,drl,atsym,epstot, &
@@ -550,8 +550,13 @@ end subroutine psmlout
 ! vsr, esr,  vso, eso  : projectors and coeffs for SR/SO split   
 !nproj  number of vkb projectors for each l
 !rr  log radial grid
-!vpuns  unscreened semi-local pseudopotentials (vp(:,5) is local potential 
-!  if linear combination is used)
+!vpuns  unscreened semi-local pseudopotentials, per j (vp(:,5,:) is local
+!  potential if linear combination is used)
+!vpuns_sr  scalar-relativistic average of vpuns, i.e. the same array used
+!  for psp8/upf output, passed straight through instead of being
+!  independently recombined here from vpuns per j (algebraically
+!  equivalent, but this avoids a redundant recomputation near r=0, where
+!  the per-j terms nearly cancel)
 !rho  valence pseudocharge
 !rhomod  model core charge
 !zz  atomic number
@@ -583,6 +588,7 @@ end subroutine psmlout
  real(dp) :: drl,zz,zion,epstot
  real(dp), target :: rr(mmax),vpuns(mmax,5,2),rho(mmax),vkb(mmax,mxprj,4,2)
  real(dp), target :: rhomod(mmax,5)
+ real(dp) :: vpuns_sr(mmax,5)
  real(dp):: rc(6),evkb(mxprj,4,2)
  real(dp), target :: vsr(mmax,2*mxprj,4),vso(mmax,2*mxprj,4)
  real(dp) :: esr(2*mxprj,4),eso(2*mxprj,4)
@@ -891,8 +897,13 @@ end subroutine psmlout
 ! sr components
     do i = 1, npots
      l1 = i
-     ! last index:  1: j=l+1/2; 2: j=l-1/2; l=0,j=0 stored in index 1
-     vps(:) = ((ll(i)+1)*vpuns(:,l1,1)+ ll(i)*vpuns(:,l1,2)) / dble(2*ll(i)+1)
+     ! Use the sr average as computed for psp8/upf output (vpuns_sr) rather
+     ! than recombining it here from the per-j vpuns: the two are
+     ! algebraically equivalent, but this avoids a redundant, independently
+     ! rounded recomputation of a value near r=0 where the per-j terms
+     ! nearly cancel, so the PSML sr values are guaranteed to agree with
+     ! psp8/upf's local-channel treatment bit for bit within a given build.
+     vps(:) = vpuns_sr(:,l1)
 
      ! This call resamples vps onto r0, but avoids extrapolation to r=0,
      ! in case unscreening of the potentials causes unwanted oscillations

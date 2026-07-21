@@ -803,7 +803,7 @@
 !
 ! Write info for PSML format
 !
- call psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpsml,rho,rhomod, &
+ call psmlout_r(lmax,lloc,rc,vkb,evkb,nproj,rr,vpsml,vpuns,rho,rhomod, &
 &             irct, &
 &             vsr,esr,vso,eso, &
 &             zz,zion,mmax,mxprj,iexc,icmod,nrl0,drl,atsym,epstot, &
