@@ -24,7 +24,7 @@
 ! Teter, Phys. Rev. B 48, 5031 (1993) , Appendix, as 
 
  subroutine modcore(icmod,rhops,rhotps,rhoc,rhoae,rhotae,rhomod, &
-&                   fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+&                   fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, ircc)
 
 !icmod  3 coefficient optimizaion, 4 for specivied fcfact and rfact
 !rhops  state-by-state pseudocharge density
@@ -43,6 +43,7 @@
 !la  angular-momenta
 !zion  ion charge
 !iexc  exchange-correlation function to be used
+!ircc  index of matching point
 
  implicit none
  integer, parameter :: dp=kind(1.0d0)
@@ -57,10 +58,10 @@
 
 !Output variables
  real(dp) :: rhomod(mmax,5)
+ integer  :: ircc            ! Index of matching point
 
 !convergence criterion
  real(dp), parameter :: eps=1.0d-7
-
 !Local variables
  real(dp) :: a0,al,et,yy,gg,a0min,a0max,dermax,psum,sf,eeel,eexc
  real(dp) :: d2mdiff,rmatch,rhocmatch
@@ -68,7 +69,7 @@
  real(dp) :: aco(5),polym(5,5),work(5,5),constm(5,5),xpow(9),fmatch(5)
  real(dp), allocatable :: vxcae(:),vxcpsp(:),vo(:),d2excae(:,:),d2excps(:,:)
  real(dp), allocatable :: dvxcae(:,:),dvxcps(:,:),vxct(:)
- integer :: ii,ierr,ircc,irmod,iter,jj,kk,ll,l1,mch
+ integer :: ii,ierr,irmod,iter,jj,kk,ll,l1,mch
  integer :: ipvt(5),nodes(4)
 
 

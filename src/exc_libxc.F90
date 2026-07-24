@@ -185,3 +185,87 @@ subroutine derivs(mmax, rho, al, rr, dpr, dppr, dlap)
  end do
  
 end subroutine derivs
+
+!
+! Adapted from libxc example in wiki
+! Alberto Garcia, for use by PSML module
+!
+subroutine libxc_info(id,libxc_str,libxc_type)
+#include "xc_version.h"
+#if XC_MAJOR_VERSION<=4
+  use xc_f90_types_m
+  use xc_f90_lib_m
+#else
+  use xc_f03_lib_m
+#endif
+
+  implicit none
+
+  integer, intent(in) :: id
+  character(len=*), intent(out) :: libxc_str, libxc_type
+
+#if XC_MAJOR_VERSION<=4
+  TYPE(xc_f90_pointer_t) :: xc_func
+  TYPE(xc_f90_pointer_t) :: xc_info
+#else
+  TYPE(xc_f03_func_t) :: xc_func
+  TYPE(xc_f03_func_info_t) :: xc_info
+#endif
+!  integer :: i
+  character(len=120) :: s1, s2
+!  type(xc_f90_pointer_t) :: str
+
+#if XC_MAJOR_VERSION<=4
+  call xc_f90_func_init(xc_func, xc_info, id, XC_UNPOLARIZED)
+#else
+  call xc_f03_func_init(xc_func, id, XC_UNPOLARIZED)
+  xc_info = xc_f03_func_get_info(xc_func)
+#endif
+
+#if XC_MAJOR_VERSION<=4
+  select case(xc_f90_info_kind(xc_info))
+#else
+  select case(xc_f03_func_info_get_kind(xc_info))
+#endif
+  case(XC_EXCHANGE)
+     libxc_type = 'exchange'
+  case(XC_CORRELATION)
+     libxc_type = 'correlation'
+  case(XC_EXCHANGE_CORRELATION)
+     write(*, '(a)') 'Correlation'
+     libxc_type =  'exchange-correlation'
+  case(XC_KINETIC)
+     write(*, '(a)') 'Correlation'
+     libxc_type =  'kinetic'
+  end select
+
+#if XC_MAJOR_VERSION<=4
+  call xc_f90_info_name(xc_info, s1)
+  select case(xc_f90_info_family(xc_info))
+#else
+  s1 = xc_f03_func_info_get_name(xc_info)
+  select case(xc_f03_func_info_get_family(xc_info))
+#endif
+  case (XC_FAMILY_LDA);       write(s2,'(a)') "LDA"
+  case (XC_FAMILY_GGA);       write(s2,'(a)') "GGA"
+  case (XC_FAMILY_HYB_GGA);   write(s2,'(a)') "Hybrid GGA"
+  case (XC_FAMILY_MGGA);      write(s2,'(a)') "MGGA"
+  case (XC_FAMILY_HYB_MGGA);  write(s2,'(a)') "Hybrid MGGA"
+  case (XC_FAMILY_LCA);       write(s2,'(a)') "LCA"
+  end select
+  write(libxc_str, '(4a)') trim(s1), ' (', trim(s2), ')'
+
+!  i = 0
+!  call xc_f90_info_refs(xc_info, i, str, s1)
+!  do while(i >= 0)
+!     write(*, '(a,i1,2a)') '[', i, '] ', trim(s1)
+!     call xc_f90_info_refs(xc_info, i, str, s1)
+!  end do
+
+#if XC_MAJOR_VERSION<=4
+  call xc_f90_func_end(xc_func)
+#else
+  call xc_f03_func_end(xc_func)
+#endif
+
+end subroutine libxc_info

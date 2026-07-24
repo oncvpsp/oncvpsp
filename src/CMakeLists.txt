@@ -28,8 +28,10 @@ set(src_oncvpsp
     lschvkbb.f90
     lschvkbbe.f90
     lschvkbs.f90
+    m_getopts.f90
     m_libxc_list.F90
     m_psmlout.f90
+    m_uuid.f90
     modcore.f90
     modcore2.f90
     modcore3.f90
@@ -86,7 +88,7 @@ set(src_oncvpsp
 )
 # Append Libxc interface or stub
 if (Libxc_FOUND AND ONCVPSP_WITH_Libxc)
-    list(APPEND src_oncvpsp functionals.F90 exc_libxc.f90)
+    list(APPEND src_oncvpsp functionals.F90 exc_libxc.F90)
 else ()
     list(APPEND src_oncvpsp exc_libxc_stub.f90)
 endif ()
@@ -120,7 +122,7 @@ endif ()
 ##########################################################
 # oncvpspnr.x (non-relativistic)
 ##########################################################
-add_executable(oncvpspnr oncvpsp.F90)
+add_executable(oncvpspnr oncvpsp_nr.F90)
 target_compile_definitions(oncvpspnr PUBLIC RELATIVISTIC=0)
 add_dependencies(oncvpspnr oncvpsp)
 target_link_libraries(oncvpspnr PRIVATE oncvpsp)

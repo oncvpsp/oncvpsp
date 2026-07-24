@@ -344,7 +344,7 @@ write(6,'(a/a/a)') '#','# MODEL CORE CHARGE', &
 &        'functional="WC"'
 
    else
-     write(6,'(t8,a)') &
+     write(6,'(t8,a,i8,a)') &
 &        'upfout: ERROR iexc = ',iexc,' is presently unsupported for UPF output'
      stop
    end if
