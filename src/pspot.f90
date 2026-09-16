@@ -58,7 +58,7 @@
 !Local variables
  real(dp), allocatable :: work(:,:)
  real(dp) :: sbfder(5)
- real(dp) :: amesh,tt,ddt,ske,ro
+ real(dp) :: amesh,tt,ttk,ske,ro
  integer :: ii,jj,kk,ll1
  integer :: ixp(4)
 
@@ -95,17 +95,26 @@
   end do
  end do
 
-!fill [0, rc] with rr * analytic pswf and 2nd derivatives
+!fill [0, rc] with rr * analytic pswf and the radial kinetic energy
+!operator (including the centrifugal term) applied to it.
+!Each basis function rr*j_l(q*rr) is an eigenfunction of that operator
+!with eigenvalue q**2/2, so T psi is obtained directly from the sbf
+!values, without derivatives.  Forming it instead as
+!0.5*(l(l+1)*psi/rr**2 - psi'') from the analytic derivatives is
+!algebraically identical but suffers catastrophic cancellation near
+!the origin for l>0 (both terms scale as rr**(l-1) and cancel to leave
+!a residual of order rr**(l+1)), which makes vpsp at the innermost grid
+!points sensitive to compiler and optimization-dependent rounding.
  do ii=1,irc
   tt=0.0d0
-  ddt=0.0d0
+  ttk=0.0d0
   do jj=1,nbas
    call sbf_rc_der(ll,qroot(jj),rr(ii),sbfder)
    tt=tt+pswfopt_sb(jj)*rr(ii)*sbfder(1)
-   ddt=ddt+pswfopt_sb(jj)*(rr(ii)*sbfder(3)+2.0d0*sbfder(2))
+   ttk=ttk+0.5d0*qroot(jj)**2*pswfopt_sb(jj)*rr(ii)*sbfder(1)
   end do
   work(ii,1)=tt
-  work(ii,3)=ddt
+  work(ii,4)=ttk
  end do
 
  do ii=1,mmax
@@ -117,8 +126,11 @@
  amesh = exp(al)
  ro=rr(5)/sqrt(amesh)
 
-!kinetic operator on psopt including centrifugal term
- work(:,4)=0.5d0*(ll*ll1*work(:,1)/rr(:)**2-work(:,3))
+!kinetic operator on psopt including centrifugal term, from numerical
+!derivatives outside rc (inside rc it was set analytically above)
+ do ii=irc+1,mmax
+  work(ii,4)=0.5d0*(ll*ll1*work(ii,1)/rr(ii)**2-work(ii,3))
+ end do
 
 
 !pseudopotential and node test
