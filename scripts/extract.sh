@@ -10,7 +10,11 @@ OUTFILE=$1.out
 
 STR1=`grep PSPCODE8 $OUTFILE`
 STR2=`grep PSP_UPF $OUTFILE`
-STR3=`grep psmlout $OUTFILE`
+# ONCVPSPPSML is now written unconditionally by every run, regardless of
+# psfile, so its presence on disk (not any text in $OUTFILE) is what
+# indicates there is a PSML file to extract.
+STR3=ONCVPSPPSML
+[ -f "$STR3" ] || STR3=""
 
 if [ "$STR1" ]
 	then
@@ -38,7 +42,7 @@ if [ "$STR3" ]
 	then
 	PSPFILE=$2/$1.oncvpsp.psml
 
-	mv ONCVPSP.psml $PSPFILE
+	mv ONCVPSPPSML $PSPFILE
 
 	echo "$PSPFILE written"
 fi

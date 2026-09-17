@@ -38,3 +38,18 @@ subroutine exc_libxc(iexc,al,rho,vxc,exc,rr,mmax)
  stop
  return
 end subroutine exc_libxc
+!
+! Just a stub
+!
+subroutine libxc_info(id,libxc_str,libxc_type)
+!  dummy substitute to allow successful
+!  build without the libxc library
+  
+
+  implicit none
+
+  integer, intent(in) :: id
+  character(len=*), intent(out) :: libxc_str, libxc_type
+
+end subroutine libxc_info
+

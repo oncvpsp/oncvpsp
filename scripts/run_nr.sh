@@ -3,8 +3,8 @@
 #which review the results
 #uses the non-relativistic all-electron atom calculation
 
-PREFIX=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp
-BIN_DIR=/Users/mverstra/CODES/ONCVPSP/GITHUB_VERSION/oncvpsp/src
+PREFIX=@PROJECT_BINARY_DIR@
+BIN_DIR=@PROJECT_BINARY_DIR@/bin
 
 INFILE=$1.dat
 
@@ -16,7 +16,11 @@ PLOTFILE=$1_nr.plot
 
 TEMP=$$.tmp
 
-$BIN_DIR/oncvpspnr.x <$INFILE >$OUTFILE
+# PSML output: capture ONCVPSPPSML and rename to a per-element filename.
+# $3 $4 $5 $6 $7 pass through PSML CLI options (-w, -c, -r ...)
+PSMLFILE=$1_nr.psml
+
+$BIN_DIR/oncvpspnr.x $3 $4 $5 $6 $7 <$INFILE >$OUTFILE
 
 grep GHOST $OUTFILE
 
@@ -28,6 +32,7 @@ awk 'BEGIN{out=0};/END_GNU/{out=0}; {if(out == 1) {print}};\
 
 sed -e s/t1/$PLOTFILE/ $TEMP | sed -e s/t2/$1_nr/ >$GNUFILE
 
+mv ONCVPSPPSML $PSMLFILE
 
 if [ "$2" != "-np" ]
 then

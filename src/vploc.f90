@@ -109,6 +109,7 @@
 
 ! create polynomial potential inside irc
 
+!! write(55,"(a,/,4(es24.16,/))") "Vlocal coeffs:", aco, bco, cco, dco
 
  if(lpopt .eq. 1) then
    do ii=1,irc

@@ -1,0 +1,65 @@
+# TOML input for oncvpsp, converted from tests/data/14_Si.dat
+# (layout of scripts/input_text_to_toml.py). Used by the *_toml CTest cases.
+
+[oncvpsp]
+atsym = "Si"
+z = 14.0
+nc = 3
+nv = 2
+iexc = 3
+
+[linear_mesh]
+a = 0.01
+rmax = 5.0
+
+[reference_configuration]
+n = [1, 2, 2, 3, 3]
+l = [0, 0, 1, 0, 1]
+f = [2.0, 2.0, 6.0, 2.0, 2.0]
+
+[pseudopotentials]
+lmax = 2
+l = [0, 1, 2]
+rc = [2.7, 2.7, 2.7]
+ep = [0.0, 0.0, 0.1]
+ncon = [5, 5, 5]
+nbas = [8, 8, 8]
+qcut = [5.0, 5.0, 5.0]
+
+[local_potential]
+lloc = 4
+lpopt = 5
+rcloc = 2.7
+dvloc0 = 0.0
+
+[vkb_projectors]
+l = [0, 1, 2]
+nproj = [2, 2, 2]
+debl = [1.0, 0.75, 0.75]
+
+[model_core_charge]
+icmod = 1
+fcfact = 0.25
+
+[log_derivative_analysis]
+epsh1 = -2.0
+epsh2 = 2.0
+depsh = 0.02
+
+[pp_output]
+psfile = "psp8"
+
+[[test_configurations]]
+n = [3, 3]
+l = [0, 1]
+f = [1.0, 2.0]
+
+[[test_configurations]]
+n = [3, 3]
+l = [0, 1]
+f = [2.0, 1.0]
+
+[[test_configurations]]
+n = [3, 3]
+l = [0, 1]
+f = [1.0, 1.0]

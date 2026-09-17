@@ -33,7 +33,7 @@
 !   Output format for ABINIT pspcod=8 and upf format for quantumespresso
 !
  use, intrinsic :: iso_fortran_env, only: stdin => input_unit, stdout => output_unit, stderr => error_unit
- use m_psmlout, only: psmlout
+ use m_psmlout, only: psmlout, copy_input_file_for_psml, copy_input_unit_for_psml, PSML_PATCH, get_ec_hints
  use input_text_m, only: read_input_text
 #if (defined WITH_TOML)
  use input_toml_m, only: read_input_toml
@@ -45,6 +45,7 @@
  integer :: ii,ierr,iexc,iexct,ios,iprint,irps,it,icmod,lpopt
  integer :: jj,kk,ll,l1,lloc,lmax,lt,inline
  integer :: mch,mchf,mmax,n1,n2,nc,nlim,nlloc,nlmax,irpsh,nrl
+ integer :: nrl0
  integer :: nv,irct,ncnf,nvt
  integer :: iprj,mxprj
  integer,allocatable :: npa(:,:)
@@ -104,7 +105,7 @@
 
  write(6,'(a/a//)') &
 &      'ONCVPSP  (Optimized Norm-Conservinng Vanderbilt PSeudopotential)', &
-&      'scalar-relativistic version 4.0.1 03/01/2019'
+&      'scalar-relativistic version 4.0.1 03/01/2019' // " + " // PSML_PATCH
 
  write(6,'(a/a/a//)') &
 &      'While it is not required under the terms of the GNU GPL, it is',&
@@ -115,40 +116,71 @@
 !srel=.false.
 
  parse_args: block
-    integer :: i
+    integer :: iarg, nargs
     character(len=256) :: arg
-    do i = 1, command_argument_count()
-       call get_command_argument(i, arg)
-       select case(arg)
+    character(len=16)  :: spec
+    nargs = command_argument_count()
+    iarg = 0
+    do while (iarg < nargs)
+       iarg = iarg + 1
+       call get_command_argument(iarg, arg)
+       select case(trim(arg))
        case('-h', '--help')
-          write (stdout, '(a)') 'Usage: oncvpsp.x [options]'
+          write (stdout, '(a)') 'Usage: oncvpsp.x [options] < legacy_input'
+          write (stdout, '(a)') '       oncvpsp.x [options] -i legacy_input'
+          write (stdout, '(a)') '       oncvpsp.x [options] -t input.toml'
           write (stdout, '(a)') 'Options:'
-          write (stdout, '(a)') '  -h, --help       Show this help message and exit'
-          write (stdout, '(a)') '  -v, --version    Show version information and exit'
-          write (stdout, '(a)') '  -i, --input      Specify input file (TOML). For legacy input, use stdin.'
+          write (stdout, '(a)') '  -h, --help             Show this help message and exit'
+          write (stdout, '(a)') '  -v, --version          Show version information and exit'
+          write (stdout, '(a)') '  -i, --input FILE       Read legacy text input from FILE instead of stdin'
+#if (defined WITH_TOML)
+          write (stdout, '(a)') '  -t, --toml-input FILE  Read TOML input from FILE'
+#else
+          write (stdout, '(a)') '  -t, --toml-input FILE  Read TOML input from FILE (not enabled in this build)'
+#endif
+          write (stdout, '(a)') '  -w                     Write pseudo-wavefunctions to the PSML file'
+          write (stdout, '(a)') '  -c                     Write PSML interpolation .check files'
+          write (stdout, '(a)') '  -r lj|sr-so|both       Relativistic content of the PSML file (oncvpspr.x only; ignored here)'
           stop 0
        case('-v', '--version')
-          write (stdout, '(a)') 'ONCVPSP (scalar-realtivistic) version 4.0.1'
+          write (stdout, '(a)') 'ONCVPSP (scalar-relativistic) version 4.0.1'
           stop 0
        case('-i', '--input')
-         if (i + 1 > command_argument_count()) then
+         if (iarg + 1 > nargs) then
             write (stderr, '(a)') 'Error: --input requires a filename argument'
             stop 1
          end if
-         call get_command_argument(i + 1, input_filename)
+         iarg = iarg + 1
+         call get_command_argument(iarg, input_filename)
          input_mode = INPUT_TEXT
 #if (defined WITH_TOML)
        case('-t', '--toml-input')
-         if (i + 1 > command_argument_count()) then
+         if (iarg + 1 > nargs) then
             write (stderr, '(a)') 'Error: --toml-input requires a filename argument'
             stop 1
          end if
-         call get_command_argument(i + 1, input_filename)
+         iarg = iarg + 1
+         call get_command_argument(iarg, input_filename)
          input_mode = INPUT_TOML
 #else
         case('-t', '--toml-input')
           error stop 'Error: TOML input support not enabled in this build.'
 #endif
+       case('-w', '-c')
+         ! PSML output options; read again by get_psml_options in m_psmlout
+       case('-r')
+         if (iarg + 1 > nargs) then
+            write (stderr, '(a)') 'Error: -r requires an argument (lj, sr-so or both)'
+            stop 1
+         end if
+         iarg = iarg + 1
+         call get_command_argument(iarg, spec)
+         select case(trim(spec))
+         case('lj', 'sr-so', 'both')
+         case default
+            write (stderr, '(a)') 'Error: -r argument must be lj, sr-so or both, got: ' // trim(spec)
+            stop 1
+         end select
        case default
        end select
     end do
@@ -157,6 +189,8 @@
  ios = 0
  select case(input_mode)
     case(INPUT_STDIN)
+! read input data
+       call copy_input_file_for_psml()
        call read_input_text(stdin, inline, &
                             atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
                             lmax, rc, ep, ncon, nbas, qcut, &
@@ -169,6 +203,8 @@
                             ncnf, nvcnf, nacnf, lacnf, facnf)
     case(INPUT_TEXT)
        open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
+! echo the input file to INP_COPY, to be embedded in the PSML output
+       call copy_input_unit_for_psml(unit, 'legacy')
        call read_input_text(unit, inline, &
                             atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
                             lmax, rc, ep, ncon, nbas, qcut, &
@@ -183,6 +219,8 @@
 #if (defined WITH_TOML)
     case(INPUT_TOML)
        open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
+! echo the input file to INP_COPY, to be embedded in the PSML output
+       call copy_input_unit_for_psml(unit, 'toml')
        call read_input_toml(unit, &
                             atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
                             lmax, rc, ep, ncon, nbas, qcut, &
@@ -229,6 +267,7 @@
 &                ncnf,na,la,nvcnf,nacnf,lacnf,ncon,nbas,nproj,psfile)
 
  nrl=int((rlmax/drl)-0.5d0)+1
+ nrl0 = nrl
 
 !PWSCF wants an even number of mesh pointe
 !if(trim(psfile)=='upf') then
@@ -470,6 +509,8 @@
 
  end do !l1
 
+ call get_ec_hints(cvgplt)
+
 ! construct Vanderbilt / Kleinman-Bylander projectors
 
  write(6,'(/a,a)') 'Construct Vanderbilt / Kleinmman-Bylander projectors'
@@ -547,15 +588,15 @@
 
  if(icmod==1) then
    call modcore(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, irct)
 
  else if(icmod==2) then
    call modcore2(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, irct)
 
  else if(icmod>=3) then
    call modcore3(icmod,rhops,rho,rhoc,rhoae,rhotae,rhomod, &
-&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc)
+&               fcfact,rcfact,irps,mmax,rr,nc,nv,la,zion,iexc, irct)
 
  end if
 
@@ -641,18 +682,15 @@
  end if
 
 
- if(trim(psfile)=='psml' .or. trim(psfile)=='both') then
 !
 ! Write info for PSML format
 !
-   print *, 'calling psmlout'
-   call psmlout(lmax,lloc,rc,vkb,evkb,mxprj,nproj,rr,vpuns,rho,rhomod, &
+ call psmlout(lmax,lloc,rc,vkb,evkb,nproj,rr,vpuns,rho,rhomod, &
 &             irct, srel, &
-&             zz,zion,mmax,iexc,icmod,nrl,drl,atsym,epstot, &
-&             na,la,ncon,nbas,nvcnf,nacnf,lacnf,nc,nv,lpopt,ncnf, &
-&             fa,rc0,ep,qcut,debl,facnf,dvloc0,fcfact, &
-&             epsh1,epsh2,depsh,rlmax,psfile)
- end if
+&             zz,zion,mmax,mxprj,iexc,icmod,nrl0,drl,atsym,epstot, &
+&             na,la,nc,nv, &
+&             fa,epa, &
+&             psfile,uupsa,ea)
 
  stop
  end program oncvpsp

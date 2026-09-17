@@ -1,0 +1,64 @@
+# TOML input for oncvpsp, converted from tests/data/80_Hg.dat
+# (layout of scripts/input_text_to_toml.py). Used by the *_toml CTest cases.
+
+[oncvpsp]
+atsym = "Hg"
+z = 80.0
+nc = 12
+nv = 2
+iexc = 3
+
+[linear_mesh]
+a = 0.01
+rmax = 7.0
+
+[reference_configuration]
+n = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 6]
+l = [0, 0, 1, 0, 1, 2, 0, 1, 2, 3, 0, 1, 2, 0]
+f = [2.0, 2.0, 6.0, 2.0, 6.0, 10.0, 2.0, 6.0, 10.0, 14.0, 2.0, 6.0, 10.0, 2.0]
+
+[pseudopotentials]
+lmax = 3
+l = [0, 1, 2, 3]
+rc = [3.2, 3.0, 2.5, 3.0]
+ep = [0.0, 0.1, 0.0, 0.3]
+ncon = [4, 4, 4, 4]
+nbas = [7, 7, 8, 8]
+qcut = [4.0, 4.0, 6.0, 4.5]
+
+[local_potential]
+lloc = 4
+lpopt = 3
+rcloc = 2.5
+dvloc0 = 0.0
+
+[vkb_projectors]
+l = [0, 1, 2, 3]
+nproj = [2, 2, 2, 2]
+debl = [1.0, 1.0, 1.2, 1.0]
+
+[model_core_charge]
+icmod = 0
+
+[log_derivative_analysis]
+epsh1 = -2.0
+epsh2 = 3.0
+depsh = 0.02
+
+[pp_output]
+psfile = "both"
+
+[[test_configurations]]
+n = [5, 6]
+l = [2, 0]
+f = [10.0, 1.0]
+
+[[test_configurations]]
+n = [5, 6, 6]
+l = [2, 0, 1]
+f = [10.0, 1.0, 1.0]
+
+[[test_configurations]]
+n = [5, 6]
+l = [2, 1]
+f = [10.0, 1.0]
