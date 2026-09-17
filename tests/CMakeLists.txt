@@ -129,3 +129,103 @@ foreach(test_name ${oncvpspr_tests})
     )
     set_property(TEST ${test_name} PROPERTY LABEL "r")
 endforeach(test_name)
+
+###########################################################
+# TOML input path: the same cases driven through -t instead of stdin.
+# The .out echoes the parsed values in oncvpsp's own format, so the
+# stdin references apply unchanged.  For the PSML comparison the
+# <input-file> element (a verbatim echo of the input: TOML here, legacy
+# text in the reference) is removed from both sides before fldiff.pl;
+# everything else must match exactly as for the stdin-driven 80_Hg case.
+###########################################################
+if(ONCVPSP_WITH_TOML)
+    set(oncvpspsr_toml_tests "14_Si")
+    foreach(test_name ${oncvpspsr_toml_tests})
+        set(test_toml "${CMAKE_SOURCE_DIR}/tests/data/${test_name}.toml")
+        set(test_out "${CMAKE_SOURCE_DIR}/tests/data/${test_name}_toml.out")
+        set(ref_out "${CMAKE_SOURCE_DIR}/tests/refs/${test_name}.out")
+        set(diff_out "${CMAKE_SOURCE_DIR}/tests/data/${test_name}_toml.diff")
+        set(test_run_dir "${CMAKE_CURRENT_BINARY_DIR}/run/${test_name}_toml")
+        file(MAKE_DIRECTORY ${test_run_dir})
+        add_test(
+            NAME ${test_name}_toml
+            COMMAND bash -c "
+                TEMP1=${test_name}_toml.tmp1
+                TEMP2=${test_name}_toml.tmp2
+                $<TARGET_FILE:oncvpspsr> -t ${test_toml} > ${test_out}
+                if [ \$? -ne 0 ]; then
+                    echo 'oncvpspsr execution failed'
+                    exit 1
+                fi
+                awk 'BEGIN{out=0}; {if(out == 1) {print}};\
+                    /ATOM AND REFERENCE CONFIGURATION/{out=1}' ${ref_out} | \
+                    sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP1
+                awk 'BEGIN{out=0}; {if(out == 1) {print}};\
+                    /ATOM AND REFERENCE CONFIGURATION/{out=1}' ${test_out} | \
+                    sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP2
+                perl ${CMAKE_SOURCE_DIR}/scripts/fldiff.pl -easy $TEMP1 $TEMP2 > ${diff_out}
+                rm -f $TEMP1 $TEMP2
+                grep -E 'Summary  : no significant difference|Summary  : different lines=\\s*[0-9]+ , max abs_diff= -?0\\.000e[\\+\\-]00 \\(.*\\), max rel_diff= -?0\\.000e[\\+\\-]00 \\(.*\\)' ${diff_out}
+                success=\$?
+                cat ${diff_out}
+                exit \$success
+            "
+            WORKING_DIRECTORY ${test_run_dir}
+        )
+        set_property(TEST ${test_name}_toml PROPERTY LABELS "sr;toml")
+    endforeach(test_name)
+
+    set(oncvpspr_toml_tests "80_Hg")
+    foreach(test_name ${oncvpspr_toml_tests})
+        set(test_toml "${CMAKE_SOURCE_DIR}/tests/data/${test_name}.toml")
+        set(test_out "${CMAKE_SOURCE_DIR}/tests/data/${test_name}_toml_r.out")
+        set(ref_out "${CMAKE_SOURCE_DIR}/tests/refs/${test_name}_r.out")
+        set(diff_out "${CMAKE_SOURCE_DIR}/tests/data/${test_name}_toml_r.diff")
+        set(psml_ref "${CMAKE_SOURCE_DIR}/tests/refs/${test_name}_r.oncvpsp.psml")
+        set(psml_out "${CMAKE_SOURCE_DIR}/tests/data/${test_name}_toml_r.oncvpsp.psml")
+        set(psml_diff_out "${CMAKE_SOURCE_DIR}/tests/data/${test_name}_toml_r.oncvpsp.diff")
+        set(test_run_dir "${CMAKE_CURRENT_BINARY_DIR}/run/${test_name}_toml_r")
+        file(MAKE_DIRECTORY ${test_run_dir})
+        add_test(
+            NAME ${test_name}_toml
+            COMMAND bash -c "
+                TEMP1=${test_name}_toml.tmp1
+                TEMP2=${test_name}_toml.tmp2
+                $<TARGET_FILE:oncvpspr> -t ${test_toml} > ${test_out}
+                if [ \$? -ne 0 ]; then
+                    echo 'oncvpspr execution failed'
+                    exit 1
+                fi
+                awk 'BEGIN{out=0}; {if(out == 1) {print}};\
+                    /ATOM AND REFERENCE CONFIGURATION/{out=1}' ${ref_out} | \
+                    sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP1
+                awk 'BEGIN{out=0}; {if(out == 1) {print}};\
+                    /ATOM AND REFERENCE CONFIGURATION/{out=1}' ${test_out} | \
+                    sed -e /pspd/s/^/-/ | sed -e /date/s/^/-/ >$TEMP2
+                perl ${CMAKE_SOURCE_DIR}/scripts/fldiff.pl -easy $TEMP1 $TEMP2 > ${diff_out}
+                grep -E 'Summary  : no significant difference|Summary  : different lines=\\s*[0-9]+ , max abs_diff= -?0\\.000e[\\+\\-]00 \\(.*\\), max rel_diff= -?0\\.000e[\\+\\-]00 \\(.*\\)' ${diff_out}
+                success=\$?
+                cat ${diff_out}
+                if [ \$success -ne 0 ]; then
+                    rm -f $TEMP1 $TEMP2
+                    exit \$success
+                fi
+                mv ONCVPSPPSML ${psml_out}
+                if [ \$? -ne 0 ]; then
+                    echo '${test_name}_toml PSML output missing'
+                    exit 1
+                fi
+                sed -e '/<input-file/,/<\\/input-file>/d' ${psml_ref} >$TEMP1
+                sed -e '/<input-file/,/<\\/input-file>/d' ${psml_out} >$TEMP2
+                perl ${CMAKE_SOURCE_DIR}/scripts/fldiff.pl -easy $TEMP1 $TEMP2 > ${psml_diff_out}
+                rm -f $TEMP1 $TEMP2
+                grep -E 'Summary  : no significant difference|Summary  : different lines=\\s*[0-9]+ , max abs_diff= -?0\\.000e[\\+\\-]00 \\(.*\\), max rel_diff= -?0\\.000e[\\+\\-]00 \\(.*\\)' ${psml_diff_out}
+                psml_success=\$?
+                cat ${psml_diff_out}
+                exit \$psml_success
+            "
+            WORKING_DIRECTORY ${test_run_dir}
+        )
+        set_property(TEST ${test_name}_toml PROPERTY LABELS "r;toml")
+    endforeach(test_name)
+endif()
