@@ -290,15 +290,25 @@ module input_toml_m
       call get_value(table, "model_core_charge", child)
       call check_associated(child, "[model_core_charge] section")
       call get_value(child, "icmod", icmod)
-      call get_value(child, "fcfact", fcfact)
+      ! fcfact and rcfact are optional (default 0), as in the text reader.
+      ! toml-f leaves the variable untouched when a key is absent and no
+      ! default is given, so each optional scalar carries its default here.
+      call get_value(child, "fcfact", fcfact, 0.0_dp)
       if (icmod >= 0 .and. icmod <= 2) then
          rcfact = 0.0_dp
       else if (icmod >= 3 .and. icmod <= 4) then
-         call get_value(child, "rcfact", rcfact)
+         call get_value(child, "rcfact", rcfact, 0.0_dp)
       else
          write (stderr, '(A)') 'Error: Invalid icmod in [model_core_charge] section. Must be 0, 1, 2, 3, or 4.'
          stop 1
       end if
+      ! icmod=4 optimization grid: same defaults as the text reader
+      call get_value(child, "fcfact_min", fcfact_min, 1.5_dp)
+      call get_value(child, "fcfact_max", fcfact_max, 6.0_dp)
+      call get_value(child, "fcfact_step", fcfact_step, 0.5_dp)
+      call get_value(child, "rcfact_min", rcfact_min, 1.0_dp)
+      call get_value(child, "rcfact_max", rcfact_max, 1.9_dp)
+      call get_value(child, "rcfact_step", rcfact_step, 0.1_dp)
 
       !! Log-derivative analysis section (required)
       call get_value(table, "log_derivative_analysis", child)
@@ -675,15 +685,25 @@ module input_toml_m
       call get_value(table, "model_core_charge", child)
       call check_associated(child, "[model_core_charge] section")
       call get_value(child, "icmod", icmod)
-      call get_value(child, "fcfact", fcfact)
+      ! fcfact and rcfact are optional (default 0), as in the text reader.
+      ! toml-f leaves the variable untouched when a key is absent and no
+      ! default is given, so each optional scalar carries its default here.
+      call get_value(child, "fcfact", fcfact, 0.0_dp)
       if (icmod >= 0 .and. icmod <= 2) then
          rcfact = 0.0_dp
       else if (icmod >= 3 .and. icmod <= 4) then
-         call get_value(child, "rcfact", rcfact)
+         call get_value(child, "rcfact", rcfact, 0.0_dp)
       else
          write (stderr, '(A)') 'Error: Invalid icmod in [model_core_charge] section. Must be 0, 1, 2, 3, or 4.'
          stop 1
       end if
+      ! icmod=4 optimization grid: same defaults as the text reader
+      call get_value(child, "fcfact_min", fcfact_min, 1.5_dp)
+      call get_value(child, "fcfact_max", fcfact_max, 6.0_dp)
+      call get_value(child, "fcfact_step", fcfact_step, 0.5_dp)
+      call get_value(child, "rcfact_min", rcfact_min, 1.0_dp)
+      call get_value(child, "rcfact_max", rcfact_max, 1.9_dp)
+      call get_value(child, "rcfact_step", rcfact_step, 0.1_dp)
 
       !! Log-derivative analysis section (required)
       call get_value(table, "log_derivative_analysis", child)
