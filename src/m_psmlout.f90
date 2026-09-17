@@ -23,7 +23,7 @@ module m_psmlout
 
   implicit none
   
-  public :: psmlout, psmlout_r, copy_input_file_for_psml
+  public :: psmlout, psmlout_r, copy_input_file_for_psml, copy_input_unit_for_psml
   public :: get_ec_hints
   private
 
@@ -37,6 +37,11 @@ module m_psmlout
   character(len=*), parameter, public :: PSML_PATCH = "psml-4.0.1-81"
   character(len=*), parameter, public :: PSML_CREATOR = "ONCVPSP-4.0.1" // "+" // PSML_PATCH
   character(len=*), parameter :: PSML_FILENAME = "ONCVPSPPSML"
+
+! Syntax of the input echoed in the <input-file> element: "legacy" (oncvpsp
+! text format, stdin or -i) or "toml" (-t).  Set by the copy_input_* routines
+! below, written as the element's "format" attribute.
+  character(len=8), save :: psml_input_format = "legacy"
 
   integer, parameter  :: POLY_ORDER_EXTRAPOL = 7  ! For extrapolation at r=0
 
@@ -188,6 +193,7 @@ module m_psmlout
   call xml_EndElement(xf,"annotation")
   call xml_NewElement(xf,"input-file")
   call my_add_attribute(xf,"name","oncvpsp-input")
+  call my_add_attribute(xf,"format",psml_input_format)
 !
 !    Use INP_COPY (generated in the main program)
 !
@@ -679,6 +685,7 @@ end subroutine psmlout
   call xml_EndElement(xf,"annotation")
   call xml_NewElement(xf,"input-file")
   call my_add_attribute(xf,"name","oncvpsp-input")
+  call my_add_attribute(xf,"format",psml_input_format)
 !
 !    Use INP_COPY (generated in the main program)
 !                                                                                               
@@ -1572,7 +1579,7 @@ subroutine copy_input_file_for_psml()
 ! Makes two copies of the input file: one for oncvpsp
 ! to read, and another to echo the input in the PSML file
 
-      character(len=132) :: line
+      character(len=512) :: line
       integer            :: stat
 
       open(unit=55,file='INPUT_FILE',action='write',status='replace', &
@@ -1588,6 +1595,7 @@ subroutine copy_input_file_for_psml()
       close(5)
       close(55)
       close(66)
+      psml_input_format = "legacy"
 
 !  Now re-open INPUT_FILE as unit 5 for further processing
 !  by oncvpsp
@@ -1596,6 +1604,31 @@ subroutine copy_input_file_for_psml()
            form='formatted',position='rewind')
       
 end subroutine copy_input_file_for_psml
+
+subroutine copy_input_unit_for_psml(unit, input_format)
+! Echoes the input file already open on 'unit' (the -i / -t modes of the
+! main programs) to INP_COPY for embedding in the PSML file, records its
+! syntax ("legacy" or "toml") for the <input-file format="..."> attribute,
+! and leaves 'unit' rewound for the actual reader.
+
+      integer, intent(in)          :: unit
+      character(len=*), intent(in) :: input_format
+
+      character(len=512) :: line
+      integer            :: cunit, stat
+
+      open(newunit=cunit,file='INP_COPY',action='write',status='replace', &
+           form='formatted')
+      do
+         read(unit,fmt="(a)",iostat=stat) line
+         if (stat .ne. 0) exit
+         write(cunit,fmt="(a)") trim(line)
+      enddo
+      close(cunit)
+      rewind(unit)
+      psml_input_format = input_format
+
+end subroutine copy_input_unit_for_psml
 
 subroutine cdata_section_from_file(xf,filename)
   use xmlf90_wxml

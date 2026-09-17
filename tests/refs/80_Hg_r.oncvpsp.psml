@@ -6,7 +6,7 @@
  date="2026-09-16">
 <annotation action="semilocal-pseudopotential-generation"
  action-cont="projectors-generation" />
-<input-file name="oncvpsp-input">
+<input-file name="oncvpsp-input" format="legacy">
 <![CDATA[# ATOM AND REFERENCE CONFIGURATION
 # atsym, z, nc, nv, iexc   psfile
     Hg  80.0  12   2   3   both

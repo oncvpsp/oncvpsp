@@ -33,7 +33,7 @@
 !   Output format for ABINIT pspcod=8 and upf format for quantumespresso
 !
  use, intrinsic :: iso_fortran_env, only: stdin => input_unit, stdout => output_unit, stderr => error_unit
- use m_psmlout, only: psmlout_r, copy_input_file_for_psml, PSML_PATCH, get_ec_hints
+ use m_psmlout, only: psmlout_r, copy_input_file_for_psml, copy_input_unit_for_psml, PSML_PATCH, get_ec_hints
  use input_text_m, only: read_input_text_r
 #if (defined WITH_TOML)
  use input_toml_m, only: read_input_toml_r
@@ -204,18 +204,7 @@
     case(INPUT_TEXT)
        open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
 ! echo the input file to INP_COPY, to be embedded in the PSML output
-       copy_input_text: block
-          character(len=132) :: line
-          integer :: cunit, cstat
-          open(newunit=cunit, file='INP_COPY', action='write', status='replace', form='formatted')
-          do
-             read(unit, fmt="(a)", iostat=cstat) line
-             if (cstat /= 0) exit
-             write(cunit, fmt="(a)") trim(line)
-          end do
-          close(cunit)
-          rewind(unit)
-       end block copy_input_text
+       call copy_input_unit_for_psml(unit, 'legacy')
        call read_input_text_r(unit, inline, &
                               atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
                               lmax, rc, ep, ncon, nbas, qcut, &
@@ -230,18 +219,7 @@
     case(INPUT_TOML)
        open(newunit=unit, file=input_filename, status='old', action='read', iostat=ios)
 ! echo the input file to INP_COPY, to be embedded in the PSML output
-       copy_input_toml: block
-          character(len=132) :: line
-          integer :: cunit, cstat
-          open(newunit=cunit, file='INP_COPY', action='write', status='replace', form='formatted')
-          do
-             read(unit, fmt="(a)", iostat=cstat) line
-             if (cstat /= 0) exit
-             write(cunit, fmt="(a)") trim(line)
-          end do
-          close(cunit)
-          rewind(unit)
-       end block copy_input_toml
+       call copy_input_unit_for_psml(unit, 'toml')
        call read_input_toml_r(unit, &
                               atsym, zz, nc, nv, iexc, psfile, na, la, fa, &
                               lmax, rc, ep, ncon, nbas, qcut, &
