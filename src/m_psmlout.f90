@@ -1732,50 +1732,54 @@ subroutine cdata_section_from_file(xf,filename)
 end subroutine exchange_correlation_info
 
 subroutine get_psml_options(write_wfns,check_interp,relat_output_spec)
-  use m_getopts
-
+!
+! Scan the command line for the PSML output options:
+!
+!   -w       : write pseudo-wavefunctions to the psml file
+!   -c       : write interpolation .check files
+!   -r SPEC  : kind of relativistic output, SPEC = lj | sr-so | both
+!
+! The main programs (parse_args in oncvpsp*.F90) own the command line:
+! they handle -h/-v/-i/-t and validate SPEC before the calculation starts.
+! This routine is a second, tolerant pass that only picks up the three
+! options above.  It skips the file argument of -i/--input/-t/--toml-input
+! and ignores anything else, so it can never abort the run: it is called
+! from psmlout/psmlout_r at the very end, after the psp8/upf files have
+! been written, and an abort here would silently lose the PSML file.
+!
   logical, intent(out)          :: write_wfns
   logical, intent(out)          :: check_interp
   character(len=*), intent(out), optional :: relat_output_spec
-  
-      character(len=200) :: opt_arg
-      character(len=10)  :: opt_name, spec
-      integer :: iostat, n_opts
 
-      !     Process options
+      integer :: iarg, nargs
+      character(len=256) :: arg
+      character(len=16)  :: spec
 
       write_wfns = .false.
       check_interp = .false.
       spec = ""
-      n_opts = 0
-      do
-!        i: and t: (BE-ref's -i/-t input-file selectors) and h,v (BE-ref's
-!        -h/-v help/version flags) are accepted here purely so this scan
-!        does not treat them as unknown options; the main program's own
-!        argument parser already handles them.
-         call getopts('wr:ci:t:hv',opt_name,opt_arg,n_opts,iostat)
-         if (iostat /= 0) exit
-         select case(opt_name)
-           case ('c')
-              check_interp = .true.
-           case ('w')
+      nargs = command_argument_count()
+      iarg = 0
+      do while (iarg < nargs)
+         iarg = iarg + 1
+         call get_command_argument(iarg, arg)
+         select case (trim(arg))
+           case ('-w')
               write_wfns = .true.
-           case ('r')
-              read(opt_arg,*) spec
-           case ('i','t','h','v')
-              ! Handled by the main program; ignored here.
-           case ('?',':')
-             write(0,*) "Invalid option: ", opt_arg(1:1)
-             write(0,*) "Usage: oncvpsp [-c -w -r spec]"
-             write(0,*) " -c  : produce interpolation .check files"
-             write(0,*) " -w  : output pseudo-wavefunctions in psml file"
-             write(0,*) " -r [ lj | sr-so | both ] : kind of relativistic output" 
-             STOP
-          end select
-       enddo
-       if (present(relat_output_spec)) then
-          relat_output_spec = spec
-       endif
+           case ('-c')
+              check_interp = .true.
+           case ('-r')
+              iarg = iarg + 1
+              if (iarg <= nargs) call get_command_argument(iarg, spec)
+           case ('-i', '--input', '-t', '--toml-input')
+              iarg = iarg + 1      ! skip the file name
+           case default
+              ! not a PSML option; the main program has dealt with it
+         end select
+      enddo
+      if (present(relat_output_spec)) then
+         relat_output_spec = spec
+      endif
 
 end subroutine get_psml_options
 

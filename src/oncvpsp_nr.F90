@@ -116,40 +116,71 @@
  srel=.false.
 
  parse_args: block
-    integer :: i
+    integer :: iarg, nargs
     character(len=256) :: arg
-    do i = 1, command_argument_count()
-       call get_command_argument(i, arg)
-       select case(arg)
+    character(len=16)  :: spec
+    nargs = command_argument_count()
+    iarg = 0
+    do while (iarg < nargs)
+       iarg = iarg + 1
+       call get_command_argument(iarg, arg)
+       select case(trim(arg))
        case('-h', '--help')
-          write (stdout, '(a)') 'Usage: oncvpspnr.x [options]'
+          write (stdout, '(a)') 'Usage: oncvpspnr.x [options] < legacy_input'
+          write (stdout, '(a)') '       oncvpspnr.x [options] -i legacy_input'
+          write (stdout, '(a)') '       oncvpspnr.x [options] -t input.toml'
           write (stdout, '(a)') 'Options:'
-          write (stdout, '(a)') '  -h, --help       Show this help message and exit'
-          write (stdout, '(a)') '  -v, --version    Show version information and exit'
-          write (stdout, '(a)') '  -i, --input      Specify input file (TOML). For legacy input, use stdin.'
+          write (stdout, '(a)') '  -h, --help             Show this help message and exit'
+          write (stdout, '(a)') '  -v, --version          Show version information and exit'
+          write (stdout, '(a)') '  -i, --input FILE       Read legacy text input from FILE instead of stdin'
+#if (defined WITH_TOML)
+          write (stdout, '(a)') '  -t, --toml-input FILE  Read TOML input from FILE'
+#else
+          write (stdout, '(a)') '  -t, --toml-input FILE  Read TOML input from FILE (not enabled in this build)'
+#endif
+          write (stdout, '(a)') '  -w                     Write pseudo-wavefunctions to the PSML file'
+          write (stdout, '(a)') '  -c                     Write PSML interpolation .check files'
+          write (stdout, '(a)') '  -r lj|sr-so|both       Relativistic content of the PSML file (oncvpspr.x only; ignored here)'
           stop 0
        case('-v', '--version')
-          write (stdout, '(a)') 'ONCVPSP (non-realtivistic) version 4.0.1'
+          write (stdout, '(a)') 'ONCVPSP (non-relativistic) version 4.0.1'
           stop 0
        case('-i', '--input')
-         if (i + 1 > command_argument_count()) then
+         if (iarg + 1 > nargs) then
             write (stderr, '(a)') 'Error: --input requires a filename argument'
             stop 1
          end if
-         call get_command_argument(i + 1, input_filename)
+         iarg = iarg + 1
+         call get_command_argument(iarg, input_filename)
          input_mode = INPUT_TEXT
 #if (defined WITH_TOML)
        case('-t', '--toml-input')
-         if (i + 1 > command_argument_count()) then
+         if (iarg + 1 > nargs) then
             write (stderr, '(a)') 'Error: --toml-input requires a filename argument'
             stop 1
          end if
-         call get_command_argument(i + 1, input_filename)
+         iarg = iarg + 1
+         call get_command_argument(iarg, input_filename)
          input_mode = INPUT_TOML
 #else
         case('-t', '--toml-input')
           error stop 'Error: TOML input support not enabled in this build.'
 #endif
+       case('-w', '-c')
+         ! PSML output options; read again by get_psml_options in m_psmlout
+       case('-r')
+         if (iarg + 1 > nargs) then
+            write (stderr, '(a)') 'Error: -r requires an argument (lj, sr-so or both)'
+            stop 1
+         end if
+         iarg = iarg + 1
+         call get_command_argument(iarg, spec)
+         select case(trim(spec))
+         case('lj', 'sr-so', 'both')
+         case default
+            write (stderr, '(a)') 'Error: -r argument must be lj, sr-so or both, got: ' // trim(spec)
+            stop 1
+         end select
        case default
        end select
     end do
