@@ -28,7 +28,6 @@ set(src_oncvpsp
     lschvkbb.f90
     lschvkbbe.f90
     lschvkbs.f90
-    m_getopts.f90
     m_libxc_list.F90
     m_psmlout.f90
     m_uuid.f90
