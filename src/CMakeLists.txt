@@ -42,6 +42,7 @@ set(src_oncvpsp
     sbf_basis.f90
     sbf_rc_der.f90
     sbf8.f90
+    smootherstep.f90
     tfapot.f90
     vkboutwf.f90
     vkbphsft.f90

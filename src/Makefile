@@ -11,7 +11,7 @@ OBJS_ALL =	aeo.o check_data.o const_basis.o dpnint.o eresid.o exchdl.o \
 		lschfb.o lschfs.o lschkb.o lschpb.o lschpse.o lschps.o \
 		lschvkbbe.o lschvkbb.o lschvkbs.o modcore.o optimize.o \
 		pspot.o qroots.o run_optimize.o sbf8.o sbf_basis.o \
-		sbf_rc_der.o tfapot.o vkboutwf.o vkbphsft.o vout.o vpinteg.o \
+		sbf_rc_der.o smootherstep.o tfapot.o vkboutwf.o vkbphsft.o vout.o vpinteg.o \
 		vploc.o wf_rc_der.o modcore2.o gg1cc.o gp1cc.o gpp1cc.o \
 		der2exc.o modcore3.o sbf_basis_con.o run_ghosts.o \
 		lschpsbar.o vrel.o

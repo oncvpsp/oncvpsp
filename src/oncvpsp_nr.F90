@@ -75,6 +75,7 @@
  real(dp) :: epx(6),fpx(6)
  real(dp) :: epstot
  real(dp), parameter :: eps=1.0d-8
+ real(dp) :: smootherstep ! function in smootherstep.f90
 
  real(dp), allocatable :: evkb(:,:),cvgplt(:,:,:,:),qq(:,:)
  real(dp), allocatable :: rr(:)
@@ -589,6 +590,16 @@
    else
      exit
    end if
+ end do
+
+!smoothly force vpuns to be equal to -zion/r beyond the max rc (over a 1 a.u. window)
+!to avoid noise in the psp correction energy \int dr 4pi r^2 (vloc + Z/r)
+ do ii=mmax,1,-1
+  do l1=1,max(lmax+1,lloc+1)
+   if (rr(ii) > rcmax) then
+    vpuns(ii,l1)=-zion/rr(ii) + (vpuns(ii,l1)+zion/rr(ii)) * smootherstep(1.0+(rcmax-rr(ii))/1.0)
+   end if
+  end do
  end do
 
 
